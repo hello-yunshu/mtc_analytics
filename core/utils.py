@@ -70,3 +70,19 @@ def decrypt_value(ciphertext: str, secret_key: str) -> str:
         logger.warning("检测到不安全的旧格式加密数据，请重新加密")
         return ""
     return ciphertext
+
+
+def is_trading_hours():
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    weekday = now.weekday()
+    if weekday >= 5:
+        return False
+    hour = now.hour
+    minute = now.minute
+    t = hour * 60 + minute
+    if 30 <= t < 570:
+        return True
+    if 740 <= t < 1050:
+        return True
+    return False

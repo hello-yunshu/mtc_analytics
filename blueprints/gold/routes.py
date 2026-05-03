@@ -9,7 +9,6 @@ API routes are prefixed with /gold via Blueprint registration.
 import json
 import re
 import os
-import hashlib
 import secrets
 import time
 import math
@@ -24,8 +23,8 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from core.utils import load_json, save_json, encrypt_value, decrypt_value
-from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_ENABLED
+from core.utils import load_json, save_json, encrypt_value, decrypt_value, is_trading_hours
+from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_ENABLED, SENSITIVE_FIELDS, get_telegram_config
 from core.macro_fetcher import get_macro_summary
 from core.security import (
     is_ip_banned, check_api_rate_limit, check_login_rate_limit,
@@ -40,11 +39,13 @@ from . import gold_bp
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "data", "web_settings.json")
 REPORTS_DIR = os.path.join(_PROJECT_ROOT, "data", "reports")
-SENSITIVE_FIELDS = {"llm_api_key", "telegram_bot_token", "fred_api_key"}
 
 _sse_connections = 0
 _sse_lock = threading.Lock()
 SSE_MAX_CONNECTIONS = 10
+
+_sse_invalidated_sessions = set()
+_sse_invalidated_lock = threading.Lock()
 
 CSRF_TOKEN_EXPIRY = 3600
 
@@ -97,6 +98,7 @@ DATE_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
 def _get_or_create_default_password():
     pw_file = os.path.join(_PROJECT_ROOT, "data", ".default_password")
+    initial_pw_file = os.path.join(_PROJECT_ROOT, "data", ".initial_password")
     lock_file = pw_file + ".lock"
     os.makedirs(os.path.dirname(pw_file), exist_ok=True)
     import fcntl
@@ -109,11 +111,16 @@ def _get_or_create_default_password():
             random_pw = secrets.token_urlsafe(12)
             pw_hash = generate_password_hash(random_pw, method='pbkdf2:sha256')
             save_json(pw_file, {"password_hash": pw_hash}, private=True)
-            _security_logger.warning("首次启动 - 已生成随机登录密码: %s", random_pw)
+            try:
+                with open(initial_pw_file, "w", encoding="utf-8") as f:
+                    f.write(random_pw)
+                os.chmod(initial_pw_file, 0o600)
+            except OSError:
+                pass
+            _security_logger.warning("首次启动 - 已生成随机登录密码，请查看 data/.initial_password")
             print(f"\n{'='*50}")
             print(f"  首次启动 - 已生成随机登录密码")
-            print(f"  密码: {random_pw}")
-            print(f"  请妥善保存，此密码仅显示一次")
+            print(f"  请查看 data/.initial_password 获取密码")
             print(f"{'='*50}\n")
             return pw_hash
         finally:
@@ -122,27 +129,9 @@ def _get_or_create_default_password():
 
 DEFAULT_PASSWORD_HASH = _get_or_create_default_password()
 
-
-def _is_trading_hours():
-    now = datetime.now(timezone.utc)
-    weekday = now.weekday()
-    if weekday >= 5:
-        return False
-    hour = now.hour
-    minute = now.minute
-    t = hour * 60 + minute
-    if 30 <= t < 570:
-        return True
-    if 740 <= t < 1050:
-        return True
-    return False
-
-
-def _get_telegram_config():
-    ws = _get_settings()
-    token = _decrypt_value(ws.get("telegram_bot_token", "")) or TELEGRAM_BOT_TOKEN
-    chat_id = ws.get("telegram_chat_id", TELEGRAM_CHAT_ID)
-    return token, chat_id
+if len(DEFAULT_PASSWORD_HASH) == 64 and all(c in '0123456789abcdef' for c in DEFAULT_PASSWORD_HASH):
+    _security_logger.warning("检测到旧式SHA256密码哈希，请通过Web界面重新设置密码以升级安全性")
+    print("  [安全警告] 检测到旧式SHA256密码哈希，请通过Web界面重新设置密码")
 
 
 def _check_and_notify_price_alert(price_data: dict):
@@ -171,7 +160,7 @@ def _check_and_notify_price_alert(price_data: dict):
     except Exception:
         pass
     try:
-        tg_token, tg_chat_id = _get_telegram_config()
+        tg_token, tg_chat_id = get_telegram_config(_get_settings(), _decrypt_value)
         if not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE" or not tg_chat_id:
             return
         from core.telegram_bot import TelegramBot
@@ -348,7 +337,7 @@ def _background_refresh_loop():
     while True:
         try:
             ws = _get_settings()
-            interval = (ws.get("realtime_interval_trading", 30) if _is_trading_hours()
+            interval = (ws.get("realtime_interval_trading", 30) if is_trading_hours()
                         else ws.get("realtime_interval_nontrading", 240)) * 60
             time.sleep(interval)
             _fetch_and_cache_macro()
@@ -420,13 +409,7 @@ def _invalidate_settings_cache():
         _settings_cache["time"] = 0
 
 
-def _is_legacy_hash(pw_hash):
-    return len(pw_hash) == 64 and all(c in '0123456789abcdef' for c in pw_hash)
-
-
 def _verify_password(password, stored_hash):
-    if _is_legacy_hash(stored_hash):
-        return hashlib.sha256(password.encode()).hexdigest() == stored_hash
     return check_password_hash(stored_hash, password)
 
 
@@ -966,9 +949,6 @@ def api_login():
         session["logged_in"] = True
         session.permanent = True
         _generate_csrf_token()
-        if _is_legacy_hash(pw_hash):
-            settings["password_hash"] = generate_password_hash(password, method='pbkdf2:sha256')
-            save_json(SETTINGS_FILE, settings, private=True)
         clear_login_attempts(ip)
         _security_logger.info("登录成功: IP=%s", ip)
         return jsonify({"ok": True, "csrf_token": session['csrf_token']})
@@ -980,6 +960,10 @@ def api_login():
 @gold_bp.route("/api/logout", methods=["POST"])
 @csrf_required
 def api_logout():
+    csrf_token = session.get("csrf_token", "")
+    if csrf_token:
+        with _sse_invalidated_lock:
+            _sse_invalidated_sessions.add(csrf_token)
     session.pop("logged_in", None)
     session.pop("csrf_token", None)
     session.pop("csrf_token_time", None)
@@ -1326,6 +1310,8 @@ def api_price_stream():
             return jsonify({"error": "连接数已达上限"}), 503
         _sse_connections += 1
 
+    session_id = session.get("csrf_token", "")
+
     def generate():
         last_ts = 0
         start_time = time.time()
@@ -1334,9 +1320,11 @@ def api_price_stream():
             while True:
                 if time.time() - start_time > 1800:
                     break
-                if not session.get("logged_in"):
-                    yield f"data: {json.dumps({'type': 'auth_required'})}\n\n"
-                    break
+                with _sse_invalidated_lock:
+                    if session_id in _sse_invalidated_sessions:
+                        _sse_invalidated_sessions.discard(session_id)
+                        yield f"data: {json.dumps({'type': 'auth_required'})}\n\n"
+                        break
                 try:
                     with _latest_price["lock"]:
                         data = _latest_price["data"]

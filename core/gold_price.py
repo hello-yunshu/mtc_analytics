@@ -52,21 +52,21 @@ _US_FIXED_HOLIDAYS = {
 
 def _compute_us_holidays(year: int) -> set:
     """计算指定年份的美国假日（COMEX休市日）"""
-    from datetime import date
+    from datetime import date, timedelta as _td
     holidays = set()
 
     holidays.add(f"{year}-01-01")
 
     mlk_day = date(year, 1, 1)
     while mlk_day.weekday() != 0:
-        mlk_day = date(year, 1, mlk_day.day + 1)
-    mlk_day = date(year, 1, mlk_day.day + 14)
+        mlk_day += _td(days=1)
+    mlk_day += _td(days=14)
     holidays.add(mlk_day.isoformat())
 
     pres_day = date(year, 2, 1)
     while pres_day.weekday() != 0:
-        pres_day = date(year, 2, pres_day.day + 1)
-    pres_day = date(year, 2, pres_day.day + 14)
+        pres_day += _td(days=1)
+    pres_day += _td(days=14)
     holidays.add(pres_day.isoformat())
 
     easter = _easter_sunday(year)
@@ -75,7 +75,7 @@ def _compute_us_holidays(year: int) -> set:
 
     mem_day = date(year, 5, 31)
     while mem_day.weekday() != 0:
-        mem_day = date(year, 5, mem_day.day - 1)
+        mem_day -= _td(days=1)
     holidays.add(mem_day.isoformat())
 
     if date(year, 7, 4).weekday() == 5:
@@ -87,13 +87,13 @@ def _compute_us_holidays(year: int) -> set:
 
     labor_day = date(year, 9, 1)
     while labor_day.weekday() != 0:
-        labor_day = date(year, 9, labor_day.day + 1)
+        labor_day += _td(days=1)
     holidays.add(labor_day.isoformat())
 
     thanksgiving = date(year, 11, 1)
     while thanksgiving.weekday() != 3:
-        thanksgiving = date(year, 11, thanksgiving.day + 1)
-    thanksgiving = date(year, 11, thanksgiving.day + 21)
+        thanksgiving += _td(days=1)
+    thanksgiving += _td(days=21)
     holidays.add(thanksgiving.isoformat())
 
     if date(year, 12, 25).weekday() == 5:

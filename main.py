@@ -17,6 +17,7 @@ from core.config import (
     SCHEDULE_HOUR, SCHEDULE_MINUTE,
     SCHEDULE_HOUR2, SCHEDULE_MINUTE2,
     TELEGRAM_PUSH_HOUR, TELEGRAM_PUSH_MINUTE,
+    get_telegram_config,
 )
 from core.fetcher import fetch_holdings_data, calculate_net_positions
 from core.analyzer import HoldingsAnalyzer
@@ -30,7 +31,7 @@ from core.telegram_bot import TelegramBot
 from core.macro_fetcher import fetch_macro_indicators
 from core.model_iteration import run_iteration, get_iteration_status
 from core.institutional_consensus import fetch_institutional_consensus, compare_with_consensus, compute_consensus_with_manual, get_manual_views
-from core.utils import load_json
+from core.utils import load_json, is_trading_hours
 
 
 def _get_web_settings():
@@ -75,7 +76,7 @@ def push_latest_report():
         print(f"[Telegram 推送] 读取报告失败: {e}")
         return
     print(f"[Telegram 推送] 推送最新报告: {date_str}")
-    tg_token, tg_chat_id = _get_telegram_config()
+    tg_token, tg_chat_id = get_telegram_config(_get_web_settings())
     if not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
         print("[Telegram 推送] 未配置 Bot Token，跳过")
         return
@@ -96,13 +97,6 @@ def _get_realtime_intervals():
     trading = ws.get("realtime_interval_trading", 30)
     nontrading = ws.get("realtime_interval_nontrading", 240)
     return trading, nontrading
-
-
-def _get_telegram_config():
-    ws = _get_web_settings()
-    token = ws.get("telegram_bot_token", TELEGRAM_BOT_TOKEN)
-    chat_id = ws.get("telegram_chat_id", TELEGRAM_CHAT_ID)
-    return token, chat_id
 
 
 from core.db import (
@@ -301,7 +295,7 @@ def run_daily_task(skip_telegram=False):
     if not holdings.get("long_top") and not holdings.get("short_top"):
         print("[ERROR] 未能获取到持仓数据，可能非交易日或数据源异常")
         if not skip_telegram:
-            tg_token, tg_chat_id = _get_telegram_config()
+            tg_token, tg_chat_id = get_telegram_config(_get_web_settings())
             if tg_token and tg_token != "YOUR_BOT_TOKEN_HERE":
                 bot = TelegramBot(tg_token, tg_chat_id)
                 bot.send_message(
@@ -559,7 +553,7 @@ def run_daily_task(skip_telegram=False):
         holdings_date=holdings["date"]
     )
     
-    tg_token, tg_chat_id = _get_telegram_config()
+    tg_token, tg_chat_id = get_telegram_config(_get_web_settings())
     if skip_telegram:
         print("  跳过 Telegram 推送（仅生成报告）")
     elif not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
@@ -614,18 +608,8 @@ def run_realtime():
     
     while True:
         now = datetime.now()
-        now_utc = datetime.now(timezone.utc)
-        hour_utc = now_utc.hour
-        minute_utc = now_utc.minute
-        weekday_utc = now_utc.weekday()
 
-        is_trading = False
-        if weekday_utc < 5:
-            t = hour_utc * 60 + minute_utc
-            if 30 <= t < 570:
-                is_trading = True
-            elif 740 <= t < 1050:
-                is_trading = True
+        is_trading = is_trading_hours()
         
         # 计算间隔
         rt_trading, rt_nontrading = _get_realtime_intervals()
@@ -671,7 +655,7 @@ def do_backfill(days: int = 30):
 
 def test_bot():
     """测试 Telegram Bot"""
-    tg_token, tg_chat_id = _get_telegram_config()
+    tg_token, tg_chat_id = get_telegram_config(_get_web_settings())
     if not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
         print("请先在系统设置中配置 Telegram Bot Token")
         return

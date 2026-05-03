@@ -63,7 +63,7 @@ PERIOD_LABELS = {
 
 PERIOD_WEIGHT_MULTIPLIER = {
     "short": 1.0,
-    "medium": 1.5,
+    "medium": 1.2,
     "long": 1.0,
 }
 
@@ -661,9 +661,9 @@ class GoldPricePredictor:
             if d:
                 total = sum(p.get("net_change", 0) for p in record.get("positions", []))
                 holdings_by_date[d] = total
-                total_open = sum(p.get("open_interest", 0) for p in record.get("positions", []))
-                if total_open > 0:
-                    holdings_pct_by_date[d] = total / total_open * 100
+                total_position = sum(abs(p.get("net", 0)) for p in record.get("positions", []))
+                if total_position > 0:
+                    holdings_pct_by_date[d] = total / total_position * 100
                 else:
                     holdings_pct_by_date[d] = 0
 

@@ -14,12 +14,12 @@ import logging
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from core.config import SENSITIVE_FIELDS
 from core.utils import load_json, save_json, encrypt_value, decrypt_value
 from core.security import is_ip_banned, check_api_rate_limit, get_logger as get_security_logger
 from blueprints.gold import gold_bp
 
 SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "web_settings.json")
-SENSITIVE_FIELDS = {"llm_api_key", "telegram_bot_token", "fred_api_key"}
 
 
 def create_app():

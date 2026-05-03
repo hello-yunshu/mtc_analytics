@@ -46,8 +46,8 @@ PERIOD_LABELS = {
 
 PERIOD_ADJUST_MULTIPLIER = {
     "short": 1.0,
-    "medium": 1.5,
-    "long": 1.2,
+    "medium": 1.2,
+    "long": 1.0,
 }
 
 
@@ -138,11 +138,17 @@ def _get_llm_config() -> Tuple[str, str, str, bool]:
     settings = load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}
     api_key_raw = settings.get("llm_api_key", "")
     from .utils import decrypt_value
+    secret = ""
     try:
-        from web_app import app
-        secret = app.secret_key or ""
+        from flask import current_app
+        secret = current_app.secret_key or ""
     except Exception:
-        secret = ""
+        try:
+            key_data = load_json(os.path.join(_DATA_DIR, ".secret_key"))
+            if key_data and key_data.get("secret_key"):
+                secret = key_data["secret_key"]
+        except Exception:
+            pass
     api_key = decrypt_value(api_key_raw, secret) if api_key_raw else os.environ.get("LLM_API_KEY", "")
     base_url = settings.get("llm_base_url", "") or os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
     model = settings.get("llm_model", "") or os.environ.get("LLM_MODEL", "gpt-4o-mini")
@@ -262,8 +268,9 @@ def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True
             ic_denominators_x.append(f_score)
             ic_denominators_y.append(actual_pct)
 
-        ic = 0.0
-        if len(ic_numerators) >= 5:
+        ic = None
+        ic_significant = False
+        if len(ic_numerators) >= 10:
             n = len(ic_numerators)
             mean_x = sum(ic_denominators_x) / n
             mean_y = sum(ic_denominators_y) / n
@@ -272,6 +279,7 @@ def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True
             var_y = sum((y - mean_y) ** 2 for y in ic_denominators_y)
             if var_x > 0 and var_y > 0:
                 ic = cov_xy / (var_x ** 0.5 * var_y ** 0.5)
+                ic_significant = abs(ic) > 2.0 / (n ** 0.5)
 
         if total > 0:
             factor_stats[factor_key] = {
@@ -279,7 +287,8 @@ def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True
                 "total": total,
                 "accuracy": correct / total,
                 "avg_score_when_correct": score_sum_correct / correct if correct > 0 else 0,
-                "ic": round(ic, 4),
+                "ic": round(ic, 4) if ic is not None else None,
+                "ic_significant": ic_significant,
                 "period": factor_period,
             }
     return factor_stats
@@ -310,15 +319,15 @@ def compute_overall_accuracy(tracking: List[Dict]) -> Dict:
             if pred == "看多":
                 forecast = conf
             elif pred == "看空":
-                forecast = -conf
+                forecast = 1.0 - conf
             else:
-                forecast = 0.0
+                forecast = 0.5
             if actual_dir == "看多":
                 outcome = 1.0
             elif actual_dir == "看空":
-                outcome = -1.0
-            else:
                 outcome = 0.0
+            else:
+                outcome = 0.5
             brier_sum += (forecast - outcome) ** 2
         brier_score = round(brier_sum / len(all_verified), 4)
 
@@ -894,7 +903,7 @@ def grid_search_weights(tracking: List[Dict], current_weights: Dict,
                          step: float = 0.02, top_k: int = 3) -> Dict:
     """
     简化版网格搜索：对每个因子权重在 ±2*step 范围内搜索
-    使用历史预测的因子评分回测，找到最优权重组合
+    使用滚动窗口时间序列交叉验证，避免过拟合
     仅在总样本≥50时执行
     """
     verified = [
@@ -906,9 +915,15 @@ def grid_search_weights(tracking: List[Dict], current_weights: Dict,
     if len(verified) < 50:
         return {"available": False, "reason": f"样本不足({len(verified)}/50)"}
 
+    n = len(verified)
+    n_splits = max(2, n // 25)
+    fold_size = n // n_splits
+    if fold_size < 10:
+        return {"available": False, "reason": f"每折样本不足({fold_size}/10)"}
+
     factor_keys = list(current_weights.keys())
     best_weights = dict(current_weights)
-    best_acc = 0.0
+    best_val_acc = 0.0
 
     for _ in range(top_k):
         improved = False
@@ -922,28 +937,36 @@ def grid_search_weights(tracking: List[Dict], current_weights: Dict,
                     continue
                 test_w = {k: v / total for k, v in test_w.items()}
 
-                correct = 0
-                total_pred = 0
-                for r in verified:
-                    factors = r.get("factors_summary", {})
-                    score = sum(
-                        factors.get(k, {}).get("score", 0) * test_w.get(k, 0)
-                        for k in factor_keys
-                    )
-                    threshold = float((load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}).get("pred_threshold", 0.08))
-                    if score > threshold:
-                        pred_dir = "看多"
-                    elif score < -threshold:
-                        pred_dir = "看空"
-                    else:
-                        continue
-                    total_pred += 1
-                    if pred_dir == r.get("actual_direction", ""):
-                        correct += 1
+                val_correct = 0
+                val_total = 0
 
-                acc = correct / total_pred if total_pred > 0 else 0
-                if acc > best_acc:
-                    best_acc = acc
+                for fold_idx in range(n_splits):
+                    val_start = fold_idx * fold_size
+                    val_end = min(val_start + fold_size, n)
+                    if fold_idx == n_splits - 1:
+                        val_end = n
+
+                    for i in range(val_start, val_end):
+                        r = verified[i]
+                        factors = r.get("factors_summary", {})
+                        score = sum(
+                            factors.get(k, {}).get("score", 0) * test_w.get(k, 0)
+                            for k in factor_keys
+                        )
+                        threshold = float((load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}).get("pred_threshold", 0.08))
+                        if score > threshold:
+                            pred_dir = "看多"
+                        elif score < -threshold:
+                            pred_dir = "看空"
+                        else:
+                            continue
+                        val_total += 1
+                        if pred_dir == r.get("actual_direction", ""):
+                            val_correct += 1
+
+                acc = val_correct / val_total if val_total > 0 else 0
+                if acc > best_val_acc:
+                    best_val_acc = acc
                     best_weights = dict(test_w)
                     improved = True
 
@@ -958,7 +981,7 @@ def grid_search_weights(tracking: List[Dict], current_weights: Dict,
 
     return {
         "available": True,
-        "best_accuracy": f"{best_acc:.1%}",
+        "best_accuracy": f"{best_val_acc:.1%}",
         "current_accuracy": f"{sum(1 for r in verified if r.get('prediction') == r.get('actual_direction')) / len(verified):.1%}",
         "weight_changes": changes,
         "best_weights": best_weights,

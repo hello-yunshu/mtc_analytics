@@ -54,3 +54,17 @@ ITERATION_LLM_DIAGNOSE_THRESHOLD = float(os.environ.get("ITERATION_LLM_DIAGNOSE_
 # 申请地址：https://fred.stlouisfed.org/docs/api/api_key.html
 # 设置方式：export FRED_API_KEY="your_api_key"
 FRED_API_KEY = os.environ.get("FRED_API_KEY", "")
+
+SENSITIVE_FIELDS = {"llm_api_key", "telegram_bot_token", "fred_api_key"}
+
+
+def get_telegram_config(settings=None, decrypt_fn=None):
+    if settings is None:
+        settings = {}
+    token_raw = settings.get("telegram_bot_token", "")
+    if token_raw and decrypt_fn and not token_raw.startswith("YOUR_"):
+        token = decrypt_fn(token_raw)
+    else:
+        token = token_raw or TELEGRAM_BOT_TOKEN
+    chat_id = settings.get("telegram_chat_id", TELEGRAM_CHAT_ID)
+    return token, chat_id

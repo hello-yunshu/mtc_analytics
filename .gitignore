@@ -1,5 +1,6 @@
 data/.secret_key
 data/.default_password
+data/.initial_password
 data/web_settings.json
 data/security.log
 data/*.db
