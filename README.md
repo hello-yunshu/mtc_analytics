@@ -33,19 +33,36 @@
 ### Docker 部署（推荐）
 
 ```bash
-git clone https://github.com/your-username/gold_tracker.git
-cd gold_tracker
+git clone https://github.com/hello-yunshu/mtc_analytics.git
+cd mtc_analytics
 
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 填入 API Key
+# 创建数据目录并设置权限
+mkdir -p data
+chmod 777 data
+
+# 配置环境变量（可选）
+cat > .env << 'EOF'
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+LLM_API_KEY=
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+FRED_API_KEY=
+RUN_MODE=web+schedule
+EOF
 
 # 构建并启动
-docker compose build
-docker compose up -d
+docker-compose up --build -d
 ```
 
 访问 `http://localhost:8368/gold`
+
+首次启动会自动生成随机密码，查看密码：
+```bash
+cat data/.initial_password
+```
+
+登录后请在 **设置页面** 立即修改密码。
 
 详细部署教程见 [DEPLOY.md](DEPLOY.md)
 
@@ -53,6 +70,10 @@ docker compose up -d
 
 ```bash
 pip install -r requirements.txt
+
+# 创建数据目录并设置权限
+mkdir -p data
+chmod 777 data
 
 # Web 服务
 python app.py

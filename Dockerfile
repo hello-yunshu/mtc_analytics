@@ -13,7 +13,8 @@ COPY . .
 
 RUN mkdir -p data/reports && \
     useradd -m appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    chmod 777 data
 
 USER appuser
 

@@ -4,7 +4,10 @@
 
 ```bash
 mkdir -p /opt/mtc_analytics/data
+chmod 777 /opt/mtc_analytics/data
 ```
+
+> **重要**：`data` 目录必须设置写权限，容器内的 `appuser` 需要写入数据库、日志和配置文件。如果权限不足，服务将无法启动。
 
 将项目文件上传至 `/opt/mtc_analytics/`，确保目录结构如下：
 
@@ -20,6 +23,16 @@ mkdir -p /opt/mtc_analytics/data
 ├── blueprints/
 ├── portal/
 └── static/
+```
+
+也可以通过 Git 直接拉取：
+
+```bash
+cd /opt
+git clone https://github.com/hello-yunshu/mtc_analytics.git
+cd mtc_analytics
+mkdir -p data
+chmod 777 data
 ```
 
 ## 2. 配置环境变量
@@ -55,25 +68,22 @@ chmod 600 .env
 ```bash
 cd /opt/mtc_analytics
 
-# 构建镜像（首次或代码更新后）
-docker compose build
-
-# 启动服务（后台运行）
-docker compose up -d
+# 构建并启动（首次部署）
+docker-compose up --build -d
 
 # 查看日志
-docker compose logs -f
+docker-compose logs -f
 
 # 查看运行状态
-docker compose ps
+docker-compose ps
 ```
 
 ## 4. 首次登录获取密码
 
-首次启动会自动生成随机密码，查看容器日志获取：
+首次启动会自动生成随机密码，密码保存在 `data/.initial_password` 文件中：
 
 ```bash
-docker compose logs | grep "首次启动"
+cat data/.initial_password
 ```
 
 登录后请在 **设置页面** 立即修改密码。
@@ -121,23 +131,23 @@ server {
 
 ```bash
 # 停止服务
-docker compose down
+docker-compose down
 
 # 重启服务
-docker compose restart
+docker-compose restart
 
-# 更新代码后重新构建
-docker compose build --no-cache
-docker compose up -d
+# 更新代码后重新构建并启动
+git pull origin main
+docker-compose up --build -d
 
 # 查看数据目录
 ls -la ./data/
 
 # 查看数据库统计
-docker compose exec mtc_analytics python3 -c "from core.db import get_db_stats; print(get_db_stats())"
+docker-compose exec mtc_analytics python3 -c "from core.db import get_db_stats; print(get_db_stats())"
 
 # 手动触发一次分析任务
-docker compose exec mtc_analytics python3 main.py --run
+docker-compose exec mtc_analytics python3 main.py --run
 
 # 查看安全日志
 cat ./data/security.log
@@ -159,6 +169,7 @@ cat ./data/security.log
 data/
 ├── .secret_key              # Flask Session 密钥（自动生成）
 ├── .default_password        # 初始密码哈希（自动生成）
+├── .initial_password        # 首次生成的随机密码（仅出现一次，登录后可删除）
 ├── web_settings.json        # Web 设置（密码/Token/权重等）
 ├── security.log             # 安全审计日志
 ├── gold_tracker.db          # SQLite 主数据库
