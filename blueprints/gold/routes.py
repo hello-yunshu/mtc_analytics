@@ -103,10 +103,11 @@ def _get_or_create_default_password():
     random_pw = secrets.token_urlsafe(12)
     pw_hash = generate_password_hash(random_pw, method='pbkdf2:sha256')
     save_json(pw_file, {"password_hash": pw_hash}, private=True)
-    _security_logger.warning("首次启动 - 已生成随机登录密码，请查看密码文件: %s", pw_file)
+    _security_logger.warning("首次启动 - 已生成随机登录密码: %s", random_pw)
     print(f"\n{'='*50}")
     print(f"  首次启动 - 已生成随机登录密码")
-    print(f"  请查看密码文件获取密码: {pw_file}")
+    print(f"  密码: {random_pw}")
+    print(f"  请妥善保存，此密码仅显示一次")
     print(f"{'='*50}\n")
     return pw_hash
 
