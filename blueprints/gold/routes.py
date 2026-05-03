@@ -989,7 +989,10 @@ def api_logout():
 @gold_bp.route("/api/check_auth")
 def api_check_auth():
     logged_in = session.get("logged_in", False)
-    return jsonify({"logged_in": logged_in})
+    csrf = ""
+    if logged_in:
+        csrf = _generate_csrf_token()
+    return jsonify({"logged_in": logged_in, "csrf_token": csrf})
 
 
 @gold_bp.route("/api/report")
