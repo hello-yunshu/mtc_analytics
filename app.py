@@ -1,0 +1,186 @@
+# -*- coding: utf-8 -*-
+"""
+MTC Analytics - 多维度金融分析平台
+
+主应用入口，注册所有 Blueprint，提供 Portal 首页。
+启动方式：python app.py
+"""
+
+import os
+import re
+import secrets
+import logging
+
+from flask import Flask, render_template, request, jsonify, session
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from core.utils import load_json, save_json, encrypt_value, decrypt_value
+from core.security import is_ip_banned, check_api_rate_limit, get_logger as get_security_logger
+from blueprints.gold import gold_bp
+
+SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "web_settings.json")
+SENSITIVE_FIELDS = {"llm_api_key", "telegram_bot_token", "fred_api_key"}
+
+
+def create_app():
+    app = Flask(__name__,
+                template_folder='portal/templates',
+                static_folder='static',
+                static_url_path='/static')
+
+    os.makedirs("data/reports", exist_ok=True)
+
+    _SECRET_KEY_FILE = "data/.secret_key"
+
+    def _load_or_create_secret_key():
+        key = load_json(_SECRET_KEY_FILE)
+        if key and key.get("secret_key"):
+            return key["secret_key"]
+        new_key = secrets.token_hex(32)
+        save_json(_SECRET_KEY_FILE, {"secret_key": new_key}, private=True)
+        return new_key
+
+    app.secret_key = _load_or_create_secret_key()
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_SECURE'] = os.environ.get('HTTPS', '').lower() in ('1', 'true', 'yes') or os.environ.get('FLASK_ENV') == 'production'
+    app.config['PERMANENT_SESSION_LIFETIME'] = 3600 * 8
+    app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
+
+    app.register_blueprint(gold_bp, url_prefix='/gold')
+
+    _security_logger = get_security_logger()
+
+    @app.before_request
+    def _security_middleware():
+        ip = request.remote_addr or "0.0.0.0"
+        if is_ip_banned(ip):
+            _security_logger.warning("被封禁IP访问: %s %s", ip, request.path)
+            return jsonify({"error": "访问被拒绝"}), 403
+
+        if request.path.startswith("/gold/api/") and request.method != "OPTIONS":
+            if not check_api_rate_limit(ip):
+                return jsonify({"error": "请求过于频繁"}), 429
+
+    @app.after_request
+    def _set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        if request.path.startswith("/gold/api/") and not response.content_type.startswith('text/event-stream'):
+            response.headers['Content-Type'] = 'application/json; charset=utf-8'
+        return response
+
+    @app.errorhandler(404)
+    def _not_found(e):
+        return jsonify({"error": "资源不存在"}), 404
+
+    @app.errorhandler(413)
+    def _request_too_large(e):
+        return jsonify({"error": "请求体过大"}), 413
+
+    @app.errorhandler(500)
+    def _internal_error(e):
+        return jsonify({"error": "服务器内部错误"}), 500
+
+    @app.route("/")
+    def portal():
+        return render_template("portal.html")
+
+    @app.route("/api/health")
+    def health_check():
+        return jsonify({"status": "ok", "version": "2.0.0", "name": "MTC Analytics"})
+
+    @app.route("/api/change_password", methods=["POST"])
+    def api_change_password():
+        if not session.get("logged_in"):
+            return jsonify({"ok": False, "error": "未登录"}), 401
+
+        csrf_token = request.headers.get('X-CSRF-Token')
+        if not csrf_token or csrf_token != session.get('csrf_token'):
+            return jsonify({"ok": False, "error": "CSRF验证失败"}), 403
+
+        data = request.json or {}
+        new_pw = str(data.get("new_password", ""))
+        confirm_pw = str(data.get("new_password_confirm", ""))
+
+        if not new_pw:
+            return jsonify({"ok": False, "error": "密码不能为空"}), 400
+        if len(new_pw) < 8:
+            return jsonify({"ok": False, "error": "密码长度至少8位"}), 400
+        if not re.search(r'[A-Za-z]', new_pw):
+            return jsonify({"ok": False, "error": "密码必须包含英文字母"}), 400
+        if not (re.search(r'[0-9]', new_pw) or re.search(r'[^A-Za-z0-9]', new_pw)):
+            return jsonify({"ok": False, "error": "密码必须包含数字或标点符号"}), 400
+        if new_pw != confirm_pw:
+            return jsonify({"ok": False, "error": "两次输入的密码不一致"}), 400
+
+        settings = load_json(SETTINGS_FILE)
+        if not settings:
+            settings = {}
+        settings["password_hash"] = generate_password_hash(new_pw, method='pbkdf2:sha256')
+        save_json(SETTINGS_FILE, settings, private=True)
+
+        _security_logger.info("密码修改成功: IP=%s", request.remote_addr or "0.0.0.0")
+        return jsonify({"ok": True})
+
+    @app.route("/api/portal_settings", methods=["GET"])
+    def api_get_portal_settings():
+        if not session.get("logged_in"):
+            return jsonify({"error": "未登录"}), 401
+        settings = load_json(SETTINGS_FILE) or {}
+        result = {}
+        for field in SENSITIVE_FIELDS:
+            raw = decrypt_value(settings.get(field, ""), app.secret_key or "")
+            if raw:
+                result[f"{field}_masked"] = raw[:6] + "****" + raw[-4:] if len(raw) > 10 else "****"
+            else:
+                result[f"{field}_masked"] = ""
+        result["llm_base_url"] = settings.get("llm_base_url", "https://api.openai.com/v1")
+        result["llm_model"] = settings.get("llm_model", "gpt-4o-mini")
+        result["telegram_chat_id"] = settings.get("telegram_chat_id", "")
+        return jsonify(result)
+
+    @app.route("/api/portal_settings", methods=["POST"])
+    def api_save_portal_settings():
+        if not session.get("logged_in"):
+            return jsonify({"ok": False, "error": "未登录"}), 401
+        csrf_token = request.headers.get('X-CSRF-Token')
+        if not csrf_token or csrf_token != session.get('csrf_token'):
+            return jsonify({"ok": False, "error": "CSRF验证失败"}), 403
+        data = request.json or {}
+        settings = load_json(SETTINGS_FILE) or {}
+        str_fields = ["llm_base_url", "llm_model", "telegram_chat_id"]
+        for field in str_fields:
+            if field in data:
+                settings[field] = str(data[field])[:500]
+        for field in SENSITIVE_FIELDS:
+            if field in data:
+                raw = str(data[field])[:200] if data[field] and not str(data[field]).startswith("****") else ""
+                if raw:
+                    settings[field] = encrypt_value(raw, app.secret_key or "")
+                elif not str(data[field]).startswith("****"):
+                    settings[field] = ""
+        save_json(SETTINGS_FILE, settings, private=True)
+        if any(k in data for k in ("llm_api_key", "llm_base_url", "llm_model")):
+            try:
+                from core.news_sentiment import reload_llm_config
+                reload_llm_config()
+            except Exception:
+                pass
+        return jsonify({"ok": True})
+
+    return app
+
+
+if __name__ == "__main__":
+    app = create_app()
+    print("\n" + "=" * 50)
+    print("  MTC Analytics - 多维度金融分析平台")
+    print("  访问地址: http://127.0.0.1:8080")
+    print("=" * 50 + "\n")
+    app.run(host="127.0.0.1", port=8080, debug=False)

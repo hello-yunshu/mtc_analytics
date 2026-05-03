@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTC Analytics</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #0a0e17;
+  --bg2: #111827;
+  --bg3: #1a2236;
+  --card: #151d2e;
+  --border: #1e2d45;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --gold: #f59e0b;
+  --gold2: #d97706;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --shadow: rgba(0,0,0,0.3);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --bg: #f5f7fa;
+    --bg2: #ffffff;
+    --bg3: #eef1f6;
+    --card: #ffffff;
+    --border: #e2e8c0;
+    --text: #1e293b;
+    --text2: #475569;
+    --text3: #94a3b8;
+    --gold: #f59e0b;
+    --gold2: #d97706;
+    --blue: #2563eb;
+    --purple: #7c3aed;
+    --shadow: rgba(0,0,0,0.08);
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #f5f7fa;
+  --bg2: #ffffff;
+  --bg3: #eef1f6;
+  --card: #ffffff;
+  --border: #e2e8c0;
+  --text: #1e293b;
+  --text2: #475569;
+  --text3: #94a3b8;
+  --gold: #f59e0b;
+  --gold2: #d97706;
+  --blue: #2563eb;
+  --purple: #7c3aed;
+  --shadow: rgba(0,0,0,0.08);
+}
+
+:root[data-theme="dark"] {
+  --bg: #0a0e17;
+  --bg2: #111827;
+  --bg3: #1a2236;
+  --card: #151d2e;
+  --border: #1e2d45;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --gold: #f59e0b;
+  --gold2: #d97706;
+  --blue: #3b82f6;
+  --purple: #8b5cf6;
+  --shadow: rgba(0,0,0,0.3);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, rgba(245,158,11,0.04) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 50%, rgba(139,92,246,0.03) 0%, transparent 50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.portal {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  padding: 40px 48px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-svg {
+  width: 44px;
+  height: 44px;
+  filter: drop-shadow(0 2px 8px rgba(59,130,246,0.3));
+}
+
+.header-left h1 {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--blue), var(--purple), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-left p {
+  font-size: 13px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-right .divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 6px;
+}
+
+.hdr-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.hdr-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.hdr-btn:hover { background: var(--bg3); border-color: var(--border); color: var(--text2); }
+.hdr-btn.settings-btn:hover { color: var(--gold); border-color: rgba(245,158,11,0.3); }
+.hdr-btn.logout-btn:hover { color: #ef4444; border-color: rgba(239,68,68,0.3); }
+.hdr-btn.theme-btn:hover { color: var(--blue); border-color: rgba(59,130,246,0.3); }
+
+.user-status {
+  font-size: 12px;
+  color: #22c55e;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
+.user-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34,197,94,0.5);
+}
+
+
+
+.settings-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+.settings-card:hover { border-color: var(--border); }
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  max-width: 900px;
+}
+
+.s-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  font-family: 'JetBrains Mono', monospace;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.s-input:focus { border-color: var(--gold); }
+
+.s-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+
+.s-hint {
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+.s-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--gold);
+  color: #000;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: background 0.2s;
+}
+.s-btn:hover { background: var(--gold2); }
+
+.s-btn-outline {
+  padding: 10px 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text2);
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: all 0.2s;
+}
+.s-btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+.s-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.s-status-dot.on { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+.s-status-dot.off { background: var(--text3); }
+
+main {
+  flex: 1;
+  padding: 40px 48px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
+}
+
+.module-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.module-card:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px var(--shadow), 0 0 0 1px rgba(245,158,11,0.1);
+}
+
+.module-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.module-card:hover::before { opacity: 1; }
+
+.module-card.gold-card::before { background: linear-gradient(90deg, var(--gold2), var(--gold)); }
+.module-card.stock-card::before { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+.module-card.forex-card::before { background: linear-gradient(90deg, var(--purple), #ec4899); }
+
+.module-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 28px;
+}
+
+.module-icon.gold-icon {
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.2);
+}
+
+.module-icon.stock-icon {
+  background: rgba(59,130,246,0.1);
+  border: 1px solid rgba(59,130,246,0.2);
+}
+
+.module-icon.forex-icon {
+  background: rgba(139,92,246,0.1);
+  border: 1px solid rgba(139,92,246,0.2);
+}
+
+.module-card h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.module-card .desc {
+  font-size: 14px;
+  color: var(--text3);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.module-card .enter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.gold-card .enter-btn {
+  background: var(--gold);
+  color: #000;
+}
+.gold-card:hover .enter-btn { background: var(--gold2); }
+
+.stock-card .enter-btn,
+.forex-card .enter-btn {
+  background: var(--bg3);
+  color: var(--text3);
+  cursor: not-allowed;
+}
+
+.module-card.coming-soon {
+  opacity: 0.5;
+  cursor: default;
+}
+.module-card.coming-soon:hover {
+  transform: none;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.coming-soon-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg3);
+  color: var(--text3);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+footer {
+  padding: 24px 48px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text3);
+  border-top: 1px solid var(--border);
+}
+
+.login-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.login-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  width: 380px;
+  text-align: center;
+}
+
+.login-box h2 {
+  color: var(--gold);
+  margin-bottom: 8px;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.login-box p {
+  color: var(--text3);
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.login-box input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 16px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.login-box input:focus { border-color: var(--gold); }
+
+.login-error {
+  color: #dc2626;
+  font-size: 13px;
+  margin-bottom: 12px;
+  display: none;
+}
+
+.btn-gold {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--gold);
+  color: #000;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: background 0.2s;
+  width: 100%;
+}
+.btn-gold:hover { background: var(--gold2); }
+
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  z-index: 200;
+  transform: translateX(120%);
+  transition: transform 0.3s ease;
+}
+.toast.show { transform: translateX(0); }
+.toast.success { background: #059669; color: #fff; }
+.toast.error { background: #dc2626; color: #fff; }
+
+@media (max-width: 768px) {
+  header { padding: 16px; flex-direction: column; gap: 12px; }
+  .header-left { width: 100%; }
+  .header-right { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
+  .hdr-btn { padding: 6px 10px; font-size: 12px; }
+  .hdr-btn svg { width: 14px; height: 14px; }
+  .user-status { font-size: 11px; padding: 0 4px; }
+  main { padding: 20px 16px; }
+  .modules-grid { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
+  .settings-card { padding: 18px; }
+  .header-left h1 { font-size: 22px; }
+  footer { padding: 16px; }
+}
+
+@media (max-width: 480px) {
+  header { padding: 12px; }
+  main { padding: 16px 12px; }
+  .settings-card { padding: 14px; border-radius: 10px; }
+  .s-input { font-size: 13px; padding: 9px 12px; }
+  .s-btn, .s-btn-outline { padding: 9px 18px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-box">
+    <h2>
+      <svg width="24" height="24" viewBox="0 0 30 30">
+        <defs><linearGradient id="loginGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="50%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs>
+        <rect width="30" height="30" rx="8" fill="#111827"/>
+        <path d="M4 22 L8 16 L12 18 L17 10 L21 12 L26 5" fill="none" stroke="url(#loginGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      登录
+    </h2>
+    <p>MTC Analytics - 多维度金融分析平台</p>
+    <div id="loginError" class="login-error">密码错误</div>
+    <input type="password" id="loginPassword" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-gold" onclick="doLogin()">登 录</button>
+  </div>
+</div>
+
+<div class="portal" id="mainPortal" style="display:none">
+  <header>
+    <div class="header-left">
+      <svg class="logo-svg" viewBox="0 0 30 30">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+          <linearGradient id="line" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#3b82f6"/><stop offset="50%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
+        </defs>
+        <rect width="30" height="30" rx="8" fill="url(#bg)"/>
+        <path d="M4 22 L8 16 L12 18 L17 10 L21 12 L26 5" fill="none" stroke="url(#line)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="8" cy="16" r="1.5" fill="#3b82f6"/>
+        <circle cx="17" cy="10" r="1.5" fill="#8b5cf6"/>
+        <circle cx="26" cy="5" r="1.5" fill="#f59e0b"/>
+      </svg>
+      <div>
+        <h1>MTC Analytics</h1>
+        <p>多维度金融分析平台</p>
+      </div>
+    </div>
+    <div class="header-right" id="headerRight">
+      <div class="user-info" id="userInfo" style="display:none">
+        <span class="user-status">已登录</span>
+        <div class="divider"></div>
+        <button class="hdr-btn settings-btn" onclick="switchPortalPage('settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          设置
+        </button>
+        <button class="hdr-btn logout-btn" onclick="doLogout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          退出
+        </button>
+      </div>
+      <button class="hdr-btn theme-btn" onclick="toggleTheme()">
+        <svg id="themeIconSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span id="themeLabel">自动</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div id="portalHome">
+      <div class="section-title">分析板块</div>
+      <div class="modules-grid">
+        <a href="/gold/" class="module-card gold-card">
+          <div class="module-icon gold-icon">
+            <svg width="28" height="28" viewBox="0 0 30 30">
+              <defs><linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fcd34d"/><stop offset="100%" stop-color="#d97706"/></linearGradient></defs>
+              <path d="M7 21l3-10h10l3 10z" fill="url(#goldGrad)" stroke="#b45309" stroke-width="0.5"/>
+              <path d="M10 11l-1 3h12l-1-3z" fill="#fde68a" opacity="0.7"/>
+            </svg>
+          </div>
+          <h2>黄金分析 <span style="font-size:12px;color:var(--gold);font-weight:400">Gold Analytics</span></h2>
+          <div class="desc">AI 驱动的黄金价格分析与预测系统，包含十二因子多周期预测模型、全维度警示引擎、持仓跟踪、宏观指标监控等功能。</div>
+          <div class="enter-btn">进入板块 →</div>
+        </a>
+
+        <div class="module-card stock-card coming-soon">
+          <div class="module-icon stock-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+          <h2>股票分析 <span class="coming-soon-badge">即将推出</span></h2>
+          <div class="desc">A股/港股/美股多维度分析，技术面+基本面+资金面综合研判。</div>
+          <div class="enter-btn">敬请期待</div>
+        </div>
+
+        <div class="module-card forex-card coming-soon">
+          <div class="module-icon forex-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </div>
+          <h2>外汇分析 <span class="coming-soon-badge">即将推出</span></h2>
+          <div class="desc">主要货币对趋势分析，央行政策跟踪与汇率预测。</div>
+          <div class="enter-btn">敬请期待</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="portalSettings" style="display:none">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+        <button class="s-btn-outline" onclick="switchPortalPage('home')">← 返回</button>
+        <h2 style="font-size:20px;font-weight:700;color:var(--text)">平台设置</h2>
+      </div>
+
+      <div class="settings-grid">
+        <div class="settings-card">
+          <h3 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--gold);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            修改密码
+          </h3>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:16px">修改平台登录密码，修改后需重新登录</p>
+          <div style="margin-bottom:12px">
+            <label class="s-label">新密码</label>
+            <input type="password" id="settingsPwNew" placeholder="至少8位，需含英文字母和数字或标点" class="s-input" onkeydown="if(event.key==='Enter')document.getElementById('settingsPwConfirm').focus()">
+          </div>
+          <div style="margin-bottom:16px">
+            <label class="s-label">确认新密码</label>
+            <input type="password" id="settingsPwConfirm" placeholder="再次输入新密码" class="s-input" onkeydown="if(event.key==='Enter')doChangePw()">
+          </div>
+          <div id="settingsPwError" style="color:#dc2626;font-size:13px;margin-bottom:10px;display:none"></div>
+          <button class="s-btn" onclick="doChangePw()">确认修改</button>
+        </div>
+
+        <div class="settings-card">
+          <h3 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--blue);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+            LLM API 配置
+            <span id="llmStatusDot" class="s-status-dot off"></span>
+          </h3>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:16px">配置大语言模型接口，用于新闻情绪分析和模型自迭代。支持 DeepSeek / OpenAI / Qwen 等兼容接口。</p>
+          <div style="margin-bottom:12px">
+            <label class="s-label">API Key</label>
+            <input type="password" id="settingsLlmKey" placeholder="sk-..." class="s-input">
+            <div class="s-hint">密钥将加密存储，不会明文保存</div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label class="s-label">Base URL</label>
+            <input type="text" id="settingsLlmBaseUrl" placeholder="https://api.openai.com/v1" class="s-input">
+          </div>
+          <div style="margin-bottom:16px">
+            <label class="s-label">Model</label>
+            <input type="text" id="settingsLlmModel" placeholder="gpt-4o-mini" class="s-input">
+          </div>
+          <button class="s-btn" onclick="doSaveLlm()">保存 LLM 配置</button>
+        </div>
+
+        <div class="settings-card">
+          <h3 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--purple);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Telegram Bot
+            <span id="tgStatusDot" class="s-status-dot off"></span>
+          </h3>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:16px">配置 Telegram 机器人，用于金价异动推送和每日报告推送。</p>
+          <div style="margin-bottom:12px">
+            <label class="s-label">Bot Token</label>
+            <input type="password" id="settingsTgToken" placeholder="123456:ABC..." class="s-input">
+            <div class="s-hint">通过 @BotFather 获取</div>
+          </div>
+          <div style="margin-bottom:16px">
+            <label class="s-label">Chat ID</label>
+            <input type="text" id="settingsTgChatId" placeholder="your_chat_id" class="s-input">
+            <div class="s-hint">通过 @userinfobot 获取</div>
+          </div>
+          <button class="s-btn" onclick="doSaveTg()">保存 Telegram 配置</button>
+        </div>
+
+        <div class="settings-card" style="opacity:0.5">
+          <h3 style="font-size:16px;font-weight:600;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            安全设置
+            <span class="coming-soon-badge">即将推出</span>
+          </h3>
+          <p style="font-size:12px;color:var(--text3)">两步验证、IP 白名单、会话管理等安全功能。</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    © 2024-2026 MTC Analytics · 多维度金融分析平台
+  </footer>
+</div>
+
+<script>
+let isLoggedIn = false;
+let csrfToken = '';
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+async function api(path, opts) {
+  const headers = {'Content-Type': 'application/json'};
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  try {
+    const res = await fetch(path, {headers, ...opts});
+    if (res.status === 401) {
+      isLoggedIn = false;
+      csrfToken = '';
+      checkAuth();
+    }
+    return res;
+  } catch(e) {
+    return {ok: false, json: async () => ({error: '网络错误'})};
+  }
+}
+
+async function checkAuth() {
+  const res = await api('/gold/api/check_auth');
+  const data = await res.json();
+  isLoggedIn = data.logged_in;
+  if (isLoggedIn) {
+    csrfToken = data.csrf_token || '';
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainPortal').style.display = 'flex';
+    document.getElementById('userInfo').style.display = 'flex';
+  } else {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('mainPortal').style.display = 'none';
+    document.getElementById('userInfo').style.display = 'none';
+  }
+}
+
+async function doLogin() {
+  const pw = document.getElementById('loginPassword').value;
+  if (!pw) return;
+  const res = await api('/gold/api/login', {method: 'POST', body: JSON.stringify({password: pw})});
+  const data = await res.json();
+  if (data.ok) {
+    csrfToken = data.csrf_token || '';
+    isLoggedIn = true;
+    checkAuth();
+  } else {
+    const errEl = document.getElementById('loginError');
+    if (errEl) { errEl.style.display = 'block'; errEl.textContent = data.error || '密码错误'; }
+  }
+}
+
+async function doLogout() {
+  await api('/gold/api/logout', {method: 'POST'});
+  isLoggedIn = false;
+  csrfToken = '';
+  checkAuth();
+}
+
+function switchPortalPage(page) {
+  document.getElementById('portalHome').style.display = page === 'home' ? 'block' : 'none';
+  document.getElementById('portalSettings').style.display = page === 'settings' ? 'block' : 'none';
+  if (page === 'settings') {
+    document.getElementById('settingsPwNew').value = '';
+    document.getElementById('settingsPwConfirm').value = '';
+    document.getElementById('settingsPwError').style.display = 'none';
+    loadPortalSettings();
+  }
+}
+
+async function loadPortalSettings() {
+  if (!isLoggedIn) return;
+  const res = await api('/api/portal_settings');
+  if (!res.ok) return;
+  const data = await res.json();
+  document.getElementById('settingsLlmKey').value = data.llm_api_key_masked || '';
+  document.getElementById('settingsLlmBaseUrl').value = data.llm_base_url || 'https://api.openai.com/v1';
+  document.getElementById('settingsLlmModel').value = data.llm_model || 'gpt-4o-mini';
+  document.getElementById('settingsTgToken').value = data.telegram_bot_token_masked || '';
+  document.getElementById('settingsTgChatId').value = data.telegram_chat_id || '';
+  const llmDot = document.getElementById('llmStatusDot');
+  llmDot.className = 's-status-dot ' + (data.llm_api_key_masked ? 'on' : 'off');
+  const tgDot = document.getElementById('tgStatusDot');
+  tgDot.className = 's-status-dot ' + (data.telegram_bot_token_masked ? 'on' : 'off');
+}
+
+async function doSaveLlm() {
+  const llmKey = document.getElementById('settingsLlmKey').value;
+  const body = {
+    llm_base_url: document.getElementById('settingsLlmBaseUrl').value,
+    llm_model: document.getElementById('settingsLlmModel').value,
+  };
+  if (llmKey === '') body.llm_api_key = '';
+  else if (llmKey && !llmKey.includes('****')) body.llm_api_key = llmKey;
+  const res = await api('/api/portal_settings', {method: 'POST', body: JSON.stringify(body)});
+  if (res.ok) {
+    showToast('LLM 配置已保存', 'success');
+    loadPortalSettings();
+  } else {
+    const data = await res.json();
+    showToast(data.error || '保存失败', 'error');
+  }
+}
+
+async function doSaveTg() {
+  const tgToken = document.getElementById('settingsTgToken').value;
+  const body = {
+    telegram_chat_id: document.getElementById('settingsTgChatId').value,
+  };
+  if (tgToken === '') body.telegram_bot_token = '';
+  else if (tgToken && !tgToken.includes('****')) body.telegram_bot_token = tgToken;
+  const res = await api('/api/portal_settings', {method: 'POST', body: JSON.stringify(body)});
+  if (res.ok) {
+    showToast('Telegram 配置已保存', 'success');
+    loadPortalSettings();
+  } else {
+    const data = await res.json();
+    showToast(data.error || '保存失败', 'error');
+  }
+}
+
+async function doChangePw() {
+  const newPw = document.getElementById('settingsPwNew').value;
+  const confirmPw = document.getElementById('settingsPwConfirm').value;
+  const errEl = document.getElementById('settingsPwError');
+
+  if (!newPw) { errEl.textContent = '请输入新密码'; errEl.style.display = 'block'; return; }
+  if (newPw.length < 8) { errEl.textContent = '密码长度至少8位'; errEl.style.display = 'block'; return; }
+  if (!/[A-Za-z]/.test(newPw)) { errEl.textContent = '密码必须包含英文字母'; errEl.style.display = 'block'; return; }
+  if (!/[0-9]/.test(newPw) && !/[^A-Za-z0-9]/.test(newPw)) { errEl.textContent = '密码必须包含数字或标点符号'; errEl.style.display = 'block'; return; }
+  if (newPw !== confirmPw) { errEl.textContent = '两次输入的密码不一致'; errEl.style.display = 'block'; return; }
+
+  const res = await api('/api/change_password', {
+    method: 'POST',
+    body: JSON.stringify({new_password: newPw, new_password_confirm: confirmPw})
+  });
+  const data = await res.json();
+  if (data.ok) {
+    showToast('密码修改成功', 'success');
+    document.getElementById('settingsPwNew').value = '';
+    document.getElementById('settingsPwConfirm').value = '';
+    errEl.style.display = 'none';
+  } else {
+    errEl.textContent = data.error || '修改失败';
+    errEl.style.display = 'block';
+  }
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme');
+  const stored = localStorage.getItem('mtc-theme');
+  let next;
+  if (current === 'dark') next = 'light';
+  else if (current === 'light') next = 'auto';
+  else next = 'dark';
+
+  if (next === 'auto') {
+    root.removeAttribute('data-theme');
+    localStorage.removeItem('mtc-theme');
+  } else {
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('mtc-theme', next);
+  }
+  updateThemeUI();
+}
+
+function updateThemeUI() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const icon = document.getElementById('themeIconSvg');
+  const label = document.getElementById('themeLabel');
+  if (current === 'dark') {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    label.textContent = '深色';
+  } else if (current === 'light') {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    label.textContent = '浅色';
+  } else {
+    icon.innerHTML = '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>';
+    label.textContent = '自动';
+  }
+}
+
+(function initTheme() {
+  const stored = localStorage.getItem('mtc-theme');
+  if (stored) document.documentElement.setAttribute('data-theme', stored);
+  updateThemeUI();
+})();
+
+checkAuth();
+</script>
+</body>
+</html>
