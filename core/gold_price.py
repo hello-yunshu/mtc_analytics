@@ -516,18 +516,16 @@ def get_intraday_kline(interval: str = "5m", range_str: str = "1d") -> List[Dict
             meta = result.get("meta", {})
             price = meta.get("regularMarketPrice", 0)
             if price and price > 0:
-                prev_close = meta.get("previousClose", price)
-                change = price - prev_close
-                change_pct = (change / prev_close * 100) if prev_close else 0
                 dt_str = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                print(f"  [WARN] K线timestamp缺失，使用meta降级数据")
+                print(f"  [WARN] K线timestamp缺失，使用meta降级数据（休市日）")
                 return [{
                     "time": dt_str,
-                    "open": round(meta.get("regularMarketDayHigh", price), 2),
+                    "open": round(meta.get("regularMarketOpen", meta.get("previousClose", price)), 2),
                     "high": round(meta.get("regularMarketDayHigh", price), 2),
                     "low": round(meta.get("regularMarketDayLow", price), 2),
                     "close": round(price, 2),
                     "volume": int(meta.get("regularMarketVolume", 0)),
+                    "_degraded": True,
                 }]
             print("  [WARN] K线数据解析失败: API未返回timestamp且无meta降级数据")
             return []
@@ -617,9 +615,11 @@ def get_daily_history(days: int = 30, prefer_international: bool = False) -> Lis
 
 
 def _save_daily_to_db(prices: List[Dict]):
-    """将日线数据保存到数据库"""
+    """将日线数据保存到数据库（跳过休市降级数据）"""
     try:
-        db.upsert_gold_prices(prices)
+        clean = [p for p in prices if not p.get("_degraded")]
+        if clean:
+            db.upsert_gold_prices(clean)
     except Exception:
         pass
 
@@ -676,16 +676,17 @@ def _fetch_yahoo_daily_history(days: int = 30) -> Optional[List[Dict]]:
             price = meta.get("regularMarketPrice", 0)
             if price and price > 0:
                 dt_str = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-                print(f"  [WARN] 日线timestamp缺失，使用meta降级数据")
+                print(f"  [WARN] 日线timestamp缺失，使用meta降级数据（休市日）")
                 return [{
                     "date": dt_str,
-                    "open": round(meta.get("regularMarketDayHigh", price), 2),
+                    "open": round(meta.get("regularMarketOpen", meta.get("previousClose", price)), 2),
                     "high": round(meta.get("regularMarketDayHigh", price), 2),
                     "low": round(meta.get("regularMarketDayLow", price), 2),
                     "close": round(price, 2),
                     "volume": int(meta.get("regularMarketVolume", 0)),
                     "source": "yahoo",
                     "unit": "USD/oz",
+                    "_degraded": True,
                 }]
             print("  [WARN] 日线数据解析失败: API未返回timestamp且无meta降级数据")
             return None
