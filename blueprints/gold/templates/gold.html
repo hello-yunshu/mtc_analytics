@@ -1996,7 +1996,7 @@ function _parseFreshnessLine(line) {
   if (!m) return;
   const items = m[1].split(' | ');
   for (const item of items) {
-    const km = item.match(/([✅⚠️❌]+)\s*([^:：]+)[：:]\s*(.*)/);
+    const km = item.match(/([✅⚠️❌⏸]+)\s*([^:：]+)[：:]\s*(.*)/);
     if (km) {
       const key = km[2].trim();
       const descText = km[3].trim();
@@ -2013,7 +2013,10 @@ function _freshnessTag(key) {
   if (!f) return '';
   let label = '';
   let color = '#94a3b8';
-  if (f.ts) {
+  if (f.icon.includes('⏸')) {
+    label = f.desc || '休市中';
+    color = '#f59e0b';
+  } else if (f.ts) {
     try {
       const dataTime = new Date(f.ts.replace(' ', 'T') + '+08:00');
       const now = new Date();

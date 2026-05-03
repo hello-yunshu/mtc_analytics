@@ -43,10 +43,13 @@ def format_report(date: str, contract: str, positions: List[Dict],
     if data_freshness:
         freshness_parts = []
         has_stale = any(icon == "❌" for icon, _ in data_freshness.values())
+        has_closed = any(icon == "⏸" for icon, _ in data_freshness.values())
         for name, (icon, desc) in data_freshness.items():
             freshness_parts.append(f"{icon}{name}:{desc}")
         if has_stale:
             lines.append("⚠️ 数据时效：" + " | ".join(freshness_parts))
+        elif has_closed:
+            lines.append("⏸ 数据时效：" + " | ".join(freshness_parts))
         else:
             lines.append("📋 数据时效：" + " | ".join(freshness_parts))
     if trend_data and trend_data.get("history_days", 0) > 1:

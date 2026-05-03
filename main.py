@@ -251,7 +251,9 @@ def run_daily_task(skip_telegram=False):
                     pt = pt.astimezone(timezone.utc).replace(tzinfo=None)
                 age_minutes = (datetime.now(timezone.utc) - pt).total_seconds() / 60
                 ts_local = (pt + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%S")
-                if age_minutes < 30:
+                if ms.get("status") == "closed":
+                    data_freshness["金价"] = ("⏸", f"休市({ms.get('reason', '')})|ts={ts_local}")
+                elif age_minutes < 30:
                     data_freshness["金价"] = ("✅", f"实时|ts={ts_local}")
                 elif age_minutes < 120:
                     data_freshness["金价"] = ("⚠️", f"延迟{age_minutes:.0f}分钟|ts={ts_local}")
@@ -260,7 +262,10 @@ def run_daily_task(skip_telegram=False):
             except Exception:
                 data_freshness["金价"] = ("⚪", "时间戳未知")
         else:
-            data_freshness["金价"] = ("⚪", "时间戳未知")
+            if ms.get("status") == "closed":
+                data_freshness["金价"] = ("⏸", f"休市({ms.get('reason', '')})")
+            else:
+                data_freshness["金价"] = ("⚪", "时间戳未知")
 
     # 2. 获取宏观指标
     print("[2/8] 正在获取宏观指标...")
