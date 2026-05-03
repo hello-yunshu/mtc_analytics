@@ -646,6 +646,7 @@ body::before {
           <div class="stat-value gold mono" id="statPrice">--</div>
           <div class="stat-sub" id="statPriceSub" style="margin-top:2px"></div>
           <div class="stat-sub" id="statDomesticPrice"></div>
+          <div class="stat-sub" id="statMarketStatus" style="margin-top:2px;color:var(--text3);font-size:11px"></div>
         </div>
         <div class="stat-card">
           <div class="stat-label">预测方向</div>
@@ -1515,6 +1516,23 @@ async function loadDashboard() {
   }
   const priceSubEl = document.getElementById('statPriceSub');
   if (priceSubEl) priceSubEl.textContent = p.change ? (parseFloat(p.change)>0?'↑':'↓')+' '+p.change+'%' : '';
+
+  try {
+    const rtRes = await api('/gold/api/realtime_price');
+    const rtData = await rtRes.json();
+    if (rtData && rtData.market_status) {
+      const msEl = document.getElementById('statMarketStatus');
+      if (msEl) {
+        const ms = rtData.market_status;
+        if (ms.status === 'closed') {
+          msEl.textContent = '⏸ ' + (ms.reason || '休市中') + (ms.next_open ? ' · 开盘: ' + ms.next_open : '');
+          msEl.style.color = 'var(--orange, #f59e0b)';
+        } else {
+          msEl.textContent = '';
+        }
+      }
+    }
+  } catch(e) {}
 
   const dirEl = document.getElementById('statDirection');
   if (dirEl) {
@@ -4152,6 +4170,16 @@ function connectPriceStream() {
           if (d.domestic.sge_au9999) parts.push('SGE ¥' + d.domestic.sge_au9999.price + '/g');
           if (d.domestic.shfe_au) parts.push('沪金 ¥' + d.domestic.shfe_au.price + '/g');
           domEl.textContent = parts.join(' | ');
+        }
+        const msEl = document.getElementById('statMarketStatus');
+        if (msEl && d.market_status) {
+          const ms = d.market_status;
+          if (ms.status === 'closed') {
+            msEl.textContent = '⏸ ' + (ms.reason || '休市中') + (ms.next_open ? ' · 开盘: ' + ms.next_open : '');
+            msEl.style.color = 'var(--orange, #f59e0b)';
+          } else {
+            msEl.textContent = '';
+          }
         }
       }
     } catch(err) {}

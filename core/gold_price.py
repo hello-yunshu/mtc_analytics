@@ -26,7 +26,7 @@
 
 import requests
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional
 
 from . import db
@@ -44,6 +44,45 @@ HEADERS = {
 }
 
 _AKSHARE_AVAILABLE = None
+
+_US_HOLIDAYS_2025 = {
+    "2025-01-01", "2025-01-20", "2025-02-17", "2025-04-18",
+    "2025-05-26", "2025-07-04", "2025-09-01", "2025-11-27", "2025-12-25",
+}
+_US_HOLIDAYS_2026 = {
+    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03",
+    "2026-05-25", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
+}
+
+
+def get_market_status() -> Dict:
+    """
+    判断COMEX黄金期货市场状态
+    返回 {"status": "open"|"closed"|"pre_market", "reason": str, "next_open": str}
+    """
+    now_et = datetime.now(timezone(timedelta(hours=-5)))
+    weekday = now_et.weekday()
+    date_str = now_et.strftime("%Y-%m-%d")
+    hour = now_et.hour
+    minute = now_et.minute
+
+    us_holidays = _US_HOLIDAYS_2025 | _US_HOLIDAYS_2026
+
+    if date_str in us_holidays:
+        return {"status": "closed", "reason": "美国假日休市", "next_open": ""}
+
+    if weekday == 5:
+        return {"status": "closed", "reason": "周六休市", "next_open": "周日18:00 ET"}
+    if weekday == 6 and hour < 18:
+        return {"status": "closed", "reason": "周末休市", "next_open": "今日18:00 ET"}
+
+    if weekday == 4 and hour >= 17:
+        return {"status": "closed", "reason": "周五收盘后休市", "next_open": "周日18:00 ET"}
+
+    if 17 <= hour < 18:
+        return {"status": "closed", "reason": "日内休市(17:00-18:00 ET)", "next_open": "今日18:00 ET"}
+
+    return {"status": "open", "reason": "", "next_open": ""}
 
 
 def _check_akshare():
@@ -81,33 +120,41 @@ def get_realtime_price() -> Optional[Dict]:
     获取实时金价（多源fallback）
     成功时更新缓存，失败时返回上次缓存
     """
+    market_status = get_market_status()
+
     if _check_akshare():
         result = _fetch_akshare_xau()
         if result:
             _fetch_domestic_price()
+            result["market_status"] = market_status
             return result
 
         result = _fetch_akshare_comex()
         if result:
             _fetch_domestic_price()
+            result["market_status"] = market_status
             return result
 
     result = _fetch_yahoo_realtime()
     if result:
         _fetch_domestic_price()
+        result["market_status"] = market_status
         return result
 
     result = _fetch_gold_api()
     if result:
+        result["market_status"] = market_status
         return result
 
     result = _fetch_swissquote()
     if result:
+        result["market_status"] = market_status
         return result
 
     print(f"  [WARN] 所有实时金价源均失败，使用上次缓存")
     with _realtime_cache_lock:
         if _realtime_cache:
+            _realtime_cache["market_status"] = market_status
             return _realtime_cache
     try:
         rows = db.get_intraday_snapshots(1)
@@ -122,6 +169,7 @@ def get_realtime_price() -> Optional[Dict]:
                 "volume": 0,
                 "timestamp": latest.get("time", ""),
                 "source": latest.get("source", "db_cache"),
+                "market_status": market_status,
             }
     except Exception:
         pass
@@ -743,4 +791,5 @@ def get_price_summary(realtime: Optional[Dict] = None) -> Dict:
         "source": realtime.get("source", ""),
         "timestamp": realtime["timestamp"],
         "intraday_range": round(intraday_high - intraday_low, 2),
+        "market_status": realtime.get("market_status", {}),
     }

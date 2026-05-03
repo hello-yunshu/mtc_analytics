@@ -236,7 +236,11 @@ def run_daily_task(skip_telegram=False):
     price_summary = get_price_summary(realtime)
     if price_summary.get("available"):
         ps = price_summary
-        print(f"  现货黄金: {ps['price']:.2f} USD/oz ({ps['change_pct']:+.2f}%) 来源:{ps['source']}")
+        ms = ps.get("market_status", {})
+        market_note = ""
+        if ms.get("status") == "closed":
+            market_note = f" ⏸休市({ms.get('reason', '')})"
+        print(f"  现货黄金: {ps['price']:.2f} USD/oz ({ps['change_pct']:+.2f}%) 来源:{ps['source']}{market_note}")
         if ps.get("intraday_range"):
             print(f"  日内波幅: {ps['intraday_range']:.2f} USD")
         price_ts = ps.get("timestamp", "")
@@ -521,7 +525,10 @@ def run_daily_task(skip_telegram=False):
     report = ""
     if price_summary and price_summary.get("available"):
         ps = price_summary
+        ms = ps.get("market_status", {})
         report += f"💰 生成时金价: {ps['price']:.2f} USD/oz ({ps['change_pct']:+.2f}%)"
+        if ms.get("status") == "closed":
+            report += f" ⏸休市({ms.get('reason', '')})"
         if ps.get("high") and ps.get("low"):
             report += f" | 高:{ps['high']:.2f} 低:{ps['low']:.2f}"
         if ps.get("intraday_range"):
