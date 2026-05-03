@@ -94,7 +94,6 @@ def _get_llm_config():
         secret = ""
     api_key = decrypt_value(api_key_raw, secret) if api_key_raw else ""
     if not api_key:
-        import os
         api_key = os.environ.get("LLM_API_KEY", "")
     base_url = settings.get("llm_base_url", "") or "https://api.openai.com/v1"
     model = settings.get("llm_model", "") or "gpt-4o-mini"

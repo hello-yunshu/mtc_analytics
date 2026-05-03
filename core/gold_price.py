@@ -451,7 +451,10 @@ def get_intraday_kline(interval: str = "5m", range_str: str = "1d") -> List[Dict
 
         data = resp.json()
         result = data["chart"]["result"][0]
-        timestamps = result["timestamp"]
+        timestamps = result.get("timestamp")
+        if not timestamps:
+            print("  [WARN] K线数据解析失败: API未返回timestamp")
+            return []
         quotes = result["indicators"]["quote"][0]
 
         klines = []
@@ -484,6 +487,7 @@ def get_daily_history(days: int = 30, prefer_international: bool = False) -> Lis
     """
     获取每日金价历史（从数据库读取，不足时从API补充）
     """
+    global _daily_cache_date, _daily_cache_prices
     with _daily_cache_lock:
         today = datetime.now().strftime("%Y-%m-%d")
         if _daily_cache_date == today and _daily_cache_prices:
@@ -590,7 +594,10 @@ def _fetch_yahoo_daily_history(days: int = 30) -> Optional[List[Dict]]:
 
         data = resp.json()
         result = data["chart"]["result"][0]
-        timestamps = result["timestamp"]
+        timestamps = result.get("timestamp")
+        if not timestamps:
+            print("  [WARN] 日线数据解析失败: API未返回timestamp")
+            return None
         quotes = result["indicators"]["quote"][0]
 
         prices = []
