@@ -97,19 +97,27 @@ DATE_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
 def _get_or_create_default_password():
     pw_file = os.path.join(_PROJECT_ROOT, "data", ".default_password")
-    existing = load_json(pw_file)
-    if existing and existing.get("password_hash"):
-        return existing["password_hash"]
-    random_pw = secrets.token_urlsafe(12)
-    pw_hash = generate_password_hash(random_pw, method='pbkdf2:sha256')
-    save_json(pw_file, {"password_hash": pw_hash}, private=True)
-    _security_logger.warning("首次启动 - 已生成随机登录密码: %s", random_pw)
-    print(f"\n{'='*50}")
-    print(f"  首次启动 - 已生成随机登录密码")
-    print(f"  密码: {random_pw}")
-    print(f"  请妥善保存，此密码仅显示一次")
-    print(f"{'='*50}\n")
-    return pw_hash
+    lock_file = pw_file + ".lock"
+    os.makedirs(os.path.dirname(pw_file), exist_ok=True)
+    import fcntl
+    with open(lock_file, "w") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
+        try:
+            existing = load_json(pw_file)
+            if existing and existing.get("password_hash"):
+                return existing["password_hash"]
+            random_pw = secrets.token_urlsafe(12)
+            pw_hash = generate_password_hash(random_pw, method='pbkdf2:sha256')
+            save_json(pw_file, {"password_hash": pw_hash}, private=True)
+            _security_logger.warning("首次启动 - 已生成随机登录密码: %s", random_pw)
+            print(f"\n{'='*50}")
+            print(f"  首次启动 - 已生成随机登录密码")
+            print(f"  密码: {random_pw}")
+            print(f"  请妥善保存，此密码仅显示一次")
+            print(f"{'='*50}\n")
+            return pw_hash
+        finally:
+            fcntl.flock(lf, fcntl.LOCK_UN)
 
 
 DEFAULT_PASSWORD_HASH = _get_or_create_default_password()

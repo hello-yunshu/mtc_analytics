@@ -33,12 +33,20 @@ def create_app():
     _SECRET_KEY_FILE = "data/.secret_key"
 
     def _load_or_create_secret_key():
-        key = load_json(_SECRET_KEY_FILE)
-        if key and key.get("secret_key"):
-            return key["secret_key"]
-        new_key = secrets.token_hex(32)
-        save_json(_SECRET_KEY_FILE, {"secret_key": new_key}, private=True)
-        return new_key
+        import fcntl
+        os.makedirs(os.path.dirname(_SECRET_KEY_FILE) or ".", exist_ok=True)
+        lock_file = _SECRET_KEY_FILE + ".lock"
+        with open(lock_file, "w") as lf:
+            fcntl.flock(lf, fcntl.LOCK_EX)
+            try:
+                key = load_json(_SECRET_KEY_FILE)
+                if key and key.get("secret_key"):
+                    return key["secret_key"]
+                new_key = secrets.token_hex(32)
+                save_json(_SECRET_KEY_FILE, {"secret_key": new_key}, private=True)
+                return new_key
+            finally:
+                fcntl.flock(lf, fcntl.LOCK_UN)
 
     app.secret_key = _load_or_create_secret_key()
     app.config['SESSION_COOKIE_HTTPONLY'] = True
