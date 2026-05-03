@@ -87,11 +87,17 @@ def _get_llm_config():
     settings = load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}
     api_key_raw = settings.get("llm_api_key", "")
     from .utils import decrypt_value
+    secret = ""
     try:
-        from web_app import app
-        secret = app.secret_key or ""
+        from flask import current_app
+        secret = current_app.secret_key or ""
     except Exception:
-        secret = ""
+        try:
+            key_data = load_json(os.path.join(_DATA_DIR, ".secret_key"))
+            if key_data and key_data.get("secret_key"):
+                secret = key_data["secret_key"]
+        except Exception:
+            pass
     api_key = decrypt_value(api_key_raw, secret) if api_key_raw else ""
     if not api_key:
         api_key = os.environ.get("LLM_API_KEY", "")

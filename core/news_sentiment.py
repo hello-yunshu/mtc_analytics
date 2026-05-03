@@ -861,11 +861,17 @@ def reload_llm_config():
     if "llm_api_key" in settings:
         raw = settings["llm_api_key"] or ""
         from .utils import decrypt_value
+        secret = ""
         try:
-            from web_app import app
-            secret = app.secret_key or ""
+            from flask import current_app
+            secret = current_app.secret_key or ""
         except Exception:
-            secret = ""
+            try:
+                key_data = load_json(os.path.join(_DATA_DIR, ".secret_key"))
+                if key_data and key_data.get("secret_key"):
+                    secret = key_data["secret_key"]
+            except Exception:
+                pass
         LLM_API_KEY = decrypt_value(raw, secret) if raw else ""
         config.LLM_API_KEY = LLM_API_KEY
         LLM_ENABLED = bool(LLM_API_KEY)

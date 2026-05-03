@@ -1125,12 +1125,12 @@ def api_prediction_summary():
     score = latest.get("score", 0)
     if score > threshold:
         direction_label = "看多"
-        direction_color = "green"
+        direction_color = "var(--bull)"
         direction_css = "var(--bull)"
         direction_border = "var(--bull)"
     elif score < -threshold:
         direction_label = "看空"
-        direction_color = "red"
+        direction_color = "var(--bear)"
         direction_css = "var(--bear)"
         direction_border = "var(--bear)"
     else:
