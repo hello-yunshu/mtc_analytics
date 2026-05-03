@@ -178,6 +178,7 @@ def get_realtime_price() -> Optional[Dict]:
 
 def _fetch_akshare_xau() -> Optional[Dict]:
     """从 AKShare 获取伦敦金 XAU 实时价格（新浪源，USD/oz）"""
+    global _realtime_cache
     try:
         import akshare as ak
         df = ak.futures_foreign_commodity_realtime(symbol="XAU")
@@ -223,6 +224,7 @@ def _fetch_akshare_xau() -> Optional[Dict]:
 
 def _fetch_akshare_comex() -> Optional[Dict]:
     """从 AKShare 获取 COMEX 黄金实时价格（新浪源，USD/oz）"""
+    global _realtime_cache
     try:
         import akshare as ak
         df = ak.futures_foreign_commodity_realtime(symbol="GC")
@@ -268,6 +270,7 @@ def _fetch_akshare_comex() -> Optional[Dict]:
 
 def _fetch_domestic_price():
     """获取国内金价（SGE Au99.99 + 沪金期货），不阻塞主流程"""
+    global _domestic_cache
     try:
         import akshare as ak
 
@@ -349,6 +352,7 @@ def get_domestic_price() -> Optional[Dict]:
 
 def _fetch_yahoo_realtime() -> Optional[Dict]:
     """从 Yahoo Finance 获取5分钟K线实时数据"""
+    global _realtime_cache
     try:
         url = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=5m&range=1d"
         resp = requests.get(url, headers=HEADERS, timeout=15)
@@ -394,6 +398,7 @@ def _fetch_yahoo_realtime() -> Optional[Dict]:
 
 def _fetch_gold_api() -> Optional[Dict]:
     """从 api.gold-api.com 获取现货金价"""
+    global _realtime_cache
     try:
         url = "https://api.gold-api.com/price/XAU"
         resp = requests.get(url, timeout=10)
@@ -438,6 +443,7 @@ def _fetch_gold_api() -> Optional[Dict]:
 
 def _fetch_swissquote() -> Optional[Dict]:
     """从 Swissquote 获取买卖价"""
+    global _realtime_cache
     try:
         url = "https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/XAU/USD"
         resp = requests.get(url, timeout=10)
