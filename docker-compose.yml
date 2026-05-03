@@ -1,5 +1,6 @@
 services:
   mtc_analytics:
+    image: mtc_analytics
     build: .
     container_name: mtc_analytics
     restart: unless-stopped
