@@ -16,11 +16,6 @@
    *
    * --bull = 视觉红色 #dc2626 → 利多/看涨/上涨
    * --bear = 视觉绿色 #059669 → 利空/看跌/下跌
-   *
-   * --green / --red 是旧别名，含义与视觉相反：
-   *   --green ≠ 绿色，而是"涨"（视觉红）
-   *   --red   ≠ 红色，而是"跌"（视觉绿）
-   * 新代码请使用 --bull / --bear 代替 --green / --red
    */
   --bg: #0a0e17;
   --bg2: #111827;
@@ -35,8 +30,6 @@
   --gold3: #92400e;
   --bull: #dc2626;   /* 视觉红色 → 利多/看涨/上涨 */
   --bear: #059669;   /* 视觉绿色 → 利空/看跌/下跌 */
-  --green: #dc2626;  /* = --bull，旧别名（"涨"≠绿色） */
-  --red: #059669;    /* = --bear，旧别名（"跌"≠红色） */
   --blue: #3b82f6;
   --purple: #8b5cf6;
   --shadow: rgba(0,0,0,0.3);
@@ -308,15 +301,15 @@ body::before {
   opacity: 0.6;
 }
 
-.stat-card.green::after { background: var(--green); }
-.stat-card.red::after { background: var(--red); }
+.stat-card.bull::after { background: var(--bull); }
+.stat-card.bear::after { background: var(--bear); }
 .stat-card.blue::after { background: var(--blue); }
 
 .stat-label { font-size: 12px; color: var(--text3); margin-bottom: 10px; line-height: 1.4; }
 .stat-value { font-size: 28px; font-weight: 900; color: var(--text); line-height: 1.2; min-height: 34px; }
 .stat-value.gold { color: var(--gold); }
-.stat-value.green { color: var(--green); }
-.stat-value.red { color: var(--red); }
+.stat-value.bull { color: var(--bull); }
+.stat-value.bear { color: var(--bear); }
 .stat-sub { font-size: 12px; color: var(--text3); margin-top: 8px; min-height: 16px; line-height: 1.4; }
 .stat-sub:last-child { margin-top: auto; }
 
@@ -475,7 +468,7 @@ body::before {
 .btn-gold:hover { background: var(--gold2); }
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text2); }
 .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
-.btn-danger { background: var(--red); color: #fff; }
+.btn-danger { background: var(--bear); color: #fff; }
 .btn-danger:hover { background: #dc2626; }
 
 /* ===== Login ===== */
@@ -570,7 +563,7 @@ body::before {
   .sidebar-footer > div { flex-direction: column; gap: 8px; align-items: center; }
   .sidebar-footer #statusText { font-size: 0; }
   .sidebar-footer #statusText svg { display: none; }
-  .sidebar-footer #statusText::before { content: '●'; font-size: 10px; color: var(--red); }
+  .sidebar-footer #statusText::before { content: '●'; font-size: 10px; color: var(--bear); }
   .sidebar-footer button { padding: 6px !important; }
   .sidebar-footer button span svg { width: 16px; height: 16px; }
   #themeLabel { display: none; }
@@ -636,7 +629,7 @@ body::before {
     </nav>
     <div class="sidebar-footer">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div id="statusText"><svg class="ico-fill" viewBox="0 0 24 24" style="width:8px;height:8px;color:var(--red);margin-right:4px"><circle cx="12" cy="12" r="10"/></svg> 运行中</div>
+        <div id="statusText"><svg class="ico-fill" viewBox="0 0 24 24" style="width:8px;height:8px;color:var(--bear);margin-right:4px"><circle cx="12" cy="12" r="10"/></svg> 运行中</div>
         <button onclick="toggleTheme()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;color:var(--text2);font-size:12px;display:flex;align-items:center;gap:4px" title="切换主题">
           <span id="themeIcon"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span>
           <span id="themeLabel">自动</span>
@@ -753,11 +746,11 @@ body::before {
 
       <div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
         <div class="card">
-          <div class="card-title"><svg class="ico-fill" viewBox="0 0 24 24" style="color:var(--red)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> 支撑位</div>
+          <div class="card-title"><svg class="ico-fill" viewBox="0 0 24 24" style="color:var(--bear)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> 支撑位</div>
           <div id="supportLevels" style="font-family:'JetBrains Mono',monospace;font-size:13px"></div>
         </div>
         <div class="card">
-          <div class="card-title"><svg class="ico-fill" viewBox="0 0 24 24" style="color:var(--green)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> 阻力位</div>
+          <div class="card-title"><svg class="ico-fill" viewBox="0 0 24 24" style="color:var(--bull)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> 阻力位</div>
           <div id="resistanceLevels" style="font-family:'JetBrains Mono',monospace;font-size:13px"></div>
         </div>
       </div>
@@ -1289,7 +1282,7 @@ function renderDashSummary(p) {
   const bearW = p._bearSignals !== undefined ? p._bearSignals : p.bearSignals.length;
   let judgeText = p._judge || '中性震荡';
   let judgeColor = p._judgeColor || 'var(--text2)';
-  let judgeBg = judgeColor === 'var(--green)' ? 'rgba(220,38,38,0.1)' : judgeColor === 'var(--red)' ? 'rgba(5,150,105,0.1)' : 'var(--bg2)';
+  let judgeBg = judgeColor === 'var(--bull)' ? 'rgba(220,38,38,0.1)' : judgeColor === 'var(--bear)' ? 'rgba(5,150,105,0.1)' : 'var(--bg2)';
 
   html += `<div style="background:${judgeBg};border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px">`;
   html += `<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">`;
@@ -1304,57 +1297,57 @@ function renderDashSummary(p) {
   if (totalSignals > 0) {
     const bullPct = Math.round((bullW / totalSignals) * 100);
     html += `<div style="display:flex;align-items:center;gap:10px">`;
-    html += `<span style="font-size:11px;color:var(--green);font-weight:600;min-width:48px">利多 ${bullW}</span>`;
-    html += `<div style="flex:1;height:6px;background:var(--red);border-radius:3px;overflow:hidden;position:relative">`;
-    html += `<div style="width:${bullPct}%;height:100%;background:var(--green);border-radius:3px;transition:width 0.5s"></div>`;
+    html += `<span style="font-size:11px;color:var(--bull);font-weight:600;min-width:48px">利多 ${bullW}</span>`;
+    html += `<div style="flex:1;height:6px;background:var(--bear);border-radius:3px;overflow:hidden;position:relative">`;
+    html += `<div style="width:${bullPct}%;height:100%;background:var(--bull);border-radius:3px;transition:width 0.5s"></div>`;
     html += `</div>`;
-    html += `<span style="font-size:11px;color:var(--red);font-weight:600;min-width:48px;text-align:right">利空 ${bearW}</span>`;
+    html += `<span style="font-size:11px;color:var(--bear);font-weight:600;min-width:48px;text-align:right">利空 ${bearW}</span>`;
     html += `</div>`;
   }
   html += `</div>`;
 
   html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">`;
 
-  const netColor = p.netChange > 0 ? 'var(--green)' : p.netChange < 0 ? 'var(--red)' : 'var(--text2)';
+  const netColor = p.netChange > 0 ? 'var(--bull)' : p.netChange < 0 ? 'var(--bear)' : 'var(--text2)';
   const netDir = p.netChange > 0 ? '加仓' : p.netChange < 0 ? '减仓' : '持平';
-  const netBorder = p.netChange > 0 ? 'var(--green)' : p.netChange < 0 ? 'var(--red)' : 'var(--border)';
+  const netBorder = p.netChange > 0 ? 'var(--bull)' : p.netChange < 0 ? 'var(--bear)' : 'var(--border)';
   html += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${netBorder};border-radius:8px;padding:14px 16px">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">📊 <span style="font-weight:600">持仓面</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${netColor}">${netDir} ${p.netChange !== 0 ? (p.netChange > 0 ? '+' : '') + p.netChange.toLocaleString() + '手' : ''}</div>`;
   html += `<div style="font-size:11px;color:var(--text3);margin-top:4px">净多头合计 ${p.totalNet ? p.totalNet.toLocaleString() + '手' : '--'}</div>`;
   html += `</div>`;
 
-  const dirColor = p._directionCss || (p.direction === '看多' ? 'var(--green)' : p.direction === '看空' ? 'var(--red)' : 'var(--text2)');
-  const dirBorder = p._directionBorder || (p.direction === '看多' ? 'var(--green)' : p.direction === '看空' ? 'var(--red)' : 'var(--border)');
+  const dirColor = p._directionCss || (p.direction === '看多' ? 'var(--bull)' : p.direction === '看空' ? 'var(--bear)' : 'var(--text2)');
+  const dirBorder = p._directionBorder || (p.direction === '看多' ? 'var(--bull)' : p.direction === '看空' ? 'var(--bear)' : 'var(--border)');
   html += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${dirBorder};border-radius:8px;padding:14px 16px">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">🔮 <span style="font-weight:600">十二因子预测</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${dirColor}">${escHtml(p.direction || '--')}</div>`;
   html += `<div style="font-size:11px;color:var(--text3);margin-top:4px">置信度 ${escHtml(p.confidence || '--')}</div>`;
   html += `</div>`;
 
-  const sentColor = p._sentimentColor || (p.sentimentScore > 0.2 ? 'var(--green)' : p.sentimentScore < -0.2 ? 'var(--red)' : 'var(--text2)');
-  const sentBorder = p._sentimentBorder || (p.sentimentScore > 0.2 ? 'var(--green)' : p.sentimentScore < -0.2 ? 'var(--red)' : 'var(--border)');
+  const sentColor = p._sentimentColor || (p.sentimentScore > 0.2 ? 'var(--bull)' : p.sentimentScore < -0.2 ? 'var(--bear)' : 'var(--text2)');
+  const sentBorder = p._sentimentBorder || (p.sentimentScore > 0.2 ? 'var(--bull)' : p.sentimentScore < -0.2 ? 'var(--bear)' : 'var(--border)');
   html += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${sentBorder};border-radius:8px;padding:14px 16px">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">📰 <span style="font-weight:600">新闻情绪</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${sentColor}">${escHtml(p.sentiment || '--')}</div>`;
   html += `<div style="display:flex;gap:8px;margin-top:6px;font-size:11px">`;
-  html += `<span style="color:var(--green)">利多${p.newsBullish}</span>`;
-  html += `<span style="color:var(--red)">利空${p.newsBearish}</span>`;
+  html += `<span style="color:var(--bull)">利多${p.newsBullish}</span>`;
+  html += `<span style="color:var(--bear)">利空${p.newsBearish}</span>`;
   html += `<span style="color:var(--text3)">中性${p.newsNeutral}</span>`;
   html += `</div></div>`;
 
   const alertTotal = p.alertCritical + p.alertHigh + p.alertMedium + p.alertLow;
-  const alertColor = p.alertCritical > 0 ? 'var(--green)' : p.alertHigh > 0 ? 'var(--green)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--red)';
-  const alertBorder = p.alertCritical > 0 ? 'var(--green)' : p.alertHigh > 0 ? 'var(--green)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--red)';
+  const alertColor = p.alertCritical > 0 ? 'var(--bull)' : p.alertHigh > 0 ? 'var(--bull)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--bear)';
+  const alertBorder = p.alertCritical > 0 ? 'var(--bull)' : p.alertHigh > 0 ? 'var(--bull)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--bear)';
   html += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${alertBorder};border-radius:8px;padding:14px 16px">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">🔔 <span style="font-weight:600">全维度警示</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${alertColor}">${alertTotal > 0 ? alertTotal + '个' : '无异常'}</div>`;
   let alertParts = [];
-  if (p.alertCritical) alertParts.push(`<span style="color:var(--green);font-weight:600">重${p.alertCritical}</span>`);
-  if (p.alertHigh) alertParts.push(`<span style="color:var(--green)">高${p.alertHigh}</span>`);
+  if (p.alertCritical) alertParts.push(`<span style="color:var(--bull);font-weight:600">重${p.alertCritical}</span>`);
+  if (p.alertHigh) alertParts.push(`<span style="color:var(--bull)">高${p.alertHigh}</span>`);
   if (p.alertMedium) alertParts.push(`<span style="color:var(--gold)">中${p.alertMedium}</span>`);
   if (p.alertLow) alertParts.push(`<span style="color:var(--text3)">低${p.alertLow}</span>`);
-  html += `<div style="font-size:11px;margin-top:4px">${alertParts.length ? alertParts.join(' · ') : '<span style="color:var(--red)">市场平稳</span>'}</div>`;
+  html += `<div style="font-size:11px;margin-top:4px">${alertParts.length ? alertParts.join(' · ') : '<span style="color:var(--bear)">市场平稳</span>'}</div>`;
   html += `</div>`;
 
   html += `</div>`;
@@ -1370,11 +1363,11 @@ function renderDashSummary(p) {
     html += `<div class="dual-col-grid">`;
     for (const [dimName, dimAlerts] of Object.entries(dimGroups)) {
       const hasHigh = dimAlerts.some(a => a.level === 'critical' || a.level === 'high');
-      const dimColor = hasHigh ? 'var(--green)' : dimAlerts.some(a => a.level === 'medium') ? 'var(--gold)' : 'var(--text3)';
+      const dimColor = hasHigh ? 'var(--bull)' : dimAlerts.some(a => a.level === 'medium') ? 'var(--gold)' : 'var(--text3)';
       html += `<div style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${dimColor}">`;
       html += `<div style="font-size:12px;font-weight:600;color:${dimColor};margin-bottom:6px">${dimName}<span style="color:var(--text3);font-weight:400;margin-left:6px">${dimAlerts.length}个</span></div>`;
       for (const a of dimAlerts) {
-        const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.18);color:var(--green);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.12);color:var(--green);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(245,158,11,0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(100,116,139,0.1);color:var(--text3);margin-right:4px">低</span>';
+        const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.18);color:var(--bull);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.12);color:var(--bull);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(245,158,11,0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(100,116,139,0.1);color:var(--text3);margin-right:4px">低</span>';
         html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5">${levelBadge}${escHtml(a.message)}</div>`;
       }
       html += `</div>`;
@@ -1431,14 +1424,14 @@ function renderDashSummary(p) {
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">📊 信号汇总</div>`;
     html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
     if (p.bullSignals.length) {
-      html += `<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:8px;padding:14px 16px">`;
-      html += `<div style="font-size:12px;color:var(--green);margin-bottom:8px;font-weight:700">🔴 利多（${p.bullSignals.length}）</div>`;
+      html += `<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bull);border-radius:8px;padding:14px 16px">`;
+      html += `<div style="font-size:12px;color:var(--bull);margin-bottom:8px;font-weight:700">🔴 利多（${p.bullSignals.length}）</div>`;
       p.bullSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
     if (p.bearSignals.length) {
-      html += `<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:8px;padding:14px 16px">`;
-      html += `<div style="font-size:12px;color:var(--red);margin-bottom:8px;font-weight:700">🟢 利空（${p.bearSignals.length}）</div>`;
+      html += `<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bear);border-radius:8px;padding:14px 16px">`;
+      html += `<div style="font-size:12px;color:var(--bear);margin-bottom:8px;font-weight:700">🟢 利空（${p.bearSignals.length}）</div>`;
       p.bearSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
@@ -1475,8 +1468,8 @@ let _predSummary = null;
 let _predThreshold = 0.08;
 
 function predColor(score) {
-  if (score > _predThreshold) return 'var(--green)';
-  if (score < -_predThreshold) return 'var(--red)';
+  if (score > _predThreshold) return 'var(--bull)';
+  if (score < -_predThreshold) return 'var(--bear)';
   return 'var(--text3)';
 }
 
@@ -1548,7 +1541,7 @@ async function loadDashboard() {
   const dirEl = document.getElementById('statDirection');
   if (dirEl) {
     dirEl.textContent = p.direction || '--';
-    dirEl.className = 'stat-value ' + (p._directionCss === 'var(--green)' ? 'green' : p._directionCss === 'var(--red)' ? 'red' : '');
+    dirEl.className = 'stat-value ' + (p._directionCss === 'var(--bull)' ? 'bull' : p._directionCss === 'var(--bear)' ? 'bear' : '');
   }
   const confEl = document.getElementById('statConfidence');
   if (confEl) confEl.textContent = p.confidence ? '置信度 '+p.confidence : '--';
@@ -1562,7 +1555,7 @@ async function loadDashboard() {
         const scoreEl2 = document.getElementById(ids.score);
         if (dirEl2) {
           dirEl2.textContent = pt.direction || '--';
-          dirEl2.style.color = pt.direction === '看多' ? 'var(--green)' : pt.direction === '看空' ? 'var(--red)' : 'var(--text2)';
+          dirEl2.style.color = pt.direction === '看多' ? 'var(--bull)' : pt.direction === '看空' ? 'var(--bear)' : 'var(--text2)';
         }
         if (scoreEl2) {
           scoreEl2.textContent = pt.score !== undefined ? `评分${pt.score > 0 ? '+' : ''}${pt.score.toFixed(2)} · 置信度${pt.confidence}%` : '';
@@ -1574,7 +1567,7 @@ async function loadDashboard() {
   const sentEl = document.getElementById('statSentiment');
   if (sentEl) {
     sentEl.textContent = p.sentiment || '--';
-    sentEl.className = 'stat-value ' + (p.sentiment==='偏多'?'green':p.sentiment==='偏空'?'red':'');
+    sentEl.className = 'stat-value ' + (p.sentiment==='偏多'?'bull':p.sentiment==='偏空'?'bear':'');
   }
   const sentSubEl = document.getElementById('statSentimentSub');
   if (sentSubEl) sentSubEl.textContent = (p.sentimentScore !== undefined && p.sentimentScore !== null) ? '利多'+p.newsBullish+' 利空'+p.newsBearish+' 评分'+p.sentimentScore.toFixed(2) : '--';
@@ -1582,7 +1575,7 @@ async function loadDashboard() {
   const netEl = document.getElementById('statNetChange');
   if (netEl) {
     netEl.textContent = (p.netChange !== undefined && p.netChange !== null) ? (p.netChange>0?'+':'')+p.netChange.toLocaleString()+'手' : '--';
-    netEl.className = 'stat-value mono ' + (p.netChange>0?'green':p.netChange<0?'red':'');
+    netEl.className = 'stat-value mono ' + (p.netChange>0?'bull':p.netChange<0?'bear':'');
   }
   const netSubEl = document.getElementById('statNetSub');
   if (netSubEl) {
@@ -1621,10 +1614,10 @@ async function loadMacro() {
       if (i && i.value !== undefined && i.value !== null && !isNaN(i.value)) {
         el.textContent = f.prefix + i.value.toFixed(2) + f.suffix;
         if (subEl) subEl.textContent = (i.change_pct>0?'↑':'↓') + ' ' + Math.abs(i.change_pct).toFixed(2) + '%';
-        if (f.key === 'us_10y_yield') el.style.color = i.change>0?'var(--green)':i.change<0?'var(--red)':'var(--text)';
-        if (f.key === 'dxy') el.style.color = i.change>0?'var(--green)':i.change<0?'var(--red)':'var(--text)';
-        if (f.key === 'vix') el.style.color = i.change>0?'var(--green)':i.change<0?'var(--red)':'var(--text)';
-        if (f.key === 'crude_oil') el.style.color = i.change>0?'var(--green)':i.change<0?'var(--red)':'var(--text)';
+        if (f.key === 'us_10y_yield') el.style.color = i.change>0?'var(--bull)':i.change<0?'var(--bear)':'var(--text)';
+        if (f.key === 'dxy') el.style.color = i.change>0?'var(--bull)':i.change<0?'var(--bear)':'var(--text)';
+        if (f.key === 'vix') el.style.color = i.change>0?'var(--bull)':i.change<0?'var(--bear)':'var(--text)';
+        if (f.key === 'crude_oil') el.style.color = i.change>0?'var(--bull)':i.change<0?'var(--bear)':'var(--text)';
       } else {
         el.textContent = 'N/A';
         if (subEl) subEl.textContent = '数据暂不可用';
@@ -1635,14 +1628,14 @@ async function loadMacro() {
     for (const [k, v] of Object.entries(ind)) {
       if (!v || v.value === null || v.value === undefined || isNaN(v.value)) continue;
       const dir = v.direction === 'inverse' ? '（与黄金负相关）' : '（与黄金正相关）';
-      const color = v.change > 0 ? 'var(--green)' : v.change < 0 ? 'var(--red)' : 'var(--text2)';
+      const color = v.change > 0 ? 'var(--bull)' : v.change < 0 ? 'var(--bear)' : 'var(--text2)';
       detail += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">`;
       detail += `<span>${escHtml(v.name)}${dir}</span>`;
       detail += `<span style="color:${color}">${v.value.toFixed(2)}${v.unit} (${v.change_pct>0?'+':''}${v.change_pct.toFixed(2)}%)</span>`;
       detail += `</div>`;
     }
     detail += `<div style="margin-top:12px;padding:8px;background:var(--bg);border-radius:8px;font-size:12px">`;
-    detail += `综合影响：<span style="color:${data.gold_impact==='偏多'?'var(--green)':data.gold_impact==='偏空'?'var(--red)':'var(--text2)'}">${escHtml(data.gold_impact)}</span>`;
+    detail += `综合影响：<span style="color:${data.gold_impact==='偏多'?'var(--bull)':data.gold_impact==='偏空'?'var(--bear)':'var(--text2)'}">${escHtml(data.gold_impact)}</span>`;
     detail += `</div>`;
     document.getElementById('macroDetailContent').innerHTML = detail || '暂无数据';
 
@@ -1677,7 +1670,7 @@ async function loadSupportResistance() {
       const typeTag = s.type === 'structural' ? '<span style="color:var(--purple);font-size:10px;margin-left:4px">结构</span>' : '';
       supHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">`;
       supHtml += `<span>${escHtml(s.level)}${typeTag}</span>`;
-      supHtml += `<span style="color:var(--red)">$${s.value.toFixed(2)} <span style="font-size:11px;color:var(--text3)">${dist}%</span></span>`;
+      supHtml += `<span style="color:var(--bear)">$${s.value.toFixed(2)} <span style="font-size:11px;color:var(--text3)">${dist}%</span></span>`;
       supHtml += `</div>`;
     });
     if (data.moving_averages && Object.keys(data.moving_averages).length > 0) {
@@ -1699,7 +1692,7 @@ async function loadSupportResistance() {
       const typeTag = r.type === 'structural' ? '<span style="color:var(--purple);font-size:10px;margin-left:4px">结构</span>' : '';
       resHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">`;
       resHtml += `<span>${escHtml(r.level)}${typeTag}</span>`;
-      resHtml += `<span style="color:var(--green)">$${r.value.toFixed(2)} <span style="font-size:11px;color:var(--text3)">+${dist}%</span></span>`;
+      resHtml += `<span style="color:var(--bull)">$${r.value.toFixed(2)} <span style="font-size:11px;color:var(--text3)">+${dist}%</span></span>`;
       resHtml += `</div>`;
     });
     if (data.pivot) {
@@ -1732,7 +1725,7 @@ async function loadTechnicalAnalysis() {
     const indicatorsEl = document.getElementById('technicalIndicators');
     if (!summaryEl) return;
 
-    const taColor = (c) => c === 'bullish' ? 'var(--green)' : c === 'bearish' ? 'var(--red)' : 'var(--text2)';
+    const taColor = (c) => c === 'bullish' ? 'var(--bull)' : c === 'bearish' ? 'var(--bear)' : 'var(--text2)';
     const taBg = (c) => c === 'bullish' ? 'rgba(220,38,38,0.08)' : c === 'bearish' ? 'rgba(5,150,105,0.08)' : 'var(--bg2)';
 
     let summaryHtml = '';
@@ -1811,8 +1804,8 @@ async function loadTechnicalAnalysis() {
       for (const s of data.ma_signals) {
         const isBull = s.signal === '偏多' || s.signal === '微多';
         const isBear = s.signal === '偏空' || s.signal === '微空';
-        const color = isBull ? 'var(--green)' : isBear ? 'var(--red)' : 'var(--text3)';
-        const border = isBull ? 'var(--green)' : isBear ? 'var(--red)' : 'var(--border)';
+        const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text3)';
+        const border = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--border)';
         maSignalsHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${border};border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">`;
         maSignalsHtml += `<span style="font-size:12px;color:var(--text)">${s.name} <span style="color:var(--text3)">$${s.value.toFixed(2)}</span></span>`;
         maSignalsHtml += `<span style="font-size:12px;font-weight:600;color:${color}">${s.position} ${s.signal}</span>`;
@@ -1828,7 +1821,7 @@ async function loadTechnicalAnalysis() {
       crossHtml += `<div style="display:flex;flex-wrap:wrap;gap:8px">`;
       for (const cs of data.ma_cross_signals) {
         const isGold = cs.type === '金叉';
-        const color = isGold ? 'var(--green)' : 'var(--red)';
+        const color = isGold ? 'var(--bull)' : 'var(--bear)';
         const bg = isGold ? 'rgba(220,38,38,0.1)' : 'rgba(5,150,105,0.1)';
         crossHtml += `<div style="background:${bg};border:1px solid ${color};border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px">`;
         crossHtml += `<span style="font-size:14px">${isGold ? '✦' : '✧'}</span>`;
@@ -2201,8 +2194,8 @@ function subCard(title, accentColor, innerHtml) {
 function colorizeLine(l, accentColor) {
   let color = 'var(--text2)';
   let fontWeight = '400';
-  if (l.includes('🔴') || l.includes('偏多') || l.includes('金叉') || l.includes('上行') || l.includes('扩大') || l.includes('看多') || l.includes('同向')) { color = 'var(--green)'; fontWeight = '600'; }
-  else if (l.includes('🟢') || l.includes('偏空') || l.includes('死叉') || l.includes('下行') || l.includes('背离') || l.includes('看空') || l.includes('矛盾') || l.includes('拥挤') || l.includes('极端') || l.includes('风险') || l.includes('翻转')) { color = 'var(--red)'; fontWeight = '600'; }
+  if (l.includes('🔴') || l.includes('偏多') || l.includes('金叉') || l.includes('上行') || l.includes('扩大') || l.includes('看多') || l.includes('同向')) { color = 'var(--bull)'; fontWeight = '600'; }
+  else if (l.includes('🟢') || l.includes('偏空') || l.includes('死叉') || l.includes('下行') || l.includes('背离') || l.includes('看空') || l.includes('矛盾') || l.includes('拥挤') || l.includes('极端') || l.includes('风险') || l.includes('翻转')) { color = 'var(--bear)'; fontWeight = '600'; }
   else if (l.includes('关键信号')) { color = accentColor; fontWeight = '600'; }
   else if (l.includes('暂无') || l.includes('正常') || l.includes('数据暂无') || l.includes('无异常') || l.includes('无背离') || l.includes('无交叉') || l.includes('无极端') || l.includes('无显著')) { color = 'var(--text3)'; }
   const cleanL = l.replace(/^\s*•\s*/, '');
@@ -2261,7 +2254,7 @@ function renderInterpretationSection(text) {
         inner += `<div style="font-size:12px;color:var(--text2);padding:2px 0">• ${escHtml(s)}</div>`;
       }
     });
-    html += subCard('🔴 利多（' + signals.bull.length + '）', 'var(--green)', inner);
+    html += subCard('🔴 利多（' + signals.bull.length + '）', 'var(--bull)', inner);
   }
   if (signals.bear.length) {
     let inner = '';
@@ -2273,7 +2266,7 @@ function renderInterpretationSection(text) {
         inner += `<div style="font-size:12px;color:var(--text2);padding:2px 0">• ${escHtml(s)}</div>`;
       }
     });
-    html += subCard('🟢 利空（' + signals.bear.length + '）', 'var(--red)', inner);
+    html += subCard('🟢 利空（' + signals.bear.length + '）', 'var(--bear)', inner);
   }
   if (signals.neutral.length) {
     let inner = '';
@@ -2284,19 +2277,19 @@ function renderInterpretationSection(text) {
   for (const l of otherLines) {
     let color = 'var(--text2)';
     let fontSize = '13px';
-    if (l.includes('偏多')) color = 'var(--green)';
-    else if (l.includes('偏空')) color = 'var(--red)';
+    if (l.includes('偏多')) color = 'var(--bull)';
+    else if (l.includes('偏空')) color = 'var(--bear)';
     if (l.includes('综合判断')) { fontSize = '16px'; }
 
     if (l.includes('⚠️') && (l.includes('重】') || l.includes('高】') || l.includes('中】') || l.includes('低】'))) {
       const level = l.includes('重】') ? 'critical' : l.includes('高】') ? 'high' : l.includes('中】') ? 'medium' : 'low';
-      const levelColor = level === 'critical' ? 'var(--red)' : level === 'high' ? '#ef4444' : level === 'medium' ? 'var(--gold)' : 'var(--text3)';
+      const levelColor = level === 'critical' ? 'var(--bear)' : level === 'high' ? '#ef4444' : level === 'medium' ? 'var(--gold)' : 'var(--text3)';
       const levelBg = level === 'critical' ? 'rgba(239,68,68,0.08)' : level === 'high' ? 'rgba(239,68,68,0.05)' : level === 'medium' ? 'rgba(245,158,11,0.05)' : 'rgba(34,197,94,0.04)';
       html += `<div style="font-size:13px;color:${levelColor};padding:6px 10px;margin:4px 0;border-radius:6px;background:${levelBg};cursor:pointer;border:1px solid transparent;transition:border-color 0.2s" onclick="scrollToAlertLevel('${level}')" onmouseover="this.style.borderColor='${levelColor}';this.style.opacity='0.85'" onmouseout="this.style.borderColor='transparent';this.style.opacity='1'">${escHtml(l)} <span style="font-size:11px;opacity:0.6">点击查看详情 →</span></div>`;
     } else if (l.includes('⚠️')) {
       html += `<div style="font-size:${fontSize};color:var(--gold);padding:4px 0;cursor:pointer" onclick="scrollToAlertSection()" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">${escHtml(l)} <span style="font-size:11px;opacity:0.6">→</span></div>`;
     } else if (l.includes('✅')) {
-      html += `<div style="font-size:${fontSize};color:var(--green);padding:4px 0">${escHtml(l)}</div>`;
+      html += `<div style="font-size:${fontSize};color:var(--bull);padding:4px 0">${escHtml(l)}</div>`;
     } else {
       html += `<div style="font-size:${fontSize};color:${color};padding:4px 0;font-weight:${l.includes('综合判断')?'700':'400'}">${escHtml(l)}</div>`;
     }
@@ -2355,7 +2348,7 @@ function renderPredictionSection(text) {
       let icHtml = '';
 
       if (cons.direction) {
-        const consColor = cons.direction === '看多' ? 'var(--green)' : cons.direction === '看空' ? 'var(--red)' : 'var(--text2)';
+        const consColor = cons.direction === '看多' ? 'var(--bull)' : cons.direction === '看空' ? 'var(--bear)' : 'var(--text2)';
         icHtml += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">`;
         icHtml += `<div style="font-size:13px;color:var(--text3)">机构共识</div>`;
         icHtml += `<div style="font-size:18px;font-weight:800;color:${consColor}">${cons.direction}</div>`;
@@ -2365,15 +2358,15 @@ function renderPredictionSection(text) {
 
       if (cons.bull_count + cons.bear_count + cons.neutral_count > 0) {
         icHtml += `<div style="display:flex;gap:6px;margin-bottom:8px">`;
-        icHtml += `<span style="background:rgba(34,197,94,0.15);color:var(--green);border-radius:4px;padding:2px 8px;font-size:10px">看多 ${cons.bull_count}</span>`;
-        icHtml += `<span style="background:rgba(239,68,68,0.15);color:var(--red);border-radius:4px;padding:2px 8px;font-size:10px">看空 ${cons.bear_count}</span>`;
+        icHtml += `<span style="background:rgba(34,197,94,0.15);color:var(--bull);border-radius:4px;padding:2px 8px;font-size:10px">看多 ${cons.bull_count}</span>`;
+        icHtml += `<span style="background:rgba(239,68,68,0.15);color:var(--bear);border-radius:4px;padding:2px 8px;font-size:10px">看空 ${cons.bear_count}</span>`;
         icHtml += `<span style="background:var(--border);color:var(--text3);border-radius:4px;padding:2px 8px;font-size:10px">中性 ${cons.neutral_count}</span>`;
         icHtml += `<span style="font-size:10px;color:var(--text3);margin-left:4px">${cons.agreement_level}</span>`;
         icHtml += `</div>`;
       }
 
       if (align.alignment && align.alignment !== 'no_data') {
-        const alignColors = {aligned: 'var(--green)', divergent: 'var(--red)', neutral_vs_conviction: 'var(--gold)', conviction_vs_neutral: 'var(--text3)'};
+        const alignColors = {aligned: 'var(--bull)', divergent: 'var(--bear)', neutral_vs_conviction: 'var(--gold)', conviction_vs_neutral: 'var(--text3)'};
         const alignLabels = {aligned: '✅ 一致', divergent: '⚠️ 背离', neutral_vs_conviction: '⚡ 模型中性vs共识有方向', conviction_vs_neutral: '💡 模型有方向vs共识中性'};
         const aColor = alignColors[align.alignment] || 'var(--text3)';
         const aLabel = alignLabels[align.alignment] || align.alignment;
@@ -2387,7 +2380,7 @@ function renderPredictionSection(text) {
         icHtml += `<div style="font-size:10px;color:var(--text3);margin-bottom:4px">机构观点明细</div>`;
         icHtml += `<div style="max-height:120px;overflow-y:auto">`;
         for (const inst of instList) {
-          const iColor = inst.direction === '看多' ? 'var(--green)' : inst.direction === '看空' ? 'var(--red)' : 'var(--text3)';
+          const iColor = inst.direction === '看多' ? 'var(--bull)' : inst.direction === '看空' ? 'var(--bear)' : 'var(--text3)';
           const tierBadge = inst.tier === 1 ? '⭐' : '';
           const tpStr = inst.target_price ? ` 目标$${inst.target_price}` : '';
           icHtml += `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:10px">`;
@@ -2449,7 +2442,7 @@ function renderPredictionSection(text) {
 
       if (l.includes('预测方向')) {
         const dir = l.includes('看多') ? '看多' : l.includes('看空') ? '看空' : '中性';
-        const color = dir === '看多' ? 'var(--green)' : dir === '看空' ? 'var(--red)' : 'var(--text2)';
+        const color = dir === '看多' ? 'var(--bull)' : dir === '看空' ? 'var(--bear)' : 'var(--text2)';
         const confMatch = l.match(/置信度\s*(\d+)%/);
         dirHtml += `<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">`;
         dirHtml += `<div style="font-size:24px;font-weight:900;color:${color}">${dir}</div>`;
@@ -2541,7 +2534,7 @@ function renderNewsSection(text) {
     if (l.includes('情绪：')) {
       const isBull = l.includes('偏多');
       const isBear = l.includes('偏空');
-      const color = isBull ? 'var(--green)' : isBear ? 'var(--red)' : 'var(--text2)';
+      const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
       summaryHtml += `<div style="font-size:18px;font-weight:700;color:${color};margin-bottom:4px">${escHtml(l)}</div>`;
     } else if (l.includes('利多') && l.includes('利空')) {
       summaryHtml += `<div style="font-size:13px;color:var(--text2)">${escHtml(l)}</div>`;
@@ -2597,7 +2590,7 @@ function renderAlertSection(text) {
   };
 
   const levelStyles = {
-    critical: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', label: '🔴 重', color: 'var(--red)' },
+    critical: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', label: '🔴 重', color: 'var(--bear)' },
     high:     { bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.18)', label: '🔴 高', color: '#ef4444' },
     medium:   { bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.18)', label: '🟡 中', color: 'var(--gold)' },
     low:      { bg: 'rgba(34,197,94,0.04)', border: 'rgba(34,197,94,0.12)', label: '🟢 低', color: 'var(--text3)' },
@@ -2669,7 +2662,7 @@ function renderAlertSection(text) {
       bgColor = 'rgba(34,197,94,0.03)';
       borderColor = 'rgba(34,197,94,0.1)';
     }
-    const titleColor = hasCritical ? 'var(--red)' : hasHigh ? '#ef4444' : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
+    const titleColor = hasCritical ? 'var(--bear)' : hasHigh ? '#ef4444' : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
 
     const isFullSpan = emoji === '⚠️';
     html += `<div id="alert-dim-${dim.key}" class="${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:10px;padding:12px 14px;transition:box-shadow 0.3s,border-color 0.3s">`;
@@ -2741,7 +2734,7 @@ function renderMacroSection(text) {
       const isBull = l.startsWith('🔴');
       const isBear = l.startsWith('🟢');
       const cleanL = l.replace(/^[🔴🟢⚪]\s*/, '');
-      const color = isBull ? 'var(--green)' : isBear ? 'var(--red)' : 'var(--text2)';
+      const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
       mainInner += `<div style="font-size:13px;color:${color};font-weight:600;padding:3px 0">${escHtml(cleanL)}</div>`;
     } else if (l.includes('长期判断')) {
       mainInner += `<div style="font-size:12px;color:var(--text3);padding:4px 0;border-top:1px solid var(--border);margin-top:4px">${escHtml(l)}</div>`;
@@ -2807,7 +2800,7 @@ function renderTechnicalSection(text) {
       const isBull = l.startsWith('🔴');
       const isBear = l.startsWith('🟢');
       const cleanL = l.replace(/^[🔴🟢⚪]\s*/, '');
-      const color = isBull ? 'var(--green)' : isBear ? 'var(--red)' : 'var(--text2)';
+      const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
       mainInner += `<div style="font-size:13px;color:${color};font-weight:600;padding:3px 0">${escHtml(cleanL)}</div>`;
     } else {
       mainInner += colorizeLine(l, '#8b5cf6');
@@ -2875,9 +2868,9 @@ function renderHoldingsSection(text) {
     if (l.includes('净多头合计')) {
       label = '净多头合计'; value = l.match(/[\d,]+/)?.[0] || ''; color = 'var(--gold)';
     } else if (l.includes('净变化')) {
-      label = '今日净变化'; value = l.replace(/.*：/, '').trim(); color = l.includes('+') ? 'var(--green)' : l.includes('-') ? 'var(--red)' : 'var(--text)';
+      label = '今日净变化'; value = l.replace(/.*：/, '').trim(); color = l.includes('+') ? 'var(--bull)' : l.includes('-') ? 'var(--bear)' : 'var(--text)';
     } else if (l.includes('整体趋势')) {
-      label = '整体趋势'; value = l.replace(/.*：/, '').trim(); color = l.includes('偏多') ? 'var(--green)' : l.includes('偏空') ? 'var(--red)' : 'var(--text)';
+      label = '整体趋势'; value = l.replace(/.*：/, '').trim(); color = l.includes('偏多') ? 'var(--bull)' : l.includes('偏空') ? 'var(--bear)' : 'var(--text)';
     } else if (l.includes('加仓')) {
       label = '机构分布'; value = l.replace(/.*：/, '').trim(); color = 'var(--text2)';
     }
@@ -2909,7 +2902,7 @@ function renderHoldingsSection(text) {
           } else if (l.includes('多头:') || l.includes('净多头:')) {
             const isUp = l.includes('🔴');
             const isDown = l.includes('🟢');
-            const color = isUp ? 'var(--green)' : isDown ? 'var(--red)' : 'var(--text2)';
+            const color = isUp ? 'var(--bull)' : isDown ? 'var(--bear)' : 'var(--text2)';
             inner += `<div style="font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:3px">${escHtml(l.replace(/[🟢🔴⚪]/g, ''))} <span style="color:${color};font-weight:600">${isUp ? '↑' : isDown ? '↓' : '→'}</span></div>`;
           }
         }
@@ -2921,7 +2914,7 @@ function renderHoldingsSection(text) {
           if (l.includes('近') && (l.includes('日 📈') || l.includes('日 📉') || l.includes('日 ➡️') || l.includes('日 '))) {
             const isBull = l.includes('偏多') || l.includes('强势偏多');
             const isBear = l.includes('偏空') || l.includes('强势偏空');
-            const color = isBull ? 'var(--green)' : isBear ? 'var(--red)' : 'var(--text2)';
+            const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
             inner += `<div style="font-size:13px;font-weight:600;color:${color};margin:6px 0 4px;padding:5px 8px;background:var(--bg);border-radius:5px">${escHtml(l)}</div>`;
           } else if (l.includes('多空比')) {
             inner += `<div style="font-size:12px;font-weight:600;color:var(--text);margin:6px 0 4px">${escHtml(l)}</div>`;
@@ -3039,9 +3032,9 @@ function renderBacktestSection(text) {
     const numMatch = item.val.match(/(\d+\.?\d*)%/);
     if (numMatch) {
       const pct = parseFloat(numMatch[1]);
-      if (pct >= 60) valueColor = 'var(--green)';
+      if (pct >= 60) valueColor = 'var(--bull)';
       else if (pct >= 45) valueColor = 'var(--gold)';
-      else valueColor = 'var(--red)';
+      else valueColor = 'var(--bear)';
     }
 
     inner += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
@@ -3083,8 +3076,8 @@ async function loadIterationStatus() {
     html += `</div>`;
 
     html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">`;
-    html += `<div style="text-align:center"><div style="font-size:9px;color:var(--text3)">整体准确率</div><div style="font-size:13px;font-weight:700;color:${parseFloat(accPct)>=60?'var(--green)':parseFloat(accPct)>=45?'var(--gold)':'var(--red)'}">${accPct}%</div></div>`;
-    html += `<div style="text-align:center"><div style="font-size:9px;color:var(--text3)">近期准确率</div><div style="font-size:13px;font-weight:700;color:${parseFloat(recentPct)>=60?'var(--green)':parseFloat(recentPct)>=45?'var(--gold)':'var(--red)'}">${recentPct}%</div></div>`;
+    html += `<div style="text-align:center"><div style="font-size:9px;color:var(--text3)">整体准确率</div><div style="font-size:13px;font-weight:700;color:${parseFloat(accPct)>=60?'var(--bull)':parseFloat(accPct)>=45?'var(--gold)':'var(--bear)'}">${accPct}%</div></div>`;
+    html += `<div style="text-align:center"><div style="font-size:9px;color:var(--text3)">近期准确率</div><div style="font-size:13px;font-weight:700;color:${parseFloat(recentPct)>=60?'var(--bull)':parseFloat(recentPct)>=45?'var(--gold)':'var(--bear)'}">${recentPct}%</div></div>`;
     html += `<div style="text-align:center"><div style="font-size:9px;color:var(--text3)">迭代次数</div><div style="font-size:13px;font-weight:700;color:var(--text)">${data.total_iterations||0}</div></div>`;
     html += `</div>`;
 
@@ -3092,7 +3085,7 @@ async function loadIterationStatus() {
       const pct = Math.round(tokenUsed / tokenBudget * 100);
       html += `<div style="margin-bottom:8px">`;
       html += `<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-bottom:2px"><span>LLM Token 用量</span><span>${tokenUsed}/${tokenBudget}</span></div>`;
-      html += `<div style="background:var(--border);border-radius:3px;height:4px;overflow:hidden"><div style="background:${pct>80?'var(--red)':'var(--green)'};height:100%;width:${Math.min(pct,100)}%;border-radius:3px"></div></div>`;
+      html += `<div style="background:var(--border);border-radius:3px;height:4px;overflow:hidden"><div style="background:${pct>80?'var(--bear)':'var(--bull)'};height:100%;width:${Math.min(pct,100)}%;border-radius:3px"></div></div>`;
       html += `</div>`;
     }
 
@@ -3101,10 +3094,10 @@ async function loadIterationStatus() {
       html += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
       for (const [name, info] of Object.entries(data.factor_accuracy)) {
         const accNum = parseFloat(info.accuracy);
-        const color = accNum >= 60 ? 'var(--green)' : accNum >= 40 ? 'var(--gold)' : 'var(--red)';
+        const color = accNum >= 60 ? 'var(--bull)' : accNum >= 40 ? 'var(--gold)' : 'var(--bear)';
         const periodTag = info.period ? `<span style="font-size:8px;opacity:0.6">${info.period}</span>` : '';
         const icTag = info.ic ? `<span style="font-size:8px;opacity:0.7">IC${info.ic}</span>` : '';
-        const sigTag = info.significant && info.significant !== '不显著' && info.significant !== '样本不足' ? `<span style="font-size:8px;color:var(--green)">${info.significant}</span>` : '';
+        const sigTag = info.significant && info.significant !== '不显著' && info.significant !== '样本不足' ? `<span style="font-size:8px;color:var(--bull)">${info.significant}</span>` : '';
         html += `<span style="background:var(--border);border-radius:4px;padding:2px 6px;font-size:10px;color:${color}">${name} ${info.accuracy} ${icTag} ${sigTag} ${periodTag}</span>`;
       }
       html += `</div>`;
@@ -3122,7 +3115,7 @@ async function loadIterationStatus() {
         const isMedium = pk === 'medium';
         const borderColor = isMedium ? 'var(--gold)' : 'var(--border)';
         const borderWidth = isMedium ? '2px' : '1px';
-        const color = isNaN(accNum) ? 'var(--text3)' : accNum >= 60 ? 'var(--green)' : accNum >= 40 ? 'var(--gold)' : 'var(--red)';
+        const color = isNaN(accNum) ? 'var(--text3)' : accNum >= 60 ? 'var(--bull)' : accNum >= 40 ? 'var(--gold)' : 'var(--bear)';
         html += `<div style="background:var(--bg);border:${borderWidth} solid ${borderColor};border-radius:6px;padding:6px;text-align:center">`;
         html += `<div style="font-size:9px;color:var(--text3)">${periodIcons[pk] || ''} ${pa.label}</div>`;
         html += `<div style="font-size:14px;font-weight:700;color:${color}">${pa.accuracy}</div>`;
@@ -3149,13 +3142,13 @@ async function loadIterationStatus() {
 
     if (data.overall_accuracy && data.overall_accuracy.brier_score !== null && data.overall_accuracy.brier_score !== undefined) {
       const bs = data.overall_accuracy.brier_score;
-      const bsColor = bs < 0.3 ? 'var(--green)' : bs < 0.5 ? 'var(--gold)' : 'var(--red)';
+      const bsColor = bs < 0.3 ? 'var(--bull)' : bs < 0.5 ? 'var(--gold)' : 'var(--bear)';
       html += `<div style="font-size:10px;color:var(--text3);margin-bottom:6px">Brier Score: <span style="color:${bsColor};font-weight:600">${bs}</span> <span style="font-size:8px;opacity:0.6">(越低越好，0=完美)</span></div>`;
     }
 
     if (data.benchmark && data.benchmark.available) {
       const bm = data.benchmark;
-      const edgeColor = parseFloat(bm.edge) > 0 ? 'var(--green)' : parseFloat(bm.edge) < 0 ? 'var(--red)' : 'var(--text3)';
+      const edgeColor = parseFloat(bm.edge) > 0 ? 'var(--bull)' : parseFloat(bm.edge) < 0 ? 'var(--bear)' : 'var(--text3)';
       html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:6px">`;
       html += `<div style="font-size:10px;color:var(--text3);margin-bottom:4px">📊 vs 随机游走基准</div>`;
       html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">`;
@@ -3173,7 +3166,7 @@ async function loadIterationStatus() {
       html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">`;
       html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center;font-size:10px">`;
       html += `<div style="color:var(--text3)">一致预测</div>`;
-      html += `<div style="color:var(--green);font-weight:600">${cs.aligned_accuracy}</div>`;
+      html += `<div style="color:var(--bull);font-weight:600">${cs.aligned_accuracy}</div>`;
       html += `<div style="color:var(--text3);font-size:8px">${cs.aligned_correct}/${cs.aligned_count}</div>`;
       html += `</div>`;
       html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center;font-size:10px">`;
@@ -3286,7 +3279,7 @@ function renderIterationSection(text) {
   for (const item of statLines) {
     let valueColor = 'var(--text)';
     if (item.val.includes('LLM')) valueColor = 'var(--gold)';
-    else if (item.val.includes('已启用') || item.val.includes('纯规则')) valueColor = 'var(--green)';
+    else if (item.val.includes('已启用') || item.val.includes('纯规则')) valueColor = 'var(--bull)';
     else if (item.val.includes('待激活')) valueColor = 'var(--text3)';
 
     inner += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
@@ -4175,7 +4168,7 @@ function connectPriceStream() {
           if (sub && d.change_pct !== undefined) {
             const arrow = d.change_pct > 0 ? '↑' : d.change_pct < 0 ? '↓' : '→';
             sub.textContent = arrow + ' ' + d.change_pct.toFixed(2) + '%';
-            sub.style.color = d.change_pct > 0 ? 'var(--green)' : d.change_pct < 0 ? 'var(--red)' : '';
+            sub.style.color = d.change_pct > 0 ? 'var(--bull)' : d.change_pct < 0 ? 'var(--bear)' : '';
           }
         }
         const domEl = document.getElementById('statDomesticPrice');

@@ -1126,13 +1126,13 @@ def api_prediction_summary():
     if score > threshold:
         direction_label = "看多"
         direction_color = "green"
-        direction_css = "var(--green)"
-        direction_border = "var(--green)"
+        direction_css = "var(--bull)"
+        direction_border = "var(--bull)"
     elif score < -threshold:
         direction_label = "看空"
         direction_color = "red"
-        direction_css = "var(--red)"
-        direction_border = "var(--red)"
+        direction_css = "var(--bear)"
+        direction_border = "var(--bear)"
     else:
         direction_label = "中性"
         direction_color = ""
@@ -1166,7 +1166,7 @@ def api_prediction_summary():
         factor_list.append({
             "key": key, "label": label, "score": fs, "signal": f.get("signal", signal_label),
             "direction": fdir,
-            "color": "var(--green)" if fdir == "bullish" else "var(--red)" if fdir == "bearish" else "var(--text3)",
+            "color": "var(--bull)" if fdir == "bullish" else "var(--bear)" if fdir == "bearish" else "var(--text3)",
         })
 
     if abs(score) < threshold:
@@ -1184,7 +1184,7 @@ def api_prediction_summary():
         elif bear_signals > bull_signals: judge = "谨慎偏空"
         else: judge = "中性震荡"
 
-    judge_color = "var(--green)" if "多" in judge else "var(--red)" if "空" in judge else "var(--text2)"
+    judge_color = "var(--bull)" if "多" in judge else "var(--bear)" if "空" in judge else "var(--text2)"
 
     macro_factors = [f for f in factor_list if f["key"] in ("real_rate", "dollar", "inflation")]
     meso_factors = [f for f in factor_list if f["key"] in ("momentum", "extreme", "divergence", "cb_gold", "etf_flow")]
@@ -1197,12 +1197,12 @@ def api_prediction_summary():
             sentiment_score = f["score"]
     if sentiment_score > threshold:
         sentiment_dir = "偏多"
-        sentiment_color = "var(--green)"
-        sentiment_border = "var(--green)"
+        sentiment_color = "var(--bull)"
+        sentiment_border = "var(--bull)"
     elif sentiment_score < -threshold:
         sentiment_dir = "偏空"
-        sentiment_color = "var(--red)"
-        sentiment_border = "var(--red)"
+        sentiment_color = "var(--bear)"
+        sentiment_border = "var(--bear)"
     else:
         sentiment_dir = "中性"
         sentiment_color = "var(--text2)"
@@ -1218,7 +1218,7 @@ def api_prediction_summary():
             pdir = pt.get("direction", "中性")
             period_trends_api[pk] = {
                 "direction": pdir,
-                "direction_color": "var(--green)" if pdir == "看多" else "var(--red)" if pdir == "看空" else "var(--text2)",
+                "direction_color": "var(--bull)" if pdir == "看多" else "var(--bear)" if pdir == "看空" else "var(--text2)",
                 "score": pt.get("score", 0), "confidence": pt.get("confidence", 0),
                 "label": pt.get("label", ""), "horizon": pt.get("horizon", 0),
                 "active_factors": pt.get("active_factors", 0), "total_factors": pt.get("total_factors", 0),
