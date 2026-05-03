@@ -317,7 +317,17 @@ def run_daily_task(skip_telegram=False):
         try:
             hd = datetime.strptime(holdings_date, "%Y-%m-%d")
             age_days = (datetime.now() - hd).days
-            if age_days <= 1:
+            today_weekday = datetime.now().weekday()
+            cn_holiday = False
+            if today_weekday >= 5:
+                cn_holiday = True
+                holdings_reason = "周末休市"
+            elif age_days >= 2:
+                cn_holiday = True
+                holdings_reason = "假日休市"
+            if cn_holiday and age_days <= 5:
+                data_freshness["持仓"] = ("⏸", f"休市({holdings_reason})|ts={holdings_date}T00:00:00")
+            elif age_days <= 1:
                 data_freshness["持仓"] = ("✅", f"最新|ts={holdings_date}T00:00:00")
             elif age_days <= 3:
                 data_freshness["持仓"] = ("⚠️", f"延迟{age_days}天|ts={holdings_date}T00:00:00")
