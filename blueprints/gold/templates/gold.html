@@ -10,7 +10,18 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
 
-:root { /* 中国股市惯例：红涨绿跌，--green/--red 以此为语义 */
+:root {
+  /*
+   * 颜色体系说明（中国股市惯例：红涨绿跌）
+   *
+   * --bull = 视觉红色 #dc2626 → 利多/看涨/上涨
+   * --bear = 视觉绿色 #059669 → 利空/看跌/下跌
+   *
+   * --green / --red 是旧别名，含义与视觉相反：
+   *   --green ≠ 绿色，而是"涨"（视觉红）
+   *   --red   ≠ 红色，而是"跌"（视觉绿）
+   * 新代码请使用 --bull / --bear 代替 --green / --red
+   */
   --bg: #0a0e17;
   --bg2: #111827;
   --bg3: #1a2236;
@@ -22,10 +33,10 @@
   --gold: #f59e0b;
   --gold2: #d97706;
   --gold3: #92400e;
-  --green: #dc2626; /* 红涨（利多） */
-  --red: #059669;   /* 绿跌（利空） */
-  --bull: #dc2626;
-  --bear: #059669;
+  --bull: #dc2626;   /* 视觉红色 → 利多/看涨/上涨 */
+  --bear: #059669;   /* 视觉绿色 → 利空/看跌/下跌 */
+  --green: #dc2626;  /* = --bull，旧别名（"涨"≠绿色） */
+  --red: #059669;    /* = --bear，旧别名（"跌"≠红色） */
   --blue: #3b82f6;
   --purple: #8b5cf6;
   --shadow: rgba(0,0,0,0.3);
