@@ -45,14 +45,94 @@ HEADERS = {
 
 _AKSHARE_AVAILABLE = None
 
-_US_HOLIDAYS_2025 = {
-    "2025-01-01", "2025-01-20", "2025-02-17", "2025-04-18",
-    "2025-05-26", "2025-07-04", "2025-09-01", "2025-11-27", "2025-12-25",
+_US_FIXED_HOLIDAYS = {
+    (1, 1), (7, 4), (11, 27), (12, 25),
 }
-_US_HOLIDAYS_2026 = {
-    "2026-01-01", "2026-01-19", "2026-02-16", "2026-04-03",
-    "2026-05-25", "2026-07-03", "2026-09-07", "2026-11-26", "2026-12-25",
-}
+
+
+def _compute_us_holidays(year: int) -> set:
+    """计算指定年份的美国假日（COMEX休市日）"""
+    from datetime import date
+    holidays = set()
+
+    holidays.add(f"{year}-01-01")
+
+    mlk_day = date(year, 1, 1)
+    while mlk_day.weekday() != 0:
+        mlk_day = date(year, 1, mlk_day.day + 1)
+    mlk_day = date(year, 1, mlk_day.day + 14)
+    holidays.add(mlk_day.isoformat())
+
+    pres_day = date(year, 2, 1)
+    while pres_day.weekday() != 0:
+        pres_day = date(year, 2, pres_day.day + 1)
+    pres_day = date(year, 2, pres_day.day + 14)
+    holidays.add(pres_day.isoformat())
+
+    easter = _easter_sunday(year)
+    good_friday = (easter - timedelta(days=2)).isoformat()
+    holidays.add(good_friday)
+
+    mem_day = date(year, 5, 31)
+    while mem_day.weekday() != 0:
+        mem_day = date(year, 5, mem_day.day - 1)
+    holidays.add(mem_day.isoformat())
+
+    if date(year, 7, 4).weekday() == 5:
+        holidays.add(f"{year}-07-03")
+    elif date(year, 7, 4).weekday() == 6:
+        holidays.add(f"{year}-07-05")
+    else:
+        holidays.add(f"{year}-07-04")
+
+    labor_day = date(year, 9, 1)
+    while labor_day.weekday() != 0:
+        labor_day = date(year, 9, labor_day.day + 1)
+    holidays.add(labor_day.isoformat())
+
+    thanksgiving = date(year, 11, 1)
+    while thanksgiving.weekday() != 3:
+        thanksgiving = date(year, 11, thanksgiving.day + 1)
+    thanksgiving = date(year, 11, thanksgiving.day + 21)
+    holidays.add(thanksgiving.isoformat())
+
+    if date(year, 12, 25).weekday() == 5:
+        holidays.add(f"{year}-12-24")
+    elif date(year, 12, 25).weekday() == 6:
+        holidays.add(f"{year}-12-26")
+    else:
+        holidays.add(f"{year}-12-25")
+
+    return holidays
+
+
+def _easter_sunday(year: int):
+    """计算复活节日期（Anonymous Gregorian algorithm）"""
+    a = year % 19
+    b = year // 100
+    c = year % 100
+    d = b // 4
+    e = b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i = c // 4
+    k = c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    from datetime import date as _date
+    return _date(year, month, day)
+
+
+_US_HOLIDAYS_CACHE: Dict[int, set] = {}
+
+
+def _get_us_holidays(year: int) -> set:
+    if year not in _US_HOLIDAYS_CACHE:
+        _US_HOLIDAYS_CACHE[year] = _compute_us_holidays(year)
+    return _US_HOLIDAYS_CACHE[year]
 
 
 def get_market_status() -> Dict:
@@ -66,7 +146,7 @@ def get_market_status() -> Dict:
     hour = now_et.hour
     minute = now_et.minute
 
-    us_holidays = _US_HOLIDAYS_2025 | _US_HOLIDAYS_2026
+    us_holidays = _get_us_holidays(now_et.year)
 
     if date_str in us_holidays:
         return {"status": "closed", "reason": "美国假日休市", "next_open": ""}
