@@ -235,24 +235,30 @@ def _fetch_akshare_batch() -> Optional[Dict]:
         except Exception as e:
             print(f"    [akshare] bond_zh_us_rate error: {e}")
 
-        try:
-            df = ak.index_global_spot_em()
-            if df is not None and len(df) > 0:
-                for name, key in [("美元指数", "dxy"), ("VIX", "vix")]:
-                    row_match = df[df["名称"] == name]
-                    if len(row_match) > 0:
-                        row = row_match.iloc[0]
-                        price = float(row["最新价"])
-                        prev = float(row["昨收价"])
-                        change = price - prev
-                        change_pct = (change / prev * 100) if prev else 0
-                        result[key] = {
-                            "price": round(price, 4),
-                            "change": round(change, 4),
-                            "change_pct": round(change_pct, 2),
-                        }
-        except Exception as e:
-            print(f"    [akshare] index_global_spot_em error: {e}")
+        for _attempt in range(2):
+            try:
+                df = ak.index_global_spot_em()
+                if df is not None and len(df) > 0:
+                    for name, key in [("美元指数", "dxy"), ("VIX", "vix")]:
+                        row_match = df[df["名称"] == name]
+                        if len(row_match) > 0:
+                            row = row_match.iloc[0]
+                            price = float(row["最新价"])
+                            prev = float(row["昨收价"])
+                            change = price - prev
+                            change_pct = (change / prev * 100) if prev else 0
+                            result[key] = {
+                                "price": round(price, 4),
+                                "change": round(change, 4),
+                                "change_pct": round(change_pct, 2),
+                            }
+                break
+            except Exception as e:
+                if _attempt == 0 and ("SSL" in str(e) or "Connection" in str(e)):
+                    import time
+                    time.sleep(2)
+                    continue
+                print(f"    [akshare] index_global_spot_em error: {e}")
 
         try:
             df = ak.futures_foreign_commodity_realtime(symbol="CL")

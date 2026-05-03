@@ -225,20 +225,26 @@ def _fetch_domestic_price():
 
         domestic = {}
 
-        try:
-            df = ak.spot_quotations_sge(symbol="Au99.99")
-            if df is not None and not df.empty:
-                latest = df.iloc[-1]
-                sge_price = float(latest.get("现价", 0))
-                if sge_price > 0:
-                    domestic["sge_au9999"] = {
-                        "price": round(sge_price, 2),
-                        "unit": "CNY/g",
-                        "source": "SGE",
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    }
-        except Exception as e:
-            print(f"  [WARN] AKShare SGE Au99.99 获取失败: {e}")
+        for attempt in range(2):
+            try:
+                df = ak.spot_quotations_sge(symbol="Au99.99")
+                if df is not None and not df.empty:
+                    latest = df.iloc[-1]
+                    sge_price = float(latest.get("现价", 0))
+                    if sge_price > 0:
+                        domestic["sge_au9999"] = {
+                            "price": round(sge_price, 2),
+                            "unit": "CNY/g",
+                            "source": "SGE",
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        }
+                break
+            except Exception as e:
+                if attempt == 0 and ("Expecting value" in str(e) or "JSON" in str(e)):
+                    import time
+                    time.sleep(1)
+                    continue
+                print(f"  [WARN] AKShare SGE Au99.99 获取失败: {e}")
 
         try:
             df = ak.futures_zh_realtime(symbol="黄金")
@@ -453,7 +459,23 @@ def get_intraday_kline(interval: str = "5m", range_str: str = "1d") -> List[Dict
         result = data["chart"]["result"][0]
         timestamps = result.get("timestamp")
         if not timestamps:
-            print("  [WARN] K线数据解析失败: API未返回timestamp")
+            meta = result.get("meta", {})
+            price = meta.get("regularMarketPrice", 0)
+            if price and price > 0:
+                prev_close = meta.get("previousClose", price)
+                change = price - prev_close
+                change_pct = (change / prev_close * 100) if prev_close else 0
+                dt_str = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                print(f"  [WARN] K线timestamp缺失，使用meta降级数据")
+                return [{
+                    "time": dt_str,
+                    "open": round(meta.get("regularMarketDayHigh", price), 2),
+                    "high": round(meta.get("regularMarketDayHigh", price), 2),
+                    "low": round(meta.get("regularMarketDayLow", price), 2),
+                    "close": round(price, 2),
+                    "volume": int(meta.get("regularMarketVolume", 0)),
+                }]
+            print("  [WARN] K线数据解析失败: API未返回timestamp且无meta降级数据")
             return []
         quotes = result["indicators"]["quote"][0]
 
@@ -596,7 +618,22 @@ def _fetch_yahoo_daily_history(days: int = 30) -> Optional[List[Dict]]:
         result = data["chart"]["result"][0]
         timestamps = result.get("timestamp")
         if not timestamps:
-            print("  [WARN] 日线数据解析失败: API未返回timestamp")
+            meta = result.get("meta", {})
+            price = meta.get("regularMarketPrice", 0)
+            if price and price > 0:
+                dt_str = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
+                print(f"  [WARN] 日线timestamp缺失，使用meta降级数据")
+                return [{
+                    "date": dt_str,
+                    "open": round(meta.get("regularMarketDayHigh", price), 2),
+                    "high": round(meta.get("regularMarketDayHigh", price), 2),
+                    "low": round(meta.get("regularMarketDayLow", price), 2),
+                    "close": round(price, 2),
+                    "volume": int(meta.get("regularMarketVolume", 0)),
+                    "source": "yahoo",
+                    "unit": "USD/oz",
+                }]
+            print("  [WARN] 日线数据解析失败: API未返回timestamp且无meta降级数据")
             return None
         quotes = result["indicators"]["quote"][0]
 
