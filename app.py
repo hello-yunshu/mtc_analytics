@@ -49,6 +49,18 @@ def create_app():
                 fcntl.flock(lf, fcntl.LOCK_UN)
 
     app.secret_key = _load_or_create_secret_key()
+    _current_secret_key = app.secret_key
+
+    @app.before_request
+    def _sync_secret_key():
+        nonlocal _current_secret_key
+        try:
+            key_data = load_json(_SECRET_KEY_FILE)
+            if key_data and key_data.get("secret_key") and key_data["secret_key"] != _current_secret_key:
+                _current_secret_key = key_data["secret_key"]
+                app.secret_key = _current_secret_key
+        except Exception:
+            pass
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_SECURE'] = os.environ.get('HTTPS', '').lower() in ('1', 'true', 'yes') or os.environ.get('FLASK_ENV') == 'production'
@@ -133,7 +145,15 @@ def create_app():
         settings["password_hash"] = generate_password_hash(new_pw, method='pbkdf2:sha256')
         save_json(SETTINGS_FILE, settings, private=True)
 
-        _security_logger.info("密码修改成功: IP=%s", request.remote_addr or "0.0.0.0")
+        new_secret = secrets.token_hex(32)
+        save_json(_SECRET_KEY_FILE, {"secret_key": new_secret}, private=True)
+        app.secret_key = new_secret
+
+        session.clear()
+        session["logged_in"] = True
+        session.permanent = True
+
+        _security_logger.info("密码修改成功，已刷新secret_key使其他会话失效: IP=%s", request.remote_addr or "0.0.0.0")
         return jsonify({"ok": True})
 
     @app.route("/api/portal_settings", methods=["GET"])
