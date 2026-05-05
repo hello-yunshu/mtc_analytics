@@ -444,12 +444,18 @@ def run_daily_task(skip_telegram=False):
                 upsert_gold_prices(gold_prices)
             except Exception:
                 pass
-        if gold_prices and len(analyzer.history) >= 3:
+        if gold_prices:
+            holdings_for_pred = analyzer.history if len(analyzer.history) >= 3 else []
+            if not holdings_for_pred:
+                print("  持仓数据不足，将仅基于金价/宏观/新闻因子运行预测（8/12因子可用）")
             _verify_previous_prediction(gold_prices)
             iteration_result = run_iteration()
-            predictor = GoldPricePredictor(analyzer.history, gold_prices, news_sentiment, macro_data)
+            predictor = GoldPricePredictor(holdings_for_pred, gold_prices, news_sentiment, macro_data)
             prediction = predictor.predict(today_data)
             prediction["news_sentiment"] = news_sentiment
+            if not holdings_for_pred:
+                prediction["confidence"] = max(20, prediction["confidence"] - 15)
+                prediction["partial_data"] = True
             if iteration_result.get("status") == "adjusted":
                 prediction["iteration_result"] = iteration_result
 
@@ -467,32 +473,35 @@ def run_daily_task(skip_telegram=False):
                 print(f"  机构共识: {consensus_comparison.get('description', '')}")
             _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data)
         else:
-            if not gold_prices or len(analyzer.history) < 3:
-                print("  数据不足，尝试自动回填历史数据...")
-                try:
-                    from core.backfill import backfill_history
-                    bf_result = backfill_history(days=30, top_n=_get_top_n())
-                    if bf_result['success'] > 0:
-                        print(f"  回填完成: 成功{bf_result['success']}天，重新运行预测")
-                        gold_prices = get_daily_history(days=30) or []
-                        if gold_prices:
-                            upsert_gold_prices(gold_prices)
-                        holdings = fetch_holdings_data(top_n=_get_top_n())
-                        if holdings and holdings.get("positions"):
-                            positions = calculate_net_positions(holdings)
-                            analyzer = HoldingsAnalyzer(positions)
-                        if gold_prices and len(analyzer.history) >= 3:
-                            predictor = GoldPricePredictor(analyzer.history, gold_prices, news_sentiment, macro_data)
-                            prediction = predictor.predict(today_data)
-                            prediction["news_sentiment"] = news_sentiment
-                            print(f"  预测: {prediction['direction']}（置信度{prediction['confidence']}%，评分{prediction['score']:+.2f}）")
-                            _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data)
-                        else:
-                            print("  回填后数据仍不足，等待下次定时任务")
+            print("  金价数据不足，尝试自动回填历史数据...")
+            try:
+                from core.backfill import backfill_history
+                bf_result = backfill_history(days=30, top_n=_get_top_n())
+                if bf_result.get('gold_success', 0) > 0 or bf_result.get('success', 0) > 0:
+                    print(f"  回填完成: 持仓{bf_result['success']}天 金价{bf_result.get('gold_success',0)}天，重新运行预测")
+                    gold_prices = get_daily_history(days=30) or []
+                    if gold_prices:
+                        upsert_gold_prices(gold_prices)
+                    holdings = fetch_holdings_data(top_n=_get_top_n())
+                    if holdings and holdings.get("positions"):
+                        positions = calculate_net_positions(holdings)
+                        analyzer = HoldingsAnalyzer(positions)
+                    holdings_for_pred = analyzer.history if len(analyzer.history) >= 3 else []
+                    if gold_prices:
+                        predictor = GoldPricePredictor(holdings_for_pred, gold_prices, news_sentiment, macro_data)
+                        prediction = predictor.predict(today_data)
+                        prediction["news_sentiment"] = news_sentiment
+                        if not holdings_for_pred:
+                            prediction["confidence"] = max(20, prediction["confidence"] - 15)
+                            prediction["partial_data"] = True
+                        print(f"  预测: {prediction['direction']}（置信度{prediction['confidence']}%，评分{prediction['score']:+.2f}）")
+                        _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data)
                     else:
-                        print("  回填未获取到新数据，等待下次定时任务")
-                except Exception as bfe:
-                    print(f"  自动回填失败: {bfe}")
+                        print("  回填后金价数据仍不足，等待下次定时任务")
+                else:
+                    print("  回填未获取到新数据，等待下次定时任务")
+            except Exception as bfe:
+                print(f"  自动回填失败: {bfe}")
     except Exception as e:
         print(f"  [WARN] 预测失败: {e}")
 
