@@ -64,18 +64,25 @@ def is_us_workday(date_obj) -> bool:
     """
     判断指定日期是否为美国工作日（COMEX交易日）
 
-    使用 holidays 库（权威数据，含 observed 规则），
-    不可用时降级为硬编码假日判断。
+    同时检查 holidays 库（联邦假日）和硬编码 COMEX 假日（含耶稣受难日等），
+    任一来源判定为假日则非工作日。
     """
+    if date_obj.weekday() >= 5:
+        return False
+
+    if date_obj.isoformat() in _get_us_holidays(date_obj.year):
+        return False
+
     if _check_us_holidays_lib():
         try:
             import holidays as _h
             us_hols = _h.US(years=date_obj.year)
-            return date_obj.weekday() < 5 and date_obj not in us_hols
+            if date_obj in us_hols:
+                return False
         except Exception:
             pass
 
-    return date_obj.weekday() < 5 and date_obj.isoformat() not in _get_us_holidays(date_obj.year)
+    return True
 
 
 def _compute_us_holidays(year: int) -> set:
