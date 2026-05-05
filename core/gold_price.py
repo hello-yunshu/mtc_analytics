@@ -135,6 +135,74 @@ def _get_us_holidays(year: int) -> set:
     return _US_HOLIDAYS_CACHE[year]
 
 
+def _compute_cn_holidays(year: int) -> set:
+    """计算指定年份的中国法定假日（SGE休市日，仅含工作日假日）"""
+    from datetime import date as _date, timedelta as _td
+    holidays = set()
+
+    holidays.add(f"{year}-01-01")
+
+    spring_festival_dates = {
+        2024: (2, 10), 2025: (1, 29), 2026: (2, 17),
+        2027: (2, 6), 2028: (1, 26), 2029: (2, 13), 2030: (2, 3),
+    }
+    if year in spring_festival_dates:
+        m, d = spring_festival_dates[year]
+        eve = _date(year, m, d) - _td(days=1)
+        for offset in range(-1, 7):
+            day = eve + _td(days=offset)
+            if day.weekday() < 5:
+                holidays.add(day.isoformat())
+
+    qingming_dates = {2024: (4, 4), 2025: (4, 4), 2026: (4, 5), 2027: (4, 5), 2028: (4, 4), 2029: (4, 4), 2030: (4, 5)}
+    if year in qingming_dates:
+        m, d = qingming_dates[year]
+        for offset in range(3):
+            day = _date(year, m, d) + _td(days=offset)
+            if day.weekday() < 5:
+                holidays.add(day.isoformat())
+
+    labor_day = _date(year, 5, 1)
+    for offset in range(5):
+        day = labor_day + _td(days=offset)
+        if day.weekday() < 5:
+            holidays.add(day.isoformat())
+
+    duanwu_dates = {2024: (6, 10), 2025: (5, 31), 2026: (6, 19), 2027: (6, 9), 2028: (5, 28), 2029: (6, 16), 2030: (6, 5)}
+    if year in duanwu_dates:
+        m, d = duanwu_dates[year]
+        for offset in range(3):
+            day = _date(year, m, d) + _td(days=offset)
+            if day.weekday() < 5:
+                holidays.add(day.isoformat())
+
+    mid_autumn_dates = {2024: (9, 17), 2025: (10, 6), 2026: (9, 25), 2027: (9, 15), 2028: (10, 3), 2029: (9, 22), 2030: (9, 12)}
+    if year in mid_autumn_dates:
+        m, d = mid_autumn_dates[year]
+        for offset in range(3):
+            day = _date(year, m, d) + _td(days=offset)
+            if day.weekday() < 5:
+                holidays.add(day.isoformat())
+
+    national_day = _date(year, 10, 1)
+    for offset in range(7):
+        day = national_day + _td(days=offset)
+        if day.weekday() < 5:
+            holidays.add(day.isoformat())
+
+    return holidays
+
+
+_CN_HOLIDAYS_CACHE: Dict[int, set] = {}
+
+
+def get_cn_holidays(year: int) -> set:
+    """获取指定年份的中国法定假日（公开接口）"""
+    if year not in _CN_HOLIDAYS_CACHE:
+        _CN_HOLIDAYS_CACHE[year] = _compute_cn_holidays(year)
+    return _CN_HOLIDAYS_CACHE[year]
+
+
 def get_market_status() -> Dict:
     """
     判断COMEX黄金期货市场状态

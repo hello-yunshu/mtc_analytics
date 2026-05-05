@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timedelta
 
 from .fetcher import fetch_holdings_data, calculate_net_positions, get_latest_trade_date
-from .gold_price import get_daily_history
+from .gold_price import get_daily_history, get_cn_holidays
 from .macro_fetcher import fetch_macro_indicators
 from . import db
 
@@ -33,10 +33,16 @@ def backfill_history(days: int = 30, top_n: int = 5) -> dict:
     latest_date = get_latest_trade_date()
     latest_dt = datetime.strptime(latest_date, "%Y%m%d")
 
+    cn_holidays = set()
+    for y in range(latest_dt.year - 1, latest_dt.year + 2):
+        cn_holidays |= get_cn_holidays(y)
+
     dates_to_fetch = []
     for i in range(days - 1, -1, -1):
         dt = latest_dt - timedelta(days=i)
         if dt.weekday() >= 5:
+            continue
+        if dt.isoformat() in cn_holidays:
             continue
         date_str = dt.strftime("%Y%m%d")
         formatted = dt.strftime("%Y-%m-%d")

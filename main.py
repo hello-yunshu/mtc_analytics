@@ -312,11 +312,15 @@ def run_daily_task(skip_telegram=False):
             hd = datetime.strptime(holdings_date, "%Y-%m-%d")
             age_days = (datetime.now() - hd).days
             today_weekday = datetime.now().weekday()
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            from core.gold_price import get_cn_holidays
+            cn_hols = get_cn_holidays(datetime.now().year)
             cn_holiday = False
+            holdings_reason = ""
             if today_weekday >= 5:
                 cn_holiday = True
                 holdings_reason = "周末休市"
-            elif age_days >= 2:
+            elif today_str in cn_hols:
                 cn_holiday = True
                 holdings_reason = "假日休市"
             if cn_holiday and age_days <= 5:
