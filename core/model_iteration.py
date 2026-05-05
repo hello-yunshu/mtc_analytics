@@ -27,9 +27,9 @@ MIN_WEIGHT = 0.01
 LLM_MAX_TOKENS = 500
 
 FACTOR_PERIOD_MAP = {
-    "short": ["price_trend", "volatility", "news_sentiment", "etf_flow"],
-    "medium": ["momentum", "extreme", "divergence", "real_rate", "dollar", "inflation"],
-    "long": ["cb_gold", "seasonality"],
+    "short": ["price_trend", "volatility", "news_sentiment"],
+    "medium": ["momentum", "extreme", "divergence", "etf_flow"],
+    "long": ["real_rate", "dollar", "inflation", "cb_gold", "seasonality"],
 }
 
 PERIOD_VERIFY_FIELD = {
@@ -728,10 +728,10 @@ def run_iteration(force: bool = False) -> Dict:
             current_weights[factor_key] = float(settings[setting_key])
         else:
             current_weights[factor_key] = {
-                "real_rate": 0.13, "dollar": 0.10, "inflation": 0.07,
-                "momentum": 0.12, "extreme": 0.08, "divergence": 0.10,
-                "cb_gold": 0.07, "etf_flow": 0.05, "price_trend": 0.10,
-                "volatility": 0.06, "news_sentiment": 0.08, "seasonality": 0.04,
+                "real_rate": 0.16, "dollar": 0.12, "inflation": 0.09,
+                "momentum": 0.08, "extreme": 0.05, "divergence": 0.07,
+                "cb_gold": 0.07, "etf_flow": 0.06, "price_trend": 0.10,
+                "volatility": 0.06, "news_sentiment": 0.09, "seasonality": 0.05,
             }.get(factor_key, 0.05)
 
     snapshot_name = _save_weight_snapshot(current_weights, "自迭代前快照")
