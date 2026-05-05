@@ -52,7 +52,7 @@ RUN_MODE=web+schedule
 EOF
 
 # 构建并启动
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 访问 `http://localhost:8368/gold`

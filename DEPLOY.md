@@ -69,13 +69,13 @@ chmod 600 .env
 cd /opt/mtc_analytics
 
 # 构建并启动（首次部署）
-docker-compose up --build -d
+docker compose up --build -d
 
 # 查看日志
-docker-compose logs -f
+docker compose logs -f
 
 # 查看运行状态
-docker-compose ps
+docker compose ps
 ```
 
 ## 4. 首次登录获取密码
@@ -131,23 +131,23 @@ server {
 
 ```bash
 # 停止服务
-docker-compose down
+docker compose down
 
 # 重启服务
-docker-compose restart
+docker compose restart
 
 # 更新代码后重新构建并启动
 git pull origin main
-docker-compose up --build -d
+docker compose up --build -d
 
 # 查看数据目录
 ls -la ./data/
 
 # 查看数据库统计
-docker-compose exec mtc_analytics python3 -c "from core.db import get_db_stats; print(get_db_stats())"
+docker compose exec mtc_analytics python3 -c "from core.db import get_db_stats; print(get_db_stats())"
 
 # 手动触发一次分析任务
-docker-compose exec mtc_analytics python3 main.py --run
+docker compose exec mtc_analytics python3 main.py --run
 
 # 查看安全日志
 cat ./data/security.log
