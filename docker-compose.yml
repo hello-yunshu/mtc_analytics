@@ -5,7 +5,7 @@ services:
     container_name: mtc_analytics
     restart: unless-stopped
     ports:
-      - "0.0.0.0:8368:8080"
+      - "8368:8080"
     volumes:
       - ./data:/app/data
     environment:
