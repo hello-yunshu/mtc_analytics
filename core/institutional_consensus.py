@@ -74,6 +74,8 @@ TARGET_PRICE_PATTERN = re.compile(
     re.IGNORECASE
 )
 
+_YEAR_PATTERN = re.compile(r'^20\d{2}$')
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -143,7 +145,7 @@ def _extract_target_price(text: str) -> Optional[float]:
     matches = TARGET_PRICE_PATTERN.findall(text)
     if matches:
         try:
-            prices = [float(m) for m in matches]
+            prices = [float(m) for m in matches if not _YEAR_PATTERN.match(m)]
             valid = [p for p in prices if 500 <= p <= 10000]
             if valid:
                 return max(valid)
