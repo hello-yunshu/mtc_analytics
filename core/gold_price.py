@@ -45,44 +45,34 @@ HEADERS = {
 
 _AKSHARE_AVAILABLE = None
 
-_US_HOLIDAYS_LIB_AVAILABLE = None
+_US_NYSE_HOLIDAYS_CACHE: Dict[int, object] = {}
 
 
-def _check_us_holidays_lib() -> bool:
-    global _US_HOLIDAYS_LIB_AVAILABLE
-    if _US_HOLIDAYS_LIB_AVAILABLE is None:
+def _get_nyse_holidays(year: int):
+    if year not in _US_NYSE_HOLIDAYS_CACHE:
         try:
             import holidays as _h
-            _h.US(years=2025)
-            _US_HOLIDAYS_LIB_AVAILABLE = True
+            _US_NYSE_HOLIDAYS_CACHE[year] = _h.NYSE(years=year)
         except Exception:
-            _US_HOLIDAYS_LIB_AVAILABLE = False
-    return _US_HOLIDAYS_LIB_AVAILABLE
+            _US_NYSE_HOLIDAYS_CACHE[year] = None
+    return _US_NYSE_HOLIDAYS_CACHE[year]
 
 
 def is_us_workday(date_obj) -> bool:
     """
     判断指定日期是否为美国工作日（COMEX交易日）
 
-    同时检查 holidays 库（联邦假日）和硬编码 COMEX 假日（含耶稣受难日等），
-    任一来源判定为假日则非工作日。
+    优先使用 holidays.NYSE（含耶稣受难日等金融市场假日），
+    不可用时降级为硬编码假日判断。
     """
     if date_obj.weekday() >= 5:
         return False
 
-    if date_obj.isoformat() in _get_us_holidays(date_obj.year):
-        return False
+    nyse_hols = _get_nyse_holidays(date_obj.year)
+    if nyse_hols is not None:
+        return date_obj not in nyse_hols
 
-    if _check_us_holidays_lib():
-        try:
-            import holidays as _h
-            us_hols = _h.US(years=date_obj.year)
-            if date_obj in us_hols:
-                return False
-        except Exception:
-            pass
-
-    return True
+    return date_obj.isoformat() not in _get_us_holidays(date_obj.year)
 
 
 def _compute_us_holidays(year: int) -> set:

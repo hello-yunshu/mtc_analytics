@@ -372,6 +372,20 @@ def cleanup():
             conn.execute("DELETE FROM holdings_daily WHERE date < ?", (cutoffs["holdings_daily"],))
             conn.execute("DELETE FROM weight_snapshots WHERE timestamp < ?", (cutoffs["weight_snapshots"] + " 00:00:00",))
 
+            try:
+                from core.gold_price import is_us_workday
+                rows = conn.execute("SELECT date FROM gold_prices").fetchall()
+                for row in rows:
+                    try:
+                        from datetime import date as _date
+                        d = _date.fromisoformat(row["date"])
+                        if not is_us_workday(d):
+                            conn.execute("DELETE FROM gold_prices WHERE date = ?", (row["date"],))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
             conn.commit()
             conn.execute("VACUUM")
         finally:
