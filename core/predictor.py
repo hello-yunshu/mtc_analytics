@@ -214,13 +214,25 @@ class GoldPricePredictor:
         检测周期间方向矛盾
         当短期与长期方向相反时，降低整体置信度
         当所有周期与整体方向矛盾时，大幅降低置信度
+        当整体为中性但短期高置信度方向明确时，标注短期风险信号
         """
-        if not period_trends or overall_direction == "中性":
+        if not period_trends:
             return None
 
         short_dir = period_trends.get("short", {}).get("direction", "中性")
+        short_conf = period_trends.get("short", {}).get("confidence", 0)
         medium_dir = period_trends.get("medium", {}).get("direction", "中性")
         long_dir = period_trends.get("long", {}).get("direction", "中性")
+
+        if overall_direction == "中性":
+            if short_dir != "中性" and short_conf >= 60:
+                return {
+                    "warning": f"整体中性但短期{short_dir}（置信度{short_conf}%），需关注短期方向性风险",
+                    "penalty": 0,
+                    "conflict_periods": ["短期"],
+                    "short_risk": short_dir,
+                }
+            return None
 
         dirs = [d for d in [short_dir, medium_dir, long_dir] if d != "中性"]
         if len(dirs) < 2:

@@ -234,6 +234,24 @@ def format_report(date: str, contract: str, positions: List[Dict],
         lines.append(f"{dir_icon} 预测方向：{prediction['direction']}（置信度 {prediction['confidence']}%）")
         lines.append(f"   综合评分：{prediction['score']:+.2f}")
 
+        period_conflict = prediction.get("period_conflict")
+        if period_conflict:
+            lines.append(f"   ⚠️ {period_conflict['warning']}")
+
+        period_trends = prediction.get("period_trends", {})
+        if period_trends:
+            pt_parts = []
+            for pk in ["short", "medium", "long"]:
+                pt = period_trends.get(pk, {})
+                pdir = pt.get("direction", "中性")
+                pscore = pt.get("score", 0)
+                pconf = pt.get("confidence", 0)
+                plabel = pt.get("label", pk)
+                if pdir != "中性":
+                    pt_parts.append(f"{plabel}{pdir}({pscore:+.2f}/{pconf}%)")
+            if pt_parts:
+                lines.append(f"   多周期：{' · '.join(pt_parts)}")
+
         factors = prediction.get("factors", {})
         factor_groups = [
             ("📊 宏观", {"real_rate": "实际利率", "dollar": "美元因子", "inflation": "通胀预期"}),
