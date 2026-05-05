@@ -10,9 +10,6 @@ services:
       - ./data:/app/data
     environment:
       - TZ=Asia/Shanghai
-    env_file:
-      - path: .env
-        required: false
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 30s
