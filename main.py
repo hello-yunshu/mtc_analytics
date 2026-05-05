@@ -658,10 +658,14 @@ def run_realtime():
             try:
                 from core.gold_price import get_market_status
                 ms = get_market_status()
-                if ms.get("status") == "closed" and now.weekday() >= 5:
-                    print("  周末休市，仅更新实时金价缓存")
-                    from core.gold_price import get_realtime_price
-                    get_realtime_price()
+                if ms.get("status") == "closed":
+                    reason = ms.get("reason", "")
+                    if "周末" in reason:
+                        print(f"  周末休市，仅更新实时金价缓存")
+                        from core.gold_price import get_realtime_price
+                        get_realtime_price()
+                    else:
+                        run_daily_task()
                 else:
                     run_daily_task()
             except Exception as e:
