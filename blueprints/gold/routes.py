@@ -1399,12 +1399,23 @@ def api_support_resistance():
         from core.db import get_latest_support_resistance
         sr_data = get_latest_support_resistance()
         if sr_data:
-            with _cached_sr["lock"]:
-                _cached_sr["data"] = sr_data
-            return jsonify(sr_data)
+            sup_count = len(sr_data.get("support", []))
+            res_count = len(sr_data.get("resistance", []))
+            if sup_count < 3 or res_count < 3:
+                _calc_and_cache_support_resistance()
+                with _cached_sr["lock"]:
+                    sr_data = _cached_sr["data"]
+            else:
+                with _cached_sr["lock"]:
+                    _cached_sr["data"] = sr_data
+            if sr_data:
+                return jsonify(sr_data)
     except Exception:
         pass
-    return jsonify({"support": [], "resistance": [], "current": 0})
+    _calc_and_cache_support_resistance()
+    with _cached_sr["lock"]:
+        sr_data = _cached_sr["data"]
+    return jsonify(sr_data or {"support": [], "resistance": [], "current": 0})
 
 
 @gold_bp.route("/api/technical_analysis")
