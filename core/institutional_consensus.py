@@ -407,6 +407,37 @@ def _compute_consensus(views: List[Dict]) -> Dict:
     }
 
 
+_CONSENSUS_FILE = os.path.join(_DATA_DIR, "institutional_consensus_history.json")
+
+
+def _load_history() -> List[Dict]:
+    try:
+        data = load_json(_CONSENSUS_FILE)
+        if data and isinstance(data, list):
+            return data
+    except Exception:
+        pass
+    return []
+
+
+def _save_history(views: List[Dict]):
+    try:
+        cutoff = (datetime.now() - __import__('datetime').timedelta(days=14)).strftime("%Y-%m-%d")
+        recent = [v for v in views if v.get("date", "") >= cutoff]
+        save_json(_CONSENSUS_FILE, recent)
+    except Exception:
+        pass
+
+
+def _merge_with_history(new_views: List[Dict], history: List[Dict]) -> List[Dict]:
+    merged = {}
+    for v in history:
+        merged[v["institution"]] = v
+    for v in new_views:
+        merged[v["institution"]] = v
+    return list(merged.values())
+
+
 def fetch_institutional_consensus(news_data: Optional[Dict] = None) -> Dict:
     """
     获取机构共识
@@ -425,6 +456,14 @@ def fetch_institutional_consensus(news_data: Optional[Dict] = None) -> Dict:
 
     news_list = news_data.get("news", [])
     if not news_list:
+        history = _load_history()
+        if history:
+            return {
+                "institutions": history,
+                "consensus": _compute_consensus(history),
+                "timestamp": datetime.now().isoformat(),
+                "source": "history",
+            }
         return {
             "institutions": [],
             "consensus": _compute_consensus([]),
@@ -443,6 +482,15 @@ def fetch_institutional_consensus(news_data: Optional[Dict] = None) -> Dict:
             pass
 
     all_views = _merge_views(keyword_views, llm_views)
+
+    history = _load_history()
+    if all_views:
+        all_views = _merge_with_history(all_views, history)
+        _save_history(all_views)
+    elif history:
+        all_views = history
+        source = "history"
+
     consensus = _compute_consensus(all_views)
 
     source = "keyword"
