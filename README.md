@@ -64,6 +64,12 @@ cat data/.initial_password
 
 登录后请在 **设置页面** 立即修改密码。
 
+**重置密码**：删除密码文件并重启容器，将重新生成随机密码：
+```bash
+rm data/.default_password
+docker restart mtc_analytics
+```
+
 详细部署教程见 [DEPLOY.md](DEPLOY.md)
 
 ### 本地运行
