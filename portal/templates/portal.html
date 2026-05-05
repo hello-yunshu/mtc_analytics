@@ -718,13 +718,25 @@ footer {
           <button class="s-btn" onclick="doSaveTg()">保存 Telegram 配置</button>
         </div>
 
-        <div class="settings-card" style="opacity:0.5">
-          <h3 style="font-size:16px;font-weight:600;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:8px">
-            <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--text3);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            安全设置
-            <span class="coming-soon-badge">即将推出</span>
+        <div class="settings-card">
+          <h3 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:#22c55e;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            运行模式
+            <span id="runModeStatusDot" class="s-status-dot on"></span>
           </h3>
-          <p style="font-size:12px;color:var(--text3)">两步验证、IP 白名单、会话管理等安全功能。</p>
+          <p style="font-size:12px;color:var(--text3);margin-bottom:16px">控制容器启动时运行的服务进程，修改后需重启容器生效。</p>
+          <div style="margin-bottom:16px">
+            <label class="s-label">选择模式</label>
+            <select id="settingsRunMode" class="s-input" style="font-family:'Noto Sans SC',sans-serif;cursor:pointer">
+              <option value="web+schedule">Web + 定时任务（推荐）</option>
+              <option value="web+realtime">Web + 实时监控</option>
+              <option value="web">仅 Web 服务</option>
+              <option value="schedule">仅定时任务</option>
+              <option value="realtime">仅实时监控</option>
+            </select>
+            <div class="s-hint">当前模式: <span id="currentRunMode">web+schedule</span> · 修改后需执行 <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px">docker restart mtc_analytics</code> 生效</div>
+          </div>
+          <button class="s-btn" onclick="doSaveRunMode()">保存运行模式</button>
         </div>
       </div>
     </div>
@@ -821,6 +833,10 @@ async function loadPortalSettings() {
   document.getElementById('settingsLlmModel').value = data.llm_model || 'gpt-4o-mini';
   document.getElementById('settingsTgToken').value = data.telegram_bot_token_masked || '';
   document.getElementById('settingsTgChatId').value = data.telegram_chat_id || '';
+  if (data.run_mode) {
+    document.getElementById('settingsRunMode').value = data.run_mode;
+    document.getElementById('currentRunMode').textContent = data.run_mode;
+  }
   const llmDot = document.getElementById('llmStatusDot');
   llmDot.className = 's-status-dot ' + (data.llm_api_key_masked ? 'on' : 'off');
   const tgDot = document.getElementById('tgStatusDot');
@@ -856,6 +872,22 @@ async function doSaveTg() {
   if (res.ok) {
     showToast('Telegram 配置已保存', 'success');
     loadPortalSettings();
+  } else {
+    const data = await res.json();
+    showToast(data.error || '保存失败', 'error');
+  }
+}
+
+async function doSaveRunMode() {
+  const mode = document.getElementById('settingsRunMode').value;
+  if (!mode.includes('web')) {
+    const confirmed = confirm('⚠️ 警告：该模式不含 Web 服务，重启后将无法通过浏览器访问本页面！\n\n如需恢复，需手动编辑 data/web_settings.json 删除 run_mode 字段。\n\n确定要保存吗？');
+    if (!confirmed) return;
+  }
+  const res = await api('/api/portal_settings', {method: 'POST', body: JSON.stringify({run_mode: mode})});
+  if (res.ok) {
+    document.getElementById('currentRunMode').textContent = mode;
+    showToast('运行模式已保存，重启容器后生效', 'success');
   } else {
     const data = await res.json();
     showToast(data.error || '保存失败', 'error');

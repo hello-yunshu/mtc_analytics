@@ -1,7 +1,11 @@
 #!/bin/bash
 set -e
 
-RUN_MODE="${RUN_MODE:-web+schedule}"
+WS_RUN_MODE=""
+if [ -f "data/web_settings.json" ]; then
+    WS_RUN_MODE=$(python3 -c "import json; d=json.load(open('data/web_settings.json')); print(d.get('run_mode',''))" 2>/dev/null || "")
+fi
+RUN_MODE="${WS_RUN_MODE:-${RUN_MODE:-web+schedule}}"
 
 echo "========================================"
 echo "  MTC Analytics - 多维度金融分析平台"

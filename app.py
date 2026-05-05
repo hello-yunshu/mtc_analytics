@@ -171,6 +171,7 @@ def create_app():
         result["llm_base_url"] = settings.get("llm_base_url", "https://api.openai.com/v1")
         result["llm_model"] = settings.get("llm_model", "gpt-4o-mini")
         result["telegram_chat_id"] = settings.get("telegram_chat_id", "")
+        result["run_mode"] = settings.get("run_mode", os.environ.get("RUN_MODE", "web+schedule"))
         return jsonify(result)
 
     @app.route("/api/portal_settings", methods=["POST"])
@@ -186,6 +187,11 @@ def create_app():
         for field in str_fields:
             if field in data:
                 settings[field] = str(data[field])[:500]
+        if "run_mode" in data:
+            valid_modes = {"web", "schedule", "realtime", "web+schedule", "web+realtime"}
+            mode = str(data["run_mode"]).strip()
+            if mode in valid_modes:
+                settings["run_mode"] = mode
         for field in SENSITIVE_FIELDS:
             if field in data:
                 raw = str(data[field])[:200] if data[field] and not str(data[field]).startswith("****") else ""
