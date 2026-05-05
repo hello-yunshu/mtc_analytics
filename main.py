@@ -218,8 +218,18 @@ def _verify_previous_prediction(gold_prices):
 
 def run_daily_task(skip_telegram=False):
     """执行每日完整任务（持仓+金价+新闻+预测）"""
+    from core.gold_price import get_market_status, get_sge_market_status
+    comex_status = get_market_status()
+    sge_status = get_sge_market_status()
+    comex_closed = comex_status.get("status") != "open"
+    sge_closed = sge_status.get("status") != "open"
+
     print(f"\n{'='*50}")
     print(f"  AI 黄金分析 | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    if comex_closed:
+        print(f"  COMEX: {comex_status.get('reason', '休市')}")
+    if sge_closed:
+        print(f"  SGE: {sge_status.get('reason', '休市')}")
     print(f"{'='*50}\n")
     
     # 1. 获取实时金价并归档
@@ -290,41 +300,26 @@ def run_daily_task(skip_telegram=False):
 
     # 3. 获取持仓数据
     print("[3/8] 正在获取持仓数据...")
-    holdings = fetch_holdings_data()
+    holdings = {"long_top": [], "short_top": [], "date": "", "contract": "", "trade_date": ""}
+    if sge_closed:
+        print(f"  SGE休市({sge_status.get('reason', '')})，跳过持仓数据获取")
+    else:
+        holdings = fetch_holdings_data()
     
-    if not holdings.get("long_top") and not holdings.get("short_top"):
+    has_holdings = bool(holdings.get("long_top") or holdings.get("short_top"))
+    if not has_holdings and not sge_closed:
         print("[ERROR] 未能获取到持仓数据，可能非交易日或数据源异常")
-        if not skip_telegram:
-            tg_token, tg_chat_id = get_telegram_config(_get_web_settings(), decrypt_value)
-            if tg_token and tg_token != "YOUR_BOT_TOKEN_HERE":
-                bot = TelegramBot(tg_token, tg_chat_id)
-                bot.send_message(
-                    f"⚠️ AI 黄金分析 | {datetime.now().strftime('%Y-%m-%d')}\n\n"
-                    "今日未能获取到持仓数据，可能非交易日或数据源异常。"
-                )
-        return False
     
-    print(f"  合约: {holdings['contract']}  多头: {len(holdings['long_top'])}条  空头: {len(holdings['short_top'])}条")
+    if has_holdings:
+        print(f"  合约: {holdings['contract']}  多头: {len(holdings['long_top'])}条  空头: {len(holdings['short_top'])}条")
 
     holdings_date = holdings.get("date", "")
     if holdings_date:
         try:
             hd = datetime.strptime(holdings_date, "%Y-%m-%d")
             age_days = (datetime.now() - hd).days
-            today_weekday = datetime.now().weekday()
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            from core.gold_price import get_cn_holidays
-            cn_hols = get_cn_holidays(datetime.now().year)
-            cn_holiday = False
-            holdings_reason = ""
-            if today_weekday >= 5:
-                cn_holiday = True
-                holdings_reason = "周末休市"
-            elif today_str in cn_hols:
-                cn_holiday = True
-                holdings_reason = "假日休市"
-            if cn_holiday and age_days <= 5:
-                data_freshness["持仓"] = ("⏸", f"休市({holdings_reason})|ts={holdings_date}T00:00:00")
+            if sge_closed and age_days <= 5:
+                data_freshness["持仓"] = ("⏸", f"休市({sge_status.get('reason', '')})|ts={holdings_date}T00:00:00")
             elif age_days <= 1:
                 data_freshness["持仓"] = ("✅", f"最新|ts={holdings_date}T00:00:00")
             elif age_days <= 3:
@@ -340,8 +335,9 @@ def run_daily_task(skip_telegram=False):
     print("[4/8] 正在计算净多头...")
     positions = calculate_net_positions(holdings, top_n=_get_top_n())
     
+    trade_date_str = holdings.get("date") or datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
     today_data = {
-        "date": datetime.now().strftime("%Y-%m-%d"),
+        "date": trade_date_str,
         "holdings_date": holdings["date"],
         "trade_date": holdings.get("trade_date", ""),
         "contract": holdings["contract"],
@@ -357,15 +353,16 @@ def run_daily_task(skip_telegram=False):
     # 4. 短期警示分析
     print("[5/8] 正在分析短期警示...")
     analyzer = HoldingsAnalyzer()
-    analyzer.add_today_data(today_data)
-    try:
-        upsert_holdings(holdings["date"], positions,
-                        trade_date=holdings.get("trade_date", ""),
-                        contract=holdings.get("contract", ""),
-                        total_long=holdings.get("total_long", 0),
-                        total_short=holdings.get("total_short", 0))
-    except Exception:
-        pass
+    if has_holdings:
+        analyzer.add_today_data(today_data)
+        try:
+            upsert_holdings(holdings["date"], positions,
+                            trade_date=holdings.get("trade_date", ""),
+                            contract=holdings.get("contract", ""),
+                            total_long=holdings.get("total_long", 0),
+                            total_short=holdings.get("total_short", 0))
+        except Exception:
+            pass
     alerts = analyzer.generate_alerts(today_data)
     stats = analyzer.get_summary_stats(today_data)
     if alerts:
@@ -386,7 +383,7 @@ def run_daily_task(skip_telegram=False):
         news_sentiment = fetch_news_sentiment()
         if news_sentiment:
             try:
-                upsert_news_sentiment(holdings["date"], news_sentiment)
+                upsert_news_sentiment(trade_date_str, news_sentiment)
             except Exception:
                 pass
             news_ts = news_sentiment.get("timestamp", "")
@@ -442,12 +439,7 @@ def run_daily_task(skip_telegram=False):
     prediction = None
     gold_prices = []
     try:
-        gold_prices = get_daily_history(days=30) or []
-        if gold_prices:
-            try:
-                upsert_gold_prices(gold_prices)
-            except Exception:
-                pass
+        gold_prices = get_daily_history(days=30, prefer_international=True) or []
         if gold_prices:
             holdings_for_pred = analyzer.history if len(analyzer.history) >= 3 else []
             if not holdings_for_pred:
@@ -483,7 +475,7 @@ def run_daily_task(skip_telegram=False):
                 bf_result = backfill_history(days=30, top_n=_get_top_n())
                 if bf_result.get('gold_success', 0) > 0 or bf_result.get('success', 0) > 0:
                     print(f"  回填完成: 持仓{bf_result['success']}天 金价{bf_result.get('gold_success',0)}天，重新运行预测")
-                    gold_prices = get_daily_history(days=30) or []
+                    gold_prices = get_daily_history(days=30, prefer_international=True) or []
                     if gold_prices:
                         upsert_gold_prices(gold_prices)
                     holdings = fetch_holdings_data(top_n=_get_top_n())
@@ -649,7 +641,6 @@ def run_realtime():
 
         is_trading = is_trading_hours()
         
-        # 计算间隔
         rt_trading, rt_nontrading = _get_realtime_intervals()
         if is_trading:
             interval = rt_trading * 60
@@ -665,7 +656,14 @@ def run_realtime():
             print(f"{'='*50}")
             
             try:
-                run_daily_task()
+                from core.gold_price import get_market_status
+                ms = get_market_status()
+                if ms.get("status") == "closed" and now.weekday() >= 5:
+                    print("  周末休市，仅更新实时金价缓存")
+                    from core.gold_price import get_realtime_price
+                    get_realtime_price()
+                else:
+                    run_daily_task()
             except Exception as e:
                 print(f"[ERROR] 执行失败: {e}")
             

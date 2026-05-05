@@ -1105,8 +1105,10 @@ class AlertEngine:
                                    "message": f"{event['name']}将于下周发布，提前做好仓位管理"})
 
         if today.weekday() == 4:
-            alerts.append({"level": LEVEL_LOW, "dimension": dim, "type": "friday_close",
-                           "message": "周五收盘，周末持仓风险需注意，建议控制仓位"})
+            from core.gold_price import is_us_workday
+            if is_us_workday(today):
+                alerts.append({"level": LEVEL_LOW, "dimension": dim, "type": "friday_close",
+                               "message": "周五收盘，周末持仓风险需注意，建议控制仓位"})
 
         if today.month in [1, 4, 7, 10] and today.day <= 5:
             alerts.append({"level": LEVEL_LOW, "dimension": dim, "type": "quarter_start",

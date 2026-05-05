@@ -73,16 +73,5 @@ def decrypt_value(ciphertext: str, secret_key: str) -> str:
 
 
 def is_trading_hours():
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc)
-    weekday = now.weekday()
-    if weekday >= 5:
-        return False
-    hour = now.hour
-    minute = now.minute
-    t = hour * 60 + minute
-    if 30 <= t < 570:
-        return True
-    if 740 <= t < 1050:
-        return True
-    return False
+    from core.gold_price import get_market_status
+    return get_market_status().get("status") == "open"

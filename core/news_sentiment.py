@@ -330,7 +330,6 @@ def fetch_news_sentiment() -> Dict:
 
     with _news_cache_lock:
         _news_cache = result
-    _archive_sentiment(result)
 
     src_info = f"（来源: {'+'.join(sources_ok)}）" if sources_ok else "（所有来源失败）"
     analyzer_info = f"[{analyzer}]" if analyzer != "keyword" else ""
@@ -782,15 +781,6 @@ def _extract_key_events(analyzed_news: List[Dict]) -> List[Dict]:
                 break
 
     return events
-
-
-def _archive_sentiment(result: Dict):
-    """归档情绪数据到数据库"""
-    today = datetime.now().strftime("%Y-%m-%d")
-    try:
-        db.upsert_news_sentiment(today, result)
-    except Exception as e:
-        print(f"  [WARN] 新闻情绪归档失败: {e}")
 
 
 _DEFAULT_BULLISH_KEYWORDS = None

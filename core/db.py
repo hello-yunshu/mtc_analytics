@@ -172,7 +172,7 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS gold_prices (
                     date TEXT PRIMARY KEY,
                     open REAL, high REAL, low REAL, close REAL,
-                    source TEXT, created_at TEXT
+                    source TEXT, unit TEXT DEFAULT 'USD/oz', created_at TEXT
                 );
                 CREATE TABLE IF NOT EXISTS gold_prices_intra (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -302,6 +302,7 @@ def init_db():
                 conn.execute("INSERT INTO iteration_state (id, updated_at) VALUES (1, ?)", (datetime.now().isoformat(),))
                 conn.commit()
             _migrate_prediction_tracking_schema(conn)
+            _migrate_gold_prices_schema(conn)
         finally:
             conn.close()
 
@@ -340,6 +341,13 @@ def _migrate_prediction_tracking_schema(conn):
         conn.execute("ALTER TABLE prediction_tracking ADD COLUMN consensus_alignment TEXT DEFAULT ''")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_pred_tracking_verified ON prediction_tracking(verified)")
     conn.commit()
+
+
+def _migrate_gold_prices_schema(conn):
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(gold_prices)").fetchall()]
+    if "unit" not in cols:
+        conn.execute("ALTER TABLE gold_prices ADD COLUMN unit TEXT DEFAULT 'USD/oz'")
+        conn.commit()
 
 
 def cleanup():
@@ -403,9 +411,9 @@ def upsert_gold_prices(prices):
                 if not d:
                     continue
                 conn.execute(
-                    "INSERT OR REPLACE INTO gold_prices (date, open, high, low, close, source, created_at) VALUES (?,?,?,?,?,?,?)",
+                    "INSERT OR REPLACE INTO gold_prices (date, open, high, low, close, source, unit, created_at) VALUES (?,?,?,?,?,?,?,?)",
                     (d, p.get("open"), p.get("high"), p.get("low"), p.get("close"),
-                     p.get("source", ""), datetime.now().isoformat())
+                     p.get("source", ""), p.get("unit", "USD/oz"), datetime.now().isoformat())
                 )
             conn.commit()
         finally:
@@ -418,7 +426,7 @@ def get_gold_prices(days: int = 60) -> List[Dict]:
         try:
             cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             rows = conn.execute(
-                "SELECT date, open, high, low, close, source FROM gold_prices WHERE date >= ? ORDER BY date",
+                "SELECT date, open, high, low, close, source, unit FROM gold_prices WHERE date >= ? ORDER BY date",
                 (cutoff,)
             ).fetchall()
             return [dict(r) for r in rows]
@@ -431,7 +439,7 @@ def get_latest_gold_price() -> Optional[Dict]:
         conn = _get_conn()
         try:
             row = conn.execute(
-                "SELECT date, open, high, low, close, source FROM gold_prices ORDER BY date DESC LIMIT 1"
+                "SELECT date, open, high, low, close, source, unit FROM gold_prices ORDER BY date DESC LIMIT 1"
             ).fetchone()
             return dict(row) if row else None
         finally:

@@ -273,8 +273,17 @@ def _fetch_and_cache_news():
                 _cached_news["data"] = data
             try:
                 from core.db import upsert_news_sentiment
-                today = datetime.now().strftime("%Y-%m-%d")
-                upsert_news_sentiment(today, data)
+                from core.gold_price import is_us_workday
+                from datetime import date as _date, timedelta as _td
+                today = _date.today()
+                trade_date = today.isoformat()
+                if not is_us_workday(today):
+                    for offset in range(1, 8):
+                        prev = today - _td(days=offset)
+                        if is_us_workday(prev):
+                            trade_date = prev.isoformat()
+                            break
+                upsert_news_sentiment(trade_date, data)
             except Exception:
                 pass
     except Exception:
@@ -315,7 +324,14 @@ def _refresh_technical_cache():
         if not prices:
             prices = db.get_gold_prices(120)
         if prices and len(prices) >= 5:
-            ta_data = _calc_technical_analysis(prices)
+            from datetime import datetime as _dt
+            from core.gold_price import is_us_workday
+            filtered = [p for p in prices
+                        if not p.get("date") or is_us_workday(_dt.strptime(p["date"], "%Y-%m-%d").date())]
+            if len(filtered) >= 5:
+                ta_data = _calc_technical_analysis(filtered)
+            else:
+                ta_data = _calc_technical_analysis(prices)
             if ta_data:
                 with _cached_technical["lock"]:
                     _cached_technical["data"] = ta_data
@@ -1054,10 +1070,20 @@ def api_gold_price_chart():
         if prices:
             with _cached_gold_prices["lock"]:
                 _cached_gold_prices["data"] = prices
+    from datetime import datetime as _dt
+    from core.gold_price import is_us_workday
     chart_data = []
     for p in prices[-60:]:
+        d = p.get("date", "")
+        if d:
+            try:
+                dt = _dt.strptime(d, "%Y-%m-%d").date()
+                if not is_us_workday(dt):
+                    continue
+            except ValueError:
+                pass
         chart_data.append({
-            "date": p.get("date", ""), "close": p.get("close", 0),
+            "date": d, "close": p.get("close", 0),
             "high": p.get("high", 0), "low": p.get("low", 0),
         })
     return jsonify(chart_data)
@@ -1399,7 +1425,12 @@ def api_technical_analysis():
                 _cached_gold_prices["data"] = prices
     if not prices or len(prices) < 5:
         return jsonify({"error": "金价数据不足"})
-    ta_data = _calc_technical_analysis(prices)
+    from datetime import datetime as _dt
+    from core.gold_price import is_us_workday
+    filtered = [p for p in prices
+                if not p.get("date") or is_us_workday(_dt.strptime(p["date"], "%Y-%m-%d").date())]
+    calc_prices = filtered if len(filtered) >= 5 else prices
+    ta_data = _calc_technical_analysis(calc_prices)
     if ta_data:
         with _cached_technical["lock"]:
             _cached_technical["data"] = ta_data

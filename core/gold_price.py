@@ -45,9 +45,37 @@ HEADERS = {
 
 _AKSHARE_AVAILABLE = None
 
-_US_FIXED_HOLIDAYS = {
-    (1, 1), (7, 4), (11, 27), (12, 25),
-}
+_US_HOLIDAYS_LIB_AVAILABLE = None
+
+
+def _check_us_holidays_lib() -> bool:
+    global _US_HOLIDAYS_LIB_AVAILABLE
+    if _US_HOLIDAYS_LIB_AVAILABLE is None:
+        try:
+            import holidays as _h
+            _h.US(years=2025)
+            _US_HOLIDAYS_LIB_AVAILABLE = True
+        except Exception:
+            _US_HOLIDAYS_LIB_AVAILABLE = False
+    return _US_HOLIDAYS_LIB_AVAILABLE
+
+
+def is_us_workday(date_obj) -> bool:
+    """
+    判断指定日期是否为美国工作日（COMEX交易日）
+
+    使用 holidays 库（权威数据，含 observed 规则），
+    不可用时降级为硬编码假日判断。
+    """
+    if _check_us_holidays_lib():
+        try:
+            import holidays as _h
+            us_hols = _h.US(years=date_obj.year)
+            return date_obj.weekday() < 5 and date_obj not in us_hols
+        except Exception:
+            pass
+
+    return date_obj.weekday() < 5 and date_obj.isoformat() not in _get_us_holidays(date_obj.year)
 
 
 def _compute_us_holidays(year: int) -> set:
@@ -135,8 +163,41 @@ def _get_us_holidays(year: int) -> set:
     return _US_HOLIDAYS_CACHE[year]
 
 
+_CN_CALENDAR_AVAILABLE = None
+
+
+def _check_chinese_calendar() -> bool:
+    global _CN_CALENDAR_AVAILABLE
+    if _CN_CALENDAR_AVAILABLE is None:
+        try:
+            import chinese_calendar
+            _CN_CALENDAR_AVAILABLE = True
+        except Exception:
+            _CN_CALENDAR_AVAILABLE = False
+    return _CN_CALENDAR_AVAILABLE
+
+
+def is_cn_workday(date_obj) -> bool:
+    """
+    判断指定日期是否为中国工作日（含调休上班日）
+
+    使用 chinesecalendar 库（权威国务院数据，含调休），
+    不可用时降级为周末+硬编码假日判断（不含调休）。
+    """
+    if _check_chinese_calendar():
+        try:
+            import chinese_calendar
+            return bool(chinese_calendar.is_workday(date_obj))
+        except NotImplementedError:
+            pass
+
+    if date_obj.weekday() >= 5:
+        return False
+    return date_obj.isoformat() not in get_cn_holidays(date_obj.year)
+
+
 def _compute_cn_holidays(year: int) -> set:
-    """计算指定年份的中国法定假日（SGE休市日，仅含工作日假日）"""
+    """计算指定年份的中国法定假日（SGE休市日，仅含工作日假日，不含调休）"""
     from datetime import date as _date, timedelta as _td
     holidays = set()
 
@@ -197,7 +258,7 @@ _CN_HOLIDAYS_CACHE: Dict[int, set] = {}
 
 
 def get_cn_holidays(year: int) -> set:
-    """获取指定年份的中国法定假日（公开接口）"""
+    """获取指定年份的中国法定假日（公开接口，降级兜底用）"""
     if year not in _CN_HOLIDAYS_CACHE:
         _CN_HOLIDAYS_CACHE[year] = _compute_cn_holidays(year)
     return _CN_HOLIDAYS_CACHE[year]
@@ -208,15 +269,15 @@ def get_market_status() -> Dict:
     判断COMEX黄金期货市场状态
     返回 {"status": "open"|"closed"|"pre_market", "reason": str, "next_open": str}
     """
+    from datetime import date as _date
     now_et = datetime.now(timezone(timedelta(hours=-5)))
     weekday = now_et.weekday()
-    date_str = now_et.strftime("%Y-%m-%d")
     hour = now_et.hour
     minute = now_et.minute
 
-    us_holidays = _get_us_holidays(now_et.year)
-
-    if date_str in us_holidays:
+    if not is_us_workday(_date(now_et.year, now_et.month, now_et.day)):
+        if weekday >= 5:
+            return {"status": "closed", "reason": "周末休市", "next_open": "周日18:00 ET"}
         return {"status": "closed", "reason": "美国假日休市", "next_open": ""}
 
     if weekday == 5:
@@ -231,6 +292,35 @@ def get_market_status() -> Dict:
         return {"status": "closed", "reason": "日内休市(17:00-18:00 ET)", "next_open": "今日18:00 ET"}
 
     return {"status": "open", "reason": "", "next_open": ""}
+
+
+def get_sge_market_status() -> Dict:
+    """
+    判断上海黄金交易所(SGE)市场状态
+    返回 {"status": "open"|"closed", "reason": str}
+
+    SGE 交易时间（北京时间）：
+      日盘: 09:00-15:30
+      夜盘: 19:50-02:30（次日）
+    """
+    from datetime import date as _date
+    now_cst = datetime.now(timezone(timedelta(hours=8)))
+    today = _date(now_cst.year, now_cst.month, now_cst.day)
+    hour = now_cst.hour
+    minute = now_cst.minute
+
+    if not is_cn_workday(today):
+        if now_cst.weekday() >= 5:
+            return {"status": "closed", "reason": "周末休市"}
+        return {"status": "closed", "reason": "假日休市"}
+
+    t = hour * 60 + minute
+    if 9 * 60 <= t < 15 * 60 + 30:
+        return {"status": "open", "reason": "日盘交易中"}
+    if 19 * 60 + 50 <= t or t < 2 * 60 + 30:
+        return {"status": "open", "reason": "夜盘交易中"}
+
+    return {"status": "closed", "reason": "非交易时段"}
 
 
 def _check_akshare():
@@ -873,14 +963,15 @@ def archive_realtime_price(realtime: Optional[Dict] = None):
     """
     将实时金价归档到数据库
     每次调用都会追加一条快照到 gold_prices_intra 表
-    同时更新 gold_prices 表的当日OHLC
+    COMEX交易日才更新 gold_prices 表的当日OHLC
     """
     if realtime is None:
         realtime = get_realtime_price()
     if not realtime:
         return None
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    now_et = datetime.now(timezone(timedelta(hours=-5)))
+    today = now_et.strftime("%Y-%m-%d")
 
     try:
         db.insert_intraday_snapshot(
@@ -893,6 +984,11 @@ def archive_realtime_price(realtime: Optional[Dict] = None):
         )
     except Exception as e:
         print(f"  [WARN] 日内快照保存失败: {e}")
+
+    from datetime import date as _date
+    today_date = _date(now_et.year, now_et.month, now_et.day)
+    if not is_us_workday(today_date):
+        return realtime
 
     try:
         snapshots = db.get_intraday_snapshots(1)
