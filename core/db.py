@@ -194,7 +194,8 @@ def init_db():
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT, indicator_key TEXT,
                     value REAL, change REAL, change_pct REAL,
-                    source TEXT
+                    source TEXT,
+                    name TEXT DEFAULT '', unit TEXT DEFAULT '', direction TEXT DEFAULT ''
                 );
                 CREATE INDEX IF NOT EXISTS idx_macro_ts ON macro_indicators(timestamp);
 
@@ -303,6 +304,7 @@ def init_db():
                 conn.commit()
             _migrate_prediction_tracking_schema(conn)
             _migrate_gold_prices_schema(conn)
+            _migrate_macro_indicators_schema(conn)
         finally:
             conn.close()
 
@@ -348,6 +350,36 @@ def _migrate_gold_prices_schema(conn):
     if "unit" not in cols:
         conn.execute("ALTER TABLE gold_prices ADD COLUMN unit TEXT DEFAULT 'USD/oz'")
         conn.commit()
+
+
+def _migrate_macro_indicators_schema(conn):
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(macro_indicators)").fetchall()]
+    if "name" not in cols:
+        conn.execute("ALTER TABLE macro_indicators ADD COLUMN name TEXT DEFAULT ''")
+    if "unit" not in cols:
+        conn.execute("ALTER TABLE macro_indicators ADD COLUMN unit TEXT DEFAULT ''")
+    if "direction" not in cols:
+        conn.execute("ALTER TABLE macro_indicators ADD COLUMN direction TEXT DEFAULT ''")
+    conn.commit()
+    try:
+        from core.macro_fetcher import YAHOO_SYMBOLS
+        empty_rows = conn.execute(
+            "SELECT id, indicator_key FROM macro_indicators WHERE name = '' OR name IS NULL"
+        ).fetchall()
+        extra_map = {
+            "breakeven_inflation": {"name": "盈亏平衡通胀率(10Y)", "unit": "%", "direction": "positive"},
+        }
+        for row in empty_rows:
+            cfg = YAHOO_SYMBOLS.get(row["indicator_key"]) or extra_map.get(row["indicator_key"])
+            if cfg:
+                conn.execute(
+                    "UPDATE macro_indicators SET name=?, unit=?, direction=? WHERE id=?",
+                    (cfg["name"], cfg["unit"], cfg["direction"], row["id"])
+                )
+        if empty_rows:
+            conn.commit()
+    except Exception:
+        pass
 
 
 def cleanup():
@@ -579,10 +611,11 @@ def insert_macro_snapshot(indicators: Dict, timestamp: Optional[str] = None):
                 if not isinstance(val, dict):
                     continue
                 conn.execute(
-                    "INSERT INTO macro_indicators (timestamp, indicator_key, value, change, change_pct, source) VALUES (?,?,?,?,?,?)",
+                    "INSERT INTO macro_indicators (timestamp, indicator_key, value, change, change_pct, source, name, unit, direction) VALUES (?,?,?,?,?,?,?,?,?)",
                     (ts, key,
                      val.get("value"), val.get("change"), val.get("change_pct"),
-                     val.get("source", ""))
+                     val.get("source", ""),
+                     val.get("name", ""), val.get("unit", ""), val.get("direction", ""))
                 )
             conn.commit()
         finally:
@@ -598,7 +631,7 @@ def get_latest_macro() -> Dict:
                 return {}
             ts = latest_ts["ts"]
             rows = conn.execute(
-                "SELECT indicator_key, value, change, change_pct, source FROM macro_indicators WHERE timestamp = ?",
+                "SELECT indicator_key, value, change, change_pct, source, name, unit, direction FROM macro_indicators WHERE timestamp = ?",
                 (ts,)
             ).fetchall()
             indicators = {}
@@ -608,6 +641,9 @@ def get_latest_macro() -> Dict:
                     "change": r["change"],
                     "change_pct": r["change_pct"],
                     "source": r["source"],
+                    "name": r["name"] or "",
+                    "unit": r["unit"] or "",
+                    "direction": r["direction"] or "",
                 }
             return {
                 "timestamp": ts,
@@ -631,7 +667,7 @@ def get_macro_history(days: int = 30) -> List[Dict]:
             for r in rows:
                 ts = r["timestamp"]
                 indicator_rows = conn.execute(
-                    "SELECT indicator_key, value, change, change_pct, source FROM macro_indicators WHERE timestamp = ?",
+                    "SELECT indicator_key, value, change, change_pct, source, name, unit, direction FROM macro_indicators WHERE timestamp = ?",
                     (ts,)
                 ).fetchall()
                 indicators = {}
@@ -641,6 +677,9 @@ def get_macro_history(days: int = 30) -> List[Dict]:
                         "change": ir["change"],
                         "change_pct": ir["change_pct"],
                         "source": ir["source"],
+                        "name": ir["name"] or "",
+                        "unit": ir["unit"] or "",
+                        "direction": ir["direction"] or "",
                     }
                 result.append({"timestamp": ts, "date": ts[:10], "indicators": indicators})
             return result
