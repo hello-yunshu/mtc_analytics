@@ -1352,7 +1352,7 @@ class GoldPricePredictor:
             w2 = adjusted.get(f2, 0)
             total_w = w1 + w2
             if total_w > 0:
-                penalty = 0.85
+                penalty = 0.75
                 adjusted[f1] = w1 * penalty
                 adjusted[f2] = w2 * penalty
 
@@ -1367,18 +1367,18 @@ class GoldPricePredictor:
         含多重共线性缓解：当高相关因子同向时自动衰减权重
         """
         base_weights = {
-            "real_rate": 0.13,
-            "dollar": 0.10,
-            "inflation": 0.07,
-            "momentum": 0.12,
-            "extreme": 0.08,
-            "divergence": 0.10,
+            "real_rate": 0.16,
+            "dollar": 0.12,
+            "inflation": 0.09,
+            "momentum": 0.08,
+            "extreme": 0.05,
+            "divergence": 0.07,
             "cb_gold": 0.07,
-            "etf_flow": 0.05,
+            "etf_flow": 0.06,
             "price_trend": 0.10,
             "volatility": 0.06,
-            "news_sentiment": 0.08,
-            "seasonality": 0.04,
+            "news_sentiment": 0.09,
+            "seasonality": 0.05,
         }
 
         settings = load_json(os.path.join(_DATA_DIR, "web_settings.json"))
