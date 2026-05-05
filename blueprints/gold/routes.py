@@ -1304,6 +1304,12 @@ def api_macro():
             data = fetch_macro_indicators()
         except Exception:
             data = {}
+    if data and not data.get("gold_impact"):
+        try:
+            from core.macro_fetcher import calc_gold_impact
+            data["gold_impact"] = calc_gold_impact(data.get("indicators", {}))
+        except Exception:
+            data["gold_impact"] = "中性"
     return jsonify(_clean_nan(data or {}))
 
 

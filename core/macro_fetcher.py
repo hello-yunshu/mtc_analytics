@@ -169,7 +169,7 @@ def fetch_macro_indicators() -> Dict:
             indicators[key] = None
             print(f"    {config['name']}: 所有数据源均失败")
 
-    gold_impact = _calc_gold_impact(indicators)
+    gold_impact = calc_gold_impact(indicators)
 
     breakeven_inflation = _calc_breakeven_inflation(indicators)
     if breakeven_inflation is not None:
@@ -286,7 +286,7 @@ def _fetch_akshare_batch() -> Optional[Dict]:
         return None
 
 
-def _calc_gold_impact(indicators: dict) -> str:
+def calc_gold_impact(indicators: dict) -> str:
     score = 0.0
     if indicators.get("us_10y_yield") and indicators["us_10y_yield"].get("change") is not None:
         chg = indicators["us_10y_yield"]["change"]
