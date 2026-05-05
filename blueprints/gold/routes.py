@@ -117,10 +117,11 @@ def _get_or_create_default_password():
                 os.chmod(initial_pw_file, 0o600)
             except OSError:
                 pass
-            _security_logger.warning("首次启动 - 已生成随机登录密码，请查看 data/.initial_password")
+            _security_logger.warning("首次启动 - 已生成随机登录密码")
             print(f"\n{'='*50}")
             print(f"  首次启动 - 已生成随机登录密码")
-            print(f"  请查看 data/.initial_password 获取密码")
+            print(f"  密码: {random_pw}")
+            print(f"  请立即登录并修改密码！")
             print(f"{'='*50}\n")
             return pw_hash
         finally:

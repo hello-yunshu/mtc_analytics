@@ -15,6 +15,7 @@ echo "========================================"
 start_web() {
     echo "[Web] 启动 Web 服务 (gunicorn)..."
     exec gunicorn \
+        --preload \
         --bind 0.0.0.0:8080 \
         --workers 2 \
         --threads 4 \
@@ -30,7 +31,7 @@ start_schedule() {
 }
 
 start_realtime() {
-    echo "[Realtime] 启动实时监控模式..."
+    echo "[Realtime] 启动实时监控..."
     exec python main.py --realtime
 }
 
@@ -38,6 +39,7 @@ start_web_and_schedule() {
     echo "[Web+Schedule] 启动 Web + 定时任务..."
     python main.py --schedule &
     exec gunicorn \
+        --preload \
         --bind 0.0.0.0:8080 \
         --workers 2 \
         --threads 4 \
@@ -51,6 +53,7 @@ start_web_and_realtime() {
     echo "[Web+Realtime] 启动 Web + 实时监控..."
     python main.py --realtime &
     exec gunicorn \
+        --preload \
         --bind 0.0.0.0:8080 \
         --workers 2 \
         --threads 4 \
