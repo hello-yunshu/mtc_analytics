@@ -118,10 +118,13 @@ class GoldPricePredictor:
         weights = self._dynamic_weights(factors)
 
         active_factors = {k: v for k, v in factors.items() if abs(v.get("score", 0)) >= 0.05 and k in weights}
+        no_data_factors = {k for k, v in factors.items() if v.get("_no_data") and k in weights}
         active_weights = {k: weights[k] for k in active_factors}
+        no_data_weight = sum(weights[k] for k in no_data_factors if k not in active_factors)
         active_total = sum(active_weights.values())
         if active_total > 0:
-            active_weights = {k: v / active_total for k, v in active_weights.items()}
+            redistribute = no_data_weight / active_total
+            active_weights = {k: v * (1 + redistribute) for k, v in active_weights.items()}
 
         total_score = 0.0
         for k in active_factors:
@@ -534,7 +537,7 @@ class GoldPricePredictor:
         signals = []
 
         if len(self.holdings_history) < 3:
-            return {"score": 0.0, "signal": "历史数据不足"}
+            return {"score": 0.0, "signal": "历史数据不足", "_no_data": True}
 
         recent_changes = []
         for record in self.holdings_history[-5:]:
@@ -588,7 +591,7 @@ class GoldPricePredictor:
         signals = []
 
         if len(self.holdings_history) < 5:
-            return {"score": 0.0, "signal": "历史数据不足（需≥5天）"}
+            return {"score": 0.0, "signal": "历史数据不足（需≥5天）", "_no_data": True}
 
         current_net = sum(p.get("net", 0) for p in today_data.get("positions", []))
 
@@ -652,7 +655,7 @@ class GoldPricePredictor:
         signals = []
 
         if len(self.holdings_history) < 3 or len(self.gold_prices) < 3:
-            return {"score": 0.0, "signal": "数据不足"}
+            return {"score": 0.0, "signal": "数据不足", "_no_data": True}
 
         holdings_by_date = {}
         holdings_pct_by_date = {}
@@ -740,7 +743,7 @@ class GoldPricePredictor:
         signals = []
 
         if len(self.gold_prices) < 10:
-            return {"score": 0.0, "signal": "金价数据不足"}
+            return {"score": 0.0, "signal": "金价数据不足", "_no_data": True}
 
         closes = [p["close"] for p in self.gold_prices]
 
@@ -838,7 +841,7 @@ class GoldPricePredictor:
         low_vol = False
 
         if len(self.gold_prices) < 5:
-            return {"score": 0.0, "signal": "数据不足", "low_vol": False}
+            return {"score": 0.0, "signal": "数据不足", "low_vol": False, "_no_data": True}
 
         closes = [p["close"] for p in self.gold_prices]
 
