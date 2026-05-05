@@ -703,46 +703,45 @@ def format_report(date: str, contract: str, positions: List[Dict],
         from .model_iteration import get_iteration_status
         from .utils import load_json as _load_settings
         iter_status = get_iteration_status()
-        if iter_status.get("total_iterations", 0) > 0 or iter_status.get("enabled"):
-            lines.append("")
-            lines.append("━━━━━━━━━━━━━━━━━━━━━━")
-            lines.append("🔄 模型自迭代")
-            mode_label = "LLM+规则" if iter_status.get("llm_available") else "纯规则"
-            lines.append(f"  迭代模式：{mode_label}")
-            if iter_status.get("enabled"):
-                lines.append(f"  状态：已启用（已验证{iter_status.get('verified_samples',0)}个样本）")
-            else:
-                lines.append(f"  状态：待激活（需{iter_status.get('min_samples_required',20)}个验证样本，当前{iter_status.get('verified_samples',0)}个）")
-            if iter_status.get("total_iterations", 0) > 0:
-                lines.append(f"  累计迭代：{iter_status['total_iterations']}次")
-                lines.append(f"  上次迭代：{iter_status.get('last_iteration', '未知')}")
-            if iter_status.get("llm_available"):
-                tu = iter_status.get("token_usage", {})
-                lines.append(f"  LLM Token：本月已用{tu.get('used',0)}/{iter_status.get('token_budget',6000)}")
+        lines.append("")
+        lines.append("━━━━━━━━━━━━━━━━━━━━━━")
+        lines.append("🔄 模型自迭代")
+        mode_label = "LLM+规则" if iter_status.get("llm_available") else "纯规则"
+        lines.append(f"  迭代模式：{mode_label}")
+        if iter_status.get("enabled"):
+            lines.append(f"  状态：已启用（已验证{iter_status.get('verified_samples',0)}个样本）")
+        else:
+            lines.append(f"  状态：待激活（需{iter_status.get('min_samples_required',20)}个验证样本，当前{iter_status.get('verified_samples',0)}个）")
+        if iter_status.get("total_iterations", 0) > 0:
+            lines.append(f"  累计迭代：{iter_status['total_iterations']}次")
+            lines.append(f"  上次迭代：{iter_status.get('last_iteration', '未知')}")
+        if iter_status.get("llm_available"):
+            tu = iter_status.get("token_usage", {})
+            lines.append(f"  LLM Token：本月已用{tu.get('used',0)}/{iter_status.get('token_budget',6000)}")
 
-            _ws = _load_settings(os.path.join(_DATA_DIR, "web_settings.json")) or {}
-            _pred_thr = _ws.get("pred_threshold", 0.08)
-            lines.append(f"  预测方向阈值：{_pred_thr}")
+        _ws = _load_settings(os.path.join(_DATA_DIR, "web_settings.json")) or {}
+        _pred_thr = _ws.get("pred_threshold", 0.08)
+        lines.append(f"  预测方向阈值：{_pred_thr}")
 
-            current_weights = iter_status.get("current_weights", {})
-            if current_weights:
-                weight_parts = []
-                from .model_iteration import FACTOR_LABELS
-                for fk, label in FACTOR_LABELS.items():
-                    w = current_weights.get(fk)
-                    if w is not None:
-                        weight_parts.append(f"{label}:{w:.3f}")
-                if weight_parts:
-                    lines.append(f"  当前权重：{' | '.join(weight_parts)}")
+        current_weights = iter_status.get("current_weights", {})
+        if current_weights:
+            weight_parts = []
+            from .model_iteration import FACTOR_LABELS
+            for fk, label in FACTOR_LABELS.items():
+                w = current_weights.get(fk)
+                if w is not None:
+                    weight_parts.append(f"{label}:{w:.3f}")
+            if weight_parts:
+                lines.append(f"  当前权重：{' | '.join(weight_parts)}")
 
-            history = iter_status.get("recent_history", [])
-            if history:
-                last = history[-1]
-                if last.get("adjustments"):
-                    for adj in last["adjustments"][:3]:
-                        lines.append(f"  调整：{adj}")
-                if last.get("diagnosis"):
-                    lines.append(f"  AI诊断：{last['diagnosis'][:60]}")
+        history = iter_status.get("recent_history", [])
+        if history:
+            last = history[-1]
+            if last.get("adjustments"):
+                for adj in last["adjustments"][:3]:
+                    lines.append(f"  调整：{adj}")
+            if last.get("diagnosis"):
+                lines.append(f"  AI诊断：{last['diagnosis'][:60]}")
     except Exception:
         pass
 
