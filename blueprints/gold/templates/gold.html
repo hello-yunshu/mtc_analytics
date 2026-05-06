@@ -18,7 +18,7 @@
    * --bear = 视觉绿色 #059669 → 利空/看跌/下跌
    */
   --bg: #080a12;
-  --bg2: rgba(16,24,40,0.56);
+  --bg2: rgba(22,33,55,0.55);
   --bg3: rgba(255,255,255,0.08);
   --card: rgba(18,27,45,0.58);
   --glass: rgba(18,27,45,0.52);
@@ -95,7 +95,7 @@
 
 :root[data-theme="dark"] {
   --bg: #080a12;
-  --bg2: rgba(16,24,40,0.56);
+  --bg2: rgba(22,33,55,0.55);
   --bg3: rgba(255,255,255,0.08);
   --card: rgba(18,27,45,0.58);
   --glass: rgba(18,27,45,0.52);
@@ -310,6 +310,26 @@ body::after {
 .card:hover {
   transform: translateY(-2px);
   box-shadow: 0 32px 90px rgba(0,0,0,0.38), 0 4px 12px rgba(0,0,0,0.15), var(--inner-highlight);
+}
+
+.sub-card {
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.sub-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2), var(--inner-highlight);
+}
+
+.sub-panel {
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.sub-panel:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 
 .dual-col-grid {
@@ -748,18 +768,18 @@ body::after {
       <div class="card" style="margin-bottom:20px;padding:16px 24px">
         <div class="card-title" style="margin-bottom:12px"><svg class="ico" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 多周期趋势</div>
         <div id="periodTrendsRow" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-          <div id="periodTrendShort" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center">
+          <div id="periodTrendShort" class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center">
             <div style="font-size:11px;color:var(--text3);margin-bottom:4px">短期（3日）</div>
             <div id="periodShortDir" style="font-size:20px;font-weight:800;color:var(--text2)">--</div>
             <div id="periodShortScore" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
           </div>
-          <div id="periodTrendMedium" style="background:var(--bg2);border:2px solid var(--gold);border-radius:8px;padding:12px 14px;text-align:center;position:relative">
+          <div id="periodTrendMedium" class="sub-panel" style="background:var(--bg2);border:2px solid var(--gold);border-radius:8px;padding:12px 14px;text-align:center;position:relative">
             <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:9px;font-weight:700;padding:1px 8px;border-radius:4px">重点</div>
             <div style="font-size:11px;color:var(--text3);margin-bottom:4px">中期（10日）</div>
             <div id="periodMediumDir" style="font-size:20px;font-weight:800;color:var(--text2)">--</div>
             <div id="periodMediumScore" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
           </div>
-          <div id="periodTrendLong" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center">
+          <div id="periodTrendLong" class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center">
             <div style="font-size:11px;color:var(--text3);margin-bottom:4px">长期（20日）</div>
             <div id="periodLongDir" style="font-size:20px;font-weight:800;color:var(--text2)">--</div>
             <div id="periodLongScore" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
@@ -777,22 +797,22 @@ body::after {
         <div id="macroDetail" style="display:none;overflow:hidden">
           <div style="background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:20px 24px">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
-              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+              <div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">美债10Y收益率</div>
                 <div class="mono" id="stat10Y" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
                 <div id="stat10YSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
               </div>
-              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+              <div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">美元指数 DXY</div>
                 <div class="mono" id="statDXY" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
                 <div id="statDXYSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
               </div>
-              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+              <div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">VIX 恐慌指数</div>
                 <div class="mono" id="statVIX" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
                 <div id="statVIXSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
               </div>
-              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+              <div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">WTI 原油</div>
                 <div class="mono" id="statOil" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
                 <div id="statOilSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
@@ -1705,7 +1725,7 @@ async function loadMacro() {
       detail += `<span style="color:${color}">${v.value.toFixed(2)}${v.unit} (${v.change_pct>0?'+':''}${v.change_pct.toFixed(2)}%)</span>`;
       detail += `</div>`;
     }
-    detail += `<div style="margin-top:12px;padding:8px;background:var(--bg);border-radius:8px;font-size:12px">`;
+    detail += `<div class="sub-panel" style="margin-top:12px;padding:8px;background:var(--bg2);border-radius:8px;font-size:12px">`;
     detail += `综合影响：<span style="color:${data.gold_impact==='偏多'?'var(--bull)':data.gold_impact==='偏空'?'var(--bear)':'var(--text2)'}">${escHtml(data.gold_impact)}</span>`;
     detail += `</div>`;
     document.getElementById('macroDetailContent').innerHTML = detail || '暂无数据';
@@ -2256,7 +2276,7 @@ function scrollToAlertSection() {
 }
 
 function subCard(title, accentColor, innerHtml) {
-  return `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${accentColor};border-radius:8px;padding:12px 14px;margin-bottom:10px">` +
+  return `<div class="sub-card" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${accentColor};border-radius:8px;padding:12px 14px;margin-bottom:10px">` +
     `<div style="font-size:13px;font-weight:700;color:${accentColor};margin-bottom:8px">${title}</div>` +
     innerHtml +
     `</div>`;
@@ -2662,10 +2682,10 @@ function renderAlertSection(text) {
   };
 
   const levelStyles = {
-    critical: { bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', label: '🔴 重', color: 'var(--bear)' },
-    high:     { bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.18)', label: '🔴 高', color: '#ef4444' },
-    medium:   { bg: 'rgba(245,158,11,0.06)', border: 'rgba(245,158,11,0.18)', label: '🟡 中', color: 'var(--gold)' },
-    low:      { bg: 'rgba(34,197,94,0.04)', border: 'rgba(34,197,94,0.12)', label: '🟢 低', color: 'var(--text3)' },
+    critical: { bg: 'rgba(239,68,68,0.14)', border: 'rgba(239,68,68,0.3)', label: '🔴 重', color: 'var(--bear)' },
+    high:     { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)', label: '🔴 高', color: '#ef4444' },
+    medium:   { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', label: '🟡 中', color: 'var(--gold)' },
+    low:      { bg: 'rgba(34,197,94,0.06)', border: 'rgba(34,197,94,0.14)', label: '🟢 低', color: 'var(--text3)' },
   };
 
   let dims = [];
@@ -2725,19 +2745,19 @@ function renderAlertSection(text) {
       bgColor = 'rgba(239,68,68,0.06)';
       borderColor = 'rgba(239,68,68,0.2)';
     } else if (hasHigh) {
-      bgColor = 'rgba(239,68,68,0.04)';
-      borderColor = 'rgba(239,68,68,0.15)';
+      bgColor = 'rgba(239,68,68,0.07)';
+      borderColor = 'rgba(239,68,68,0.18)';
     } else if (dim.alerts.medium.length > 0) {
-      bgColor = 'rgba(245,158,11,0.04)';
-      borderColor = 'rgba(245,158,11,0.15)';
+      bgColor = 'rgba(245,158,11,0.07)';
+      borderColor = 'rgba(245,158,11,0.18)';
     } else {
-      bgColor = 'rgba(34,197,94,0.03)';
-      borderColor = 'rgba(34,197,94,0.1)';
+      bgColor = 'rgba(34,197,94,0.05)';
+      borderColor = 'rgba(34,197,94,0.12)';
     }
     const titleColor = hasCritical ? 'var(--bear)' : hasHigh ? '#ef4444' : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
 
     const isFullSpan = emoji === '⚠️';
-    html += `<div id="alert-dim-${dim.key}" class="${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:10px;padding:12px 14px;transition:box-shadow 0.3s,border-color 0.3s">`;
+    html += `<div id="alert-dim-${dim.key}" class="sub-card ${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:10px;padding:12px 14px;transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease">`;
     html += `<div style="font-size:13px;font-weight:700;color:${titleColor};margin-bottom:8px;display:flex;align-items:center;gap:6px">`;
     html += `${escHtml(dim.header)}`;
     html += `</div>`;
@@ -2947,7 +2967,7 @@ function renderHoldingsSection(text) {
       label = '机构分布'; value = l.replace(/.*：/, '').trim(); color = 'var(--text2)';
     }
     if (label) {
-      summaryInner += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
+      summaryInner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
       summaryInner += `<div style="font-size:10px;color:var(--text3);margin-bottom:3px">${label}</div>`;
       summaryInner += `<div style="font-size:15px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace">${escHtml(value)}</div>`;
       summaryInner += `</div>`;
@@ -2968,7 +2988,7 @@ function renderHoldingsSection(text) {
           const brokerMatch = l.match(/^\d+\.\s+(.+)/);
           if (brokerMatch) {
             if (inBroker) inner += `</div>`;
-            inner += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:6px">`;
+            inner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:6px">`;
             inner += `<div style="font-size:13px;font-weight:600;color:var(--text)">${escHtml(brokerMatch[1])}</div>`;
             inBroker = true;
           } else if (l.includes('多头:') || l.includes('净多头:')) {
@@ -2987,7 +3007,7 @@ function renderHoldingsSection(text) {
             const isBull = l.includes('偏多') || l.includes('强势偏多');
             const isBear = l.includes('偏空') || l.includes('强势偏空');
             const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
-            inner += `<div style="font-size:13px;font-weight:600;color:${color};margin:6px 0 4px;padding:5px 8px;background:var(--bg);border-radius:5px">${escHtml(l)}</div>`;
+            inner += `<div class="sub-panel" style="font-size:13px;font-weight:600;color:${color};margin:6px 0 4px;padding:5px 8px;background:var(--bg2);border-radius:5px">${escHtml(l)}</div>`;
           } else if (l.includes('多空比')) {
             inner += `<div style="font-size:12px;font-weight:600;color:var(--text);margin:6px 0 4px">${escHtml(l)}</div>`;
           } else if (l.includes('各机构中期变化')) {
@@ -3109,7 +3129,7 @@ function renderBacktestSection(text) {
       else valueColor = 'var(--bear)';
     }
 
-    inner += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
+    inner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
     inner += `<div style="font-size:10px;color:var(--text3);margin-bottom:3px">${escHtml(item.key)}</div>`;
     inner += `<div style="font-size:14px;font-weight:700;color:${valueColor};font-family:'JetBrains Mono',monospace">${escHtml(item.val)}</div>`;
     inner += `</div>`;
@@ -3141,7 +3161,7 @@ async function loadIterationStatus() {
     const tokenUsed = data.token_usage ? data.token_usage.used : 0;
     const tokenBudget = data.token_budget || 10000;
 
-    html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">`;
+    html += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px">`;
     html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
     html += `<span style="font-size:12px;font-weight:600;color:var(--text)">🔄 模型自迭代</span>`;
     html += `<span style="font-size:10px;color:var(--text3)">${modeLabel} | ${enabledLabel}</span>`;
@@ -3188,7 +3208,7 @@ async function loadIterationStatus() {
         const borderColor = isMedium ? 'var(--gold)' : 'var(--border)';
         const borderWidth = isMedium ? '2px' : '1px';
         const color = isNaN(accNum) ? 'var(--text3)' : accNum >= 60 ? 'var(--bull)' : accNum >= 40 ? 'var(--gold)' : 'var(--bear)';
-        html += `<div style="background:var(--bg);border:${borderWidth} solid ${borderColor};border-radius:6px;padding:6px;text-align:center">`;
+        html += `<div class="sub-panel" style="background:var(--bg2);border:${borderWidth} solid ${borderColor};border-radius:6px;padding:6px;text-align:center">`;
         html += `<div style="font-size:9px;color:var(--text3)">${periodIcons[pk] || ''} ${pa.label}</div>`;
         html += `<div style="font-size:14px;font-weight:700;color:${color}">${pa.accuracy}</div>`;
         html += `<div style="font-size:8px;color:var(--text3)">${pa.correct}/${pa.total}</div>`;
@@ -3221,7 +3241,7 @@ async function loadIterationStatus() {
     if (data.benchmark && data.benchmark.available) {
       const bm = data.benchmark;
       const edgeColor = parseFloat(bm.edge) > 0 ? 'var(--bull)' : parseFloat(bm.edge) < 0 ? 'var(--bear)' : 'var(--text3)';
-      html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:6px">`;
+      html += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:6px">`;
       html += `<div style="font-size:10px;color:var(--text3);margin-bottom:4px">📊 vs 随机游走基准</div>`;
       html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">`;
       html += `<div style="text-align:center"><div style="font-size:8px;color:var(--text3)">模型</div><div style="font-size:12px;font-weight:600;color:var(--text)">${bm.model_accuracy}</div></div>`;
@@ -3236,12 +3256,12 @@ async function loadIterationStatus() {
       const cs = data.consensus_stats;
       html += `<div style="font-size:10px;color:var(--text3);margin-bottom:4px">🏦 机构共识对比</div>`;
       html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">`;
-      html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center;font-size:10px">`;
+      html += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center;font-size:10px">`;
       html += `<div style="color:var(--text3)">一致预测</div>`;
       html += `<div style="color:var(--bull);font-weight:600">${cs.aligned_accuracy}</div>`;
       html += `<div style="color:var(--text3);font-size:8px">${cs.aligned_correct}/${cs.aligned_count}</div>`;
       html += `</div>`;
-      html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center;font-size:10px">`;
+      html += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center;font-size:10px">`;
       html += `<div style="color:var(--text3)">背离时共识胜率</div>`;
       html += `<div style="color:var(--gold);font-weight:600">${cs.consensus_win_rate}</div>`;
       html += `<div style="color:var(--text3);font-size:8px">共识${cs.divergent_consensus_correct} vs 模型${cs.divergent_model_correct}</div>`;
@@ -3267,9 +3287,9 @@ async function loadIterationStatus() {
     }
 
     html += `<div style="display:flex;gap:6px;margin-top:6px">`;
-    html += `<button onclick="runIteration()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:11px;cursor:pointer">▶ 手动迭代</button>`;
-    html += `<button onclick="runGridSearch()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:11px;cursor:pointer">🔍 网格搜索</button>`;
-    html += `<button onclick="rollbackIteration()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:11px;cursor:pointer">↩ 回滚</button>`;
+    html += `<button onclick="runIteration()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-size:11px;cursor:pointer">▶ 手动迭代</button>`;
+    html += `<button onclick="runGridSearch()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-size:11px;cursor:pointer">🔍 网格搜索</button>`;
+    html += `<button onclick="rollbackIteration()" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg2);color:var(--text);font-size:11px;cursor:pointer">↩ 回滚</button>`;
     html += `</div>`;
 
     html += `</div>`;
@@ -3354,7 +3374,7 @@ function renderIterationSection(text) {
     else if (item.val.includes('已启用') || item.val.includes('纯规则')) valueColor = 'var(--bull)';
     else if (item.val.includes('待激活')) valueColor = 'var(--text3)';
 
-    inner += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
+    inner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
     inner += `<div style="font-size:10px;color:var(--text3);margin-bottom:3px">${escHtml(item.key)}</div>`;
     inner += `<div style="font-size:13px;font-weight:600;color:${valueColor}">${escHtml(item.val)}</div>`;
     inner += `</div>`;
