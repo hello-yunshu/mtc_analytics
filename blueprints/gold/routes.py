@@ -1104,17 +1104,36 @@ def api_macro_history_chart():
         history = get_macro_history(60)
     except Exception:
         history = []
-    chart_data = []
+    from core.macro_fetcher import YAHOO_SYMBOLS
+    import statistics
+    _CHART_KEYS = ["us_10y_yield", "dxy", "vix", "crude_oil"]
+    by_date = {}
     for snapshot in history:
+        date_key = snapshot.get("date", "")
+        if not date_key:
+            continue
+        if date_key not in by_date:
+            by_date[date_key] = {k: [] for k in _CHART_KEYS}
         indicators = snapshot.get("indicators", {})
-        row = {"date": snapshot.get("date", "")}
-        for key in ["us_10y_yield", "dxy", "vix", "crude_oil"]:
+        for key in _CHART_KEYS:
             ind = indicators.get(key, {})
             if ind and ind.get("value") is not None:
                 try:
-                    row[key] = float(ind["value"])
+                    v = float(ind["value"])
+                    cfg = YAHOO_SYMBOLS.get(key, {})
+                    valid_range = cfg.get("valid_range")
+                    if valid_range and (v < valid_range[0] or v > valid_range[1]):
+                        continue
+                    by_date[date_key][key].append(v)
                 except (ValueError, TypeError):
-                    row[key] = None
+                    pass
+    chart_data = []
+    for date_key in sorted(by_date.keys()):
+        row = {"date": date_key}
+        for key in _CHART_KEYS:
+            vals = by_date[date_key][key]
+            if vals:
+                row[key] = statistics.median(vals)
             else:
                 row[key] = None
         chart_data.append(row)

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MTC Analytics - 黄金分析</title>
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="/static/js/chart.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
 
@@ -862,8 +862,8 @@ body::before {
           </div>
           <div class="form-group">
             <label>LLM 月度 Token 预算</label>
-            <input type="number" id="setIterLlmBudget" min="0" max="500000" step="1000" placeholder="6000">
-            <div class="hint">层次2（诊断）+ 层次3（推理）共享的月度 Token 上限。设为 0 则禁用 LLM 迭代功能。三层全开建议 40000-50000</div>
+            <input type="number" id="setIterLlmBudget" min="0" max="500000" step="1000" placeholder="10000">
+            <div class="hint">所有 LLM 调用共享的月度 Token 上限（新闻分析 + 机构提取 + 模型诊断 + 推理生成）。设为 0 则禁用 LLM 功能。建议：基础 10000，全功能 40000-50000</div>
           </div>
           <div class="form-group">
             <label>LLM 诊断触发阈值</label>
@@ -1257,7 +1257,7 @@ function parseReport(content) {
         return {title: text.replace(/\s*\[链接\]\(https?:\/\/[^\s)]+\)/,''), link: linkM[1]};
       }
       return {title: text, link: ''};
-    }).slice(0,5);
+    }).slice(0,8);
   }
 
   const llmMatch = content.match(/🤖 AI 摘要：(.*?)(?:\n|$)/);
@@ -2380,7 +2380,8 @@ function renderPredictionSection(text) {
         for (const inst of instList) {
           const iColor = inst.direction === '看多' ? 'var(--bull)' : inst.direction === '看空' ? 'var(--bear)' : 'var(--text3)';
           const tierBadge = inst.tier === 1 ? '⭐' : '';
-          const tpStr = inst.target_price ? ` 目标$${inst.target_price}` : '';
+          const tpRaw = inst.target_price;
+          const tpStr = (tpRaw && !/^20\d{2}$/.test(String(Math.round(tpRaw)))) ? ` 目标$${tpRaw}` : '';
           icHtml += `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:10px">`;
           icHtml += `<span style="color:var(--text2)">${tierBadge}${escHtml(inst.institution)}</span>`;
           icHtml += `<span style="color:${iColor};font-weight:600">${inst.direction}${tpStr}</span>`;
@@ -2389,7 +2390,7 @@ function renderPredictionSection(text) {
         icHtml += `</div>`;
       }
 
-      if (cons.avg_target_price) {
+      if (cons.avg_target_price && !/^20\d{2}$/.test(String(Math.round(cons.avg_target_price)))) {
         icHtml += `<div style="margin-top:6px;font-size:11px;color:var(--gold)">平均目标价: $${cons.avg_target_price.toFixed(0)}</div>`;
       }
 
@@ -3065,7 +3066,7 @@ async function loadIterationStatus() {
     const accPct = data.overall_accuracy ? (data.overall_accuracy.accuracy * 100).toFixed(1) : '0.0';
     const recentPct = data.overall_accuracy ? (data.overall_accuracy.recent_accuracy * 100).toFixed(1) : '0.0';
     const tokenUsed = data.token_usage ? data.token_usage.used : 0;
-    const tokenBudget = data.token_budget || 6000;
+    const tokenBudget = data.token_budget || 10000;
 
     html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">`;
     html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
@@ -3334,9 +3335,9 @@ async function loadCharts() {
   if (settled[5] && settled[5].ok) {
     const taData = await settled[5].json();
     if (!taData.error) {
-      renderMAChart(taData);
-      renderMACDChart(taData);
-      renderRSIChart(taData);
+      try { renderMAChart(taData); } catch(e) { console.error('renderMAChart error', e); }
+      try { renderMACDChart(taData); } catch(e) { console.error('renderMACDChart error', e); }
+      try { renderRSIChart(taData); } catch(e) { console.error('renderRSIChart error', e); }
     }
   }
   } catch(e) { console.error('loadCharts error', e); }
@@ -3648,14 +3649,18 @@ function renderMACDChart(data) {
   if (!ctx) return;
   const macdChartData = data.macd_chart || [];
   if (macdChartData.length === 0) return;
-  const macdVals = macdChartData.map(d => d.macd);
-  const signalVals = macdChartData.map(d => d.signal);
-  const histVals = macdChartData.map(d => d.histogram);
-  const allVals = macdVals.concat(signalVals, histVals);
-  const vMin = Math.min(...allVals);
-  const vMax = Math.max(...allVals);
+  const macdVals = macdChartData.map(d => d.macd != null ? d.macd : null);
+  const signalVals = macdChartData.map(d => d.signal != null ? d.signal : null);
+  const histVals = macdChartData.map(d => d.histogram != null ? d.histogram : null);
+  const numVals = macdVals.concat(signalVals, histVals).filter(v => v != null);
+  if (numVals.length === 0) return;
+  const vMin = Math.min(...numVals);
+  const vMax = Math.max(...numVals);
   const vRange = vMax - vMin || 1;
   const vPad = vRange * 0.15;
+  const yMin = Math.min(vMin - vPad, 0);
+  const yMax = vMax + vPad;
+  try {
   charts.macd = new Chart(ctx.getContext('2d'), {
     type: 'bar',
     data: {
@@ -3668,7 +3673,8 @@ function renderMACDChart(data) {
         backgroundColor: 'transparent',
         tension: 0.3,
         pointRadius: 0,
-        borderWidth: 1.5,
+        borderWidth: 2,
+        fill: false,
         order: 1,
       },{
         label: 'Signal',
@@ -3678,13 +3684,14 @@ function renderMACDChart(data) {
         backgroundColor: 'transparent',
         tension: 0.3,
         pointRadius: 0,
-        borderWidth: 1.5,
+        borderWidth: 2,
+        fill: false,
         order: 2,
       },{
         label: 'Histogram',
         data: histVals,
-        backgroundColor: histVals.map(v => v >= 0 ? 'rgba(220,38,38,0.6)' : 'rgba(5,150,105,0.6)'),
-        borderColor: histVals.map(v => v >= 0 ? 'rgba(220,38,38,0.9)' : 'rgba(5,150,105,0.9)'),
+        backgroundColor: histVals.map(v => v == null ? 'rgba(100,116,139,0.3)' : v >= 0 ? 'rgba(220,38,38,0.6)' : 'rgba(5,150,105,0.6)'),
+        borderColor: histVals.map(v => v == null ? 'rgba(100,116,139,0.5)' : v >= 0 ? 'rgba(220,38,38,0.9)' : 'rgba(5,150,105,0.9)'),
         borderWidth: 1,
         borderRadius: 1,
         order: 3,
@@ -3696,10 +3703,11 @@ function renderMACDChart(data) {
       plugins: { legend: { labels: { color: '#94a3b8' } } },
       scales: {
         x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { min: vMin - vPad, max: vMax + vPad, ticks: { color: '#64748b' }, grid: { color: '#1e2d45' } },
+        y: { min: yMin, max: yMax, ticks: { color: '#64748b' }, grid: { color: '#1e2d45' } },
       }
     }
   });
+  } catch(e) { console.error('renderMACDChart error', e); }
 }
 
 function renderRSIChart(data) {
@@ -3994,7 +4002,7 @@ async function loadSettings() {
 
   document.getElementById('setIterMinSamples').value = data.iteration_min_samples ?? 20;
   document.getElementById('setIterMaxAdj').value = data.iteration_max_adjustment ?? 0.03;
-  document.getElementById('setIterLlmBudget').value = data.iteration_llm_budget ?? 6000;
+  document.getElementById('setIterLlmBudget').value = data.iteration_llm_budget ?? 10000;
   document.getElementById('setIterLlmThreshold').value = data.iteration_llm_threshold ?? 0.4;
   document.getElementById('setIterMinInterval').value = data.iteration_min_interval_days ?? 3;
 
@@ -4046,7 +4054,7 @@ async function saveSettings() {
     pred_threshold: parseFloat(document.getElementById('setPredThreshold').value) || 0.08,
     iteration_min_samples: parseInt(document.getElementById('setIterMinSamples').value) || 20,
     iteration_max_adjustment: parseFloat(document.getElementById('setIterMaxAdj').value) || 0.03,
-    iteration_llm_budget: parseInt(document.getElementById('setIterLlmBudget').value) || 6000,
+    iteration_llm_budget: parseInt(document.getElementById('setIterLlmBudget').value) || 10000,
     iteration_llm_threshold: parseFloat(document.getElementById('setIterLlmThreshold').value) || 0.4,
     iteration_min_interval_days: parseInt(document.getElementById('setIterMinInterval').value) || 3,
     bullish_keywords: document.getElementById('setBullishKw').value,

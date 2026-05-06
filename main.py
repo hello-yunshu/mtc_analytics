@@ -742,7 +742,7 @@ def test_fetch():
         print(f"  情绪: {news['sentiment']} ({news['sentiment_score']:+.2f})")
         print(f"  利多: {news['bullish_count']}  利空: {news['bearish_count']}  中性: {news['neutral_count']}")
         if news.get("key_events"):
-            for e in news["key_events"][:3]:
+            for e in news["key_events"][:5]:
                 print(f"  • {e}")
     except Exception as e:
         print(f"  新闻获取失败: {e}")

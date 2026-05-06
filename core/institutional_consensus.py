@@ -70,7 +70,8 @@ GOLD_VIEW_KEYWORDS_NEUTRAL = [
 TARGET_PRICE_PATTERN = re.compile(
     r'(?:目标价?|目标|预测|预计|预期|预估|forecast|target|estimate)'
     r'[^0-9]{0,10}'
-    r'[\$￥]?\s*(\d{3,5})\s*(?:美元|美金|USD|dollar|\$)?',
+    r'[\$￥]?\s*(\d{3,5})\s*(?:美元|美金|USD|dollar|\$)?'
+    r'(?![年])',
     re.IGNORECASE
 )
 
@@ -198,6 +199,15 @@ def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
     if not enabled:
         return []
 
+    try:
+        from .model_iteration import _check_token_budget, _get_iteration_data
+        iter_data = _get_iteration_data()
+        if not _check_token_budget(iter_data, 800):
+            print("  [机构共识] LLM Token 月度预算已耗尽，跳过 LLM 提取")
+            return []
+    except Exception:
+        pass
+
     gold_related = []
     for news in news_list:
         title = news.get("title", "")
@@ -223,7 +233,8 @@ def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
         f"新闻：\n{titles_text}\n"
         f"机构列表：{inst_names}\n"
         f'输出JSON：{{"views":[{{"institution":"机构名","direction":"看多/看空/中性","target_price":3700,"source":"新闻序号"}}]}}\n'
-        f"只输出明确表达观点的机构，忽略无明确观点的。direction只能是看多/看空/中性。target_price为美元/盎司，没有则为null。"
+        f"只输出明确表达观点的机构，忽略无明确观点的。direction只能是看多/看空/中性。target_price为美元/盎司，没有则为null。\n"
+        f"重要：target_price必须是黄金价格（如3200、3500等），绝对不能把年份（如2025、2026）当作目标价！如果新闻中只有年份没有具体价格，target_price设为null。"
     )
 
     try:
@@ -245,6 +256,18 @@ def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
         data = resp.json()
         content = data["choices"][0]["message"]["content"].strip()
 
+        usage = data.get("usage", {})
+        tokens_used = usage.get("total_tokens", 0)
+        if tokens_used > 0:
+            try:
+                from .model_iteration import _record_token_usage, _get_iteration_data, _save_iteration_data
+                iter_data = _get_iteration_data()
+                _record_token_usage(iter_data, tokens_used)
+                _save_iteration_data(iter_data)
+            except Exception:
+                pass
+            print(f"  [机构共识] LLM 消耗 {tokens_used} tokens")
+
         json_match = re.search(r'\{[\s\S]*\}', content)
         if not json_match:
             return []
@@ -264,6 +287,8 @@ def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
                 try:
                     target = float(target)
                     if not (500 <= target <= 10000):
+                        target = None
+                    if target is not None and _YEAR_PATTERN.match(str(int(target))):
                         target = None
                 except (ValueError, TypeError):
                     target = None
@@ -364,7 +389,9 @@ def _compute_consensus(views: List[Dict]) -> Dict:
 
         tp = v.get("target_price")
         if tp and isinstance(tp, (int, float)):
-            target_prices.append(float(tp))
+            tp_val = float(tp)
+            if not _YEAR_PATTERN.match(str(int(tp_val))):
+                target_prices.append(tp_val)
 
     total_score = bull_score + bear_score + neutral_score
     if total_score == 0:
@@ -514,6 +541,17 @@ def get_manual_views() -> List[Dict]:
 
 
 def save_manual_views(views: List[Dict]):
+    for v in views:
+        tp = v.get("target_price")
+        if tp is not None:
+            try:
+                tp_val = float(tp)
+                if not (500 <= tp_val <= 10000) or _YEAR_PATTERN.match(str(int(tp_val))):
+                    v["target_price"] = None
+                else:
+                    v["target_price"] = tp_val
+            except (ValueError, TypeError):
+                v["target_price"] = None
     settings = load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}
     settings["manual_institutional_views"] = views
     save_json(os.path.join(_DATA_DIR, "web_settings.json"), settings)

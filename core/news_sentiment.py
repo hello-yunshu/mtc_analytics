@@ -171,6 +171,11 @@ def fetch_news_sentiment() -> Dict:
 
     print(f"  正在抓取新闻...")
 
+    try:
+        db.cleanup_news_llm_cache(30)
+    except Exception:
+        pass
+
     all_news = []
     sources_ok = []
     sources_failed = []
@@ -615,6 +620,21 @@ def _analyze_sentiment_keyword(text: str) -> Tuple[str, float, List[str]]:
         return "neutral", round(net_score, 2), []
 
 
+def _record_llm_token_usage(tokens_used: int):
+    try:
+        from .model_iteration import _record_token_usage, _get_iteration_data, _save_iteration_data
+        iter_data = _get_iteration_data()
+        _record_token_usage(iter_data, tokens_used)
+        _save_iteration_data(iter_data)
+    except Exception:
+        pass
+
+
+def _title_hash(title: str) -> str:
+    import hashlib
+    return hashlib.md5(title.encode("utf-8")).hexdigest()
+
+
 def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
     """
     使用 LLM 对新闻进行批量语义分析（Token 优化版）
@@ -623,8 +643,10 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
     1. 只发送关键词分析不确定的新闻（|kw_score| < 0.5），而非全部
     2. 压缩 prompt 指令，移除冗余说明
     3. 精简输出格式，用单字符代替完整单词
-    4. 截断过长标题（>40字）
+    4. 截断过长标题（>60字）
     5. 降低 max_tokens 限制
+    6. 数据库持久化缓存：同一新闻分析过就不再发送LLM
+    7. 记录真实token消耗到统一统计
 
     Returns:
         {
@@ -636,16 +658,44 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
     if not LLM_ENABLED:
         return None
 
+    try:
+        from .model_iteration import _check_token_budget, _get_iteration_data
+        iter_data = _get_iteration_data()
+        if not _check_token_budget(iter_data, 500):
+            print("  [新闻] LLM Token 月度预算已耗尽，跳过 LLM 分析")
+            return None
+    except Exception:
+        pass
+
     uncertain = [n for n in kw_analyzed if abs(n.get("kw_score", 0)) < 0.5]
     uncertain.sort(key=lambda x: abs(x.get("kw_score", 0)), reverse=True)
-    selected = uncertain[:10]
 
-    if not selected:
+    title_hashes = {_title_hash(n["title"]): n["title"] for n in uncertain}
+    cached_map = db.get_news_llm_cache(list(title_hashes.keys()))
+
+    cached_items = {}
+    for th, sentiment in cached_map.items():
+        title = title_hashes.get(th, "")
+        if title:
+            cached_items[title] = {"sentiment": sentiment, "reason": ""}
+
+    need_llm = [n for n in uncertain if n["title"] not in cached_items]
+    need_llm = need_llm[:10]
+
+    if not need_llm and not cached_items:
         return None
+
+    if not need_llm and cached_items:
+        print(f"  LLM 分析全部命中缓存（{len(cached_items)} 条已分析）")
+        return {
+            "items": cached_items,
+            "summary": "",
+            "score_adjustment": 0,
+        }
 
     titles_text = "\n".join([
         f"{i+1}.{n['title'][:60]}" + (f" | {n.get('summary','')[:80]}" if n.get('summary') else "")
-        for i, n in enumerate(selected)
+        for i, n in enumerate(need_llm)
     ])
 
     prompt = (
@@ -656,7 +706,7 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
     )
 
     try:
-        print(f"  正在调用 LLM 分析 {len(selected)} 条新闻...")
+        print(f"  正在调用 LLM 分析 {len(need_llm)} 条新闻（缓存命中 {len(cached_items)} 条）...")
         resp = requests.post(
             f"{LLM_BASE_URL.rstrip('/')}/chat/completions",
             headers={
@@ -676,9 +726,21 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
         data = resp.json()
         content = data["choices"][0]["message"]["content"].strip()
 
+        usage = data.get("usage", {})
+        tokens_used = usage.get("total_tokens", 0)
+        if tokens_used > 0:
+            _record_llm_token_usage(tokens_used)
+            print(f"  LLM 消耗 {tokens_used} tokens")
+
         json_match = re.search(r'\{[\s\S]*\}', content)
         if not json_match:
             print(f"  [WARN] LLM 返回格式异常，跳过 LLM 分析")
+            if cached_items:
+                return {
+                    "items": cached_items,
+                    "summary": "",
+                    "score_adjustment": 0,
+                }
             return None
 
         llm_data = json.loads(json_match.group())
@@ -690,29 +752,56 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
         score_adjustment = float(llm_data.get("sa", 0))
         score_adjustment = max(-0.3, min(0.3, score_adjustment))
 
-        item_map = {}
+        new_item_map = {}
+        cache_to_save = []
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for item in items:
             idx = item.get("i", 0) - 1
-            if 0 <= idx < len(selected):
+            if 0 <= idx < len(need_llm):
                 s_code = item.get("s", "n")
-                item_map[selected[idx]["title"]] = {
-                    "sentiment": SENTIMENT_MAP.get(s_code, "neutral"),
+                sentiment = SENTIMENT_MAP.get(s_code, "neutral")
+                title = need_llm[idx]["title"]
+                new_item_map[title] = {
+                    "sentiment": sentiment,
                     "reason": "",
                 }
+                cache_to_save.append({
+                    "title_hash": _title_hash(title),
+                    "title": title,
+                    "sentiment": sentiment,
+                    "analyzed_at": now_str,
+                })
 
-        print(f"  LLM 分析完成: {len(item_map)} 条新闻，摘要: {summary[:50]}")
+        if cache_to_save:
+            db.save_news_llm_cache(cache_to_save)
+
+        merged_items = {**cached_items, **new_item_map}
+
+        print(f"  LLM 分析完成: 新分析 {len(new_item_map)} 条 + 缓存 {len(cached_items)} 条，摘要: {summary[:50]}")
 
         return {
-            "items": item_map,
+            "items": merged_items,
             "summary": summary,
             "score_adjustment": score_adjustment,
         }
 
     except requests.exceptions.RequestException as e:
         print(f"  [WARN] LLM API 调用失败: {e}")
+        if cached_items:
+            return {
+                "items": cached_items,
+                "summary": "",
+                "score_adjustment": 0,
+            }
         return None
     except (json.JSONDecodeError, KeyError, ValueError) as e:
         print(f"  [WARN] LLM 返回解析失败: {e}")
+        if cached_items:
+            return {
+                "items": cached_items,
+                "summary": "",
+                "score_adjustment": 0,
+            }
         return None
 
 
@@ -755,30 +844,66 @@ def _merge_results(kw_analyzed: List[Dict], llm_result: Dict) -> List[Dict]:
 
 
 def _extract_key_events(analyzed_news: List[Dict]) -> List[Dict]:
-    """从新闻中提取关键事件（包含链接）"""
+    """从新闻中提取关键事件（包含链接）- 混合策略：优先关键词匹配 + 强情绪补充"""
     events = []
+    seen_titles = set()
 
     priority_keywords = [
-        "美联储", "Fed", "降息", "加息", "利率决议", "利率决定",
-        "非农", "CPI", "PCE", "GDP",
-        "战争", "冲突", "制裁", "地缘", "停火",
-        "央行", "购金", "增持",
+        "美联储", "Fed", "降息", "加息", "利率决议", "利率决定", "利率", "FOMC",
+        "非农", "CPI", "PCE", "GDP", "就业", "失业", "通胀", "通缩",
+        "战争", "冲突", "制裁", "地缘", "停火", "局势紧张",
+        "央行", "购金", "增持", "储备", "去美元化",
         "鹰派", "鸽派",
-        "创新高", "暴跌", "大跌", "大涨",
-        "抛售", "甩卖",
+        "创新高", "暴跌", "大跌", "大涨", "飙升", "重挫", "崩盘", "跳水",
+        "抛售", "甩卖", "抄底", "抢购",
+        "关税", "贸易战", "贸易摩擦", "贸易政策",
+        "避险", "恐慌", "VIX", "风险",
+        "美元", "美元指数", "汇率",
+        "衰退", "经济放缓", "经济下行", "刺激", "财政",
+        "债务", "违约", "银行危机",
+        "ETF", "持仓", "资金流",
+        "突破", "跌破", "失守", "站上",
+        "黑天鹅", "灰犀牛",
+        "OPEC", "原油", "油价",
+        "特朗普", "Trump", "拜登", "Biden", "白宫",
+        "央行决议", "议息", "缩表", "QE", "量化宽松",
     ]
 
+    def _add_event(news_item):
+        text = news_item["title"]
+        event_text = text[:80]
+        key = event_text[:20]
+        if key in seen_titles:
+            return False
+        seen_titles.add(key)
+        events.append({
+            "title": event_text,
+            "link": news_item.get("link", ""),
+        })
+        return True
+
     for news in analyzed_news:
+        if len(events) >= 8:
+            break
         text = news["title"]
         for kw in priority_keywords:
-            if kw.lower() in text.lower() and len(events) < 5:
-                event_text = text[:60]
-                if not any(e.get("title") == event_text for e in events):
-                    events.append({
-                        "title": event_text,
-                        "link": news.get("link", ""),
-                    })
+            if kw.lower() in text.lower():
+                _add_event(news)
                 break
+
+    if len(events) < 8:
+        strong_news = []
+        for news in analyzed_news:
+            kw_score = abs(news.get("kw_score", 0))
+            if kw_score >= 0.8 and news["sentiment"] in ("bullish", "bearish"):
+                key = news["title"][:20]
+                if key not in seen_titles:
+                    strong_news.append((kw_score, news))
+        strong_news.sort(key=lambda x: -x[0])
+        for _, news in strong_news:
+            if len(events) >= 8:
+                break
+            _add_event(news)
 
     return events
 

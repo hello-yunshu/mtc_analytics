@@ -119,12 +119,12 @@ def format_report(date: str, contract: str, positions: List[Dict],
             neutral_signals.append(f"新闻面中性（评分{s_score:+.2f}）")
 
         key_events = effective_news.get("key_events", [])
-        for event in key_events[:3]:
+        for event in key_events[:5]:
             event_title = event.get("title", event) if isinstance(event, dict) else event
             event_lower = event_title.lower()
-            if any(kw in event_lower for kw in ["降息", "宽松", "避险", "冲突", "战争"]):
+            if any(kw in event_lower for kw in ["降息", "宽松", "避险", "冲突", "战争", "关税", "购金", "增持", "央行", "衰退"]):
                 bull_signals.append(f"关键事件：{event_title[:40]}")
-            elif any(kw in event_lower for kw in ["加息", "鹰派", "抛售", "收紧"]):
+            elif any(kw in event_lower for kw in ["加息", "鹰派", "抛售", "收紧", "暴跌", "大跌", "失守", "跌破"]):
                 bear_signals.append(f"关键事件：{event_title[:40]}")
 
     # 模型预测
@@ -735,7 +735,7 @@ def format_report(date: str, contract: str, positions: List[Dict],
             lines.append(f"  上次迭代：{iter_status.get('last_iteration', '未知')}")
         if iter_status.get("llm_available"):
             tu = iter_status.get("token_usage", {})
-            lines.append(f"  LLM Token：本月已用{tu.get('used',0)}/{iter_status.get('token_budget',6000)}")
+            lines.append(f"  LLM Token：本月已用{tu.get('used',0)}/{iter_status.get('token_budget',10000)}")
 
         _ws = _load_settings(os.path.join(_DATA_DIR, "web_settings.json")) or {}
         _pred_thr = _ws.get("pred_threshold", 0.08)

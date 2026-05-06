@@ -40,14 +40,14 @@ HEADERS = {
 }
 
 YAHOO_SYMBOLS = {
-    "us_10y_yield": {"symbol": "^TNX", "name": "美债10Y收益率", "unit": "%", "direction": "inverse"},
-    "us_2y_yield": {"symbol": "", "name": "美债2Y收益率", "unit": "%", "direction": "inverse", "skip_yahoo": True},
-    "us_5y_yield": {"symbol": "^FVX", "name": "美债5Y收益率", "unit": "%", "direction": "inverse"},
-    "tips_10y_yield": {"symbol": "", "name": "TIPS10Y收益率", "unit": "%", "direction": "inverse", "skip_yahoo": True},
-    "dxy": {"symbol": "DX-Y.NYB", "name": "美元指数", "unit": "", "direction": "inverse"},
-    "vix": {"symbol": "^VIX", "name": "VIX恐慌指数", "unit": "", "direction": "positive"},
-    "crude_oil": {"symbol": "CL=F", "name": "WTI原油", "unit": "USD", "direction": "positive"},
-    "gld_etf": {"symbol": "GLD", "name": "GLD黄金ETF", "unit": "USD", "direction": "positive"},
+    "us_10y_yield": {"symbol": "^TNX", "name": "美债10Y收益率", "unit": "%", "direction": "inverse", "valid_range": (-1, 20)},
+    "us_2y_yield": {"symbol": "", "name": "美债2Y收益率", "unit": "%", "direction": "inverse", "skip_yahoo": True, "valid_range": (-1, 20)},
+    "us_5y_yield": {"symbol": "^FVX", "name": "美债5Y收益率", "unit": "%", "direction": "inverse", "valid_range": (-1, 20)},
+    "tips_10y_yield": {"symbol": "", "name": "TIPS10Y收益率", "unit": "%", "direction": "inverse", "skip_yahoo": True, "valid_range": (-3, 15)},
+    "dxy": {"symbol": "DX-Y.NYB", "name": "美元指数", "unit": "", "direction": "inverse", "valid_range": (50, 200)},
+    "vix": {"symbol": "^VIX", "name": "VIX恐慌指数", "unit": "", "direction": "positive", "valid_range": (0, 150)},
+    "crude_oil": {"symbol": "CL=F", "name": "WTI原油", "unit": "USD", "direction": "positive", "valid_range": (-50, 300)},
+    "gld_etf": {"symbol": "GLD", "name": "GLD黄金ETF", "unit": "USD", "direction": "positive", "valid_range": (50, 500)},
 }
 
 STOOQ_SYMBOLS = {

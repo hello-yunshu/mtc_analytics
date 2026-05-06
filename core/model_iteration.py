@@ -55,7 +55,7 @@ def _get_config():
     defaults = {
         "min_samples": 20,
         "max_adjustment": 0.03,
-        "llm_budget": 6000,
+        "llm_budget": 10000,
         "llm_threshold": 0.4,
         "min_interval_days": 3,
     }

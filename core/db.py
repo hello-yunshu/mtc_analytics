@@ -210,6 +210,13 @@ def init_db():
                 );
                 CREATE INDEX IF NOT EXISTS idx_news_date ON news_sentiment(date);
 
+                CREATE TABLE IF NOT EXISTS news_llm_cache (
+                    title_hash TEXT PRIMARY KEY,
+                    title TEXT,
+                    sentiment TEXT,
+                    analyzed_at TEXT
+                );
+
                 CREATE TABLE IF NOT EXISTS support_resistance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT, current_price REAL,
@@ -607,6 +614,12 @@ def insert_macro_snapshot(indicators: Dict, timestamp: Optional[str] = None):
     with _db_lock:
         conn = _get_conn()
         try:
+            existing = conn.execute(
+                "SELECT 1 FROM macro_indicators WHERE timestamp = ? LIMIT 1",
+                (ts,)
+            ).fetchone()
+            if existing:
+                return
             for key, val in indicators.items():
                 if not isinstance(val, dict):
                     continue
@@ -764,6 +777,51 @@ def get_news_sentiment_history(days: int = 90) -> List[Dict]:
 
 
 # ==================== 支撑/阻力位 ====================
+
+# ==================== 新闻LLM缓存 ====================
+
+def get_news_llm_cache(title_hashes: List[str]) -> Dict[str, str]:
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            result = {}
+            if not title_hashes:
+                return result
+            placeholders = ",".join("?" * len(title_hashes))
+            rows = conn.execute(
+                f"SELECT title_hash, sentiment FROM news_llm_cache WHERE title_hash IN ({placeholders})",
+                title_hashes
+            ).fetchall()
+            for row in rows:
+                result[row["title_hash"]] = row["sentiment"]
+            return result
+        finally:
+            conn.close()
+
+
+def save_news_llm_cache(items: List[Dict]):
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            conn.executemany(
+                "INSERT OR REPLACE INTO news_llm_cache (title_hash, title, sentiment, analyzed_at) VALUES (?,?,?,?)",
+                [(item["title_hash"], item["title"], item["sentiment"], item["analyzed_at"]) for item in items]
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def cleanup_news_llm_cache(max_days: int = 30):
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            cutoff = (datetime.now() - timedelta(days=max_days)).strftime("%Y-%m-%d")
+            conn.execute("DELETE FROM news_llm_cache WHERE analyzed_at < ?", (cutoff,))
+            conn.commit()
+        finally:
+            conn.close()
+
 
 def insert_support_resistance(data: Dict):
     with _db_lock:
