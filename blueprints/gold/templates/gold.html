@@ -1953,7 +1953,7 @@ function getSystemTheme() {
 }
 
 function getTheme() {
-  return localStorage.getItem('manualTheme') || null;
+  return localStorage.getItem('mtc-theme') || null;
 }
 
 function applyTheme(theme) {
@@ -1976,13 +1976,13 @@ function applyTheme(theme) {
   const label = document.getElementById('themeLabel');
   if (label) {
     if (!theme) label.textContent = '自动';
-    else if (effective === 'light') label.textContent = '亮色';
-    else label.textContent = '暗色';
+    else if (effective === 'light') label.textContent = '浅色';
+    else label.textContent = '深色';
   }
 }
 
 function toggleTheme() {
-  const manual = localStorage.getItem('manualTheme');
+  const manual = localStorage.getItem('mtc-theme');
   let next;
   if (!manual) {
     next = 'dark';
@@ -1992,9 +1992,9 @@ function toggleTheme() {
     next = null;
   }
   if (next) {
-    localStorage.setItem('manualTheme', next);
+    localStorage.setItem('mtc-theme', next);
   } else {
-    localStorage.removeItem('manualTheme');
+    localStorage.removeItem('mtc-theme');
   }
   applyTheme(next);
 }
@@ -2002,7 +2002,7 @@ function toggleTheme() {
 applyTheme(getTheme());
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (!localStorage.getItem('manualTheme')) {
+  if (!localStorage.getItem('mtc-theme')) {
     applyTheme(null);
   }
 });
