@@ -20,7 +20,9 @@ def load_json(filepath: str) -> Optional[dict]:
 
 
 def save_json(filepath: str, data, private: bool = False):
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    dirpath = os.path.dirname(filepath)
+    if dirpath:
+        os.makedirs(dirpath, exist_ok=True)
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     if private:

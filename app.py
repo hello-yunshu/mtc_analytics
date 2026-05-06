@@ -10,6 +10,7 @@ import os
 import re
 import secrets
 import logging
+import time
 
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -24,7 +25,9 @@ from core.utils import load_json, save_json, encrypt_value, decrypt_value
 from core.security import is_ip_banned, check_api_rate_limit, get_logger as get_security_logger
 from blueprints.gold import gold_bp
 
-SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "web_settings.json")
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+_DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
+SETTINGS_FILE = os.path.join(_DATA_DIR, "web_settings.json")
 
 
 def create_app():
@@ -33,9 +36,9 @@ def create_app():
                 static_folder='static',
                 static_url_path='/static')
 
-    os.makedirs("data/reports", exist_ok=True)
+    os.makedirs(os.path.join(_DATA_DIR, "reports"), exist_ok=True)
 
-    _SECRET_KEY_FILE = "data/.secret_key"
+    _SECRET_KEY_FILE = os.path.join(_DATA_DIR, ".secret_key")
 
     def _load_or_create_secret_key():
         import fcntl
@@ -157,9 +160,11 @@ def create_app():
         session.clear()
         session["logged_in"] = True
         session.permanent = True
+        session["csrf_token"] = secrets.token_hex(32)
+        session["csrf_token_time"] = time.time()
 
         _security_logger.info("密码修改成功，已刷新secret_key使其他会话失效: IP=%s", request.remote_addr or "0.0.0.0")
-        return jsonify({"ok": True})
+        return jsonify({"ok": True, "csrf_token": session["csrf_token"]})
 
     @app.route("/api/portal_settings", methods=["GET"])
     def api_get_portal_settings():

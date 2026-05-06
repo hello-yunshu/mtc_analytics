@@ -34,8 +34,59 @@ from core.institutional_consensus import fetch_institutional_consensus, compare_
 from core.utils import load_json, is_trading_hours, decrypt_value
 
 
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+_DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
+_LOCAL_TZ = timezone(timedelta(hours=8))
+
+
+def _data_path(*parts):
+    return os.path.join(_DATA_DIR, *parts)
+
+
 def _get_web_settings():
-    return load_json("data/web_settings.json") or {}
+    return load_json(_data_path("web_settings.json")) or {}
+
+
+def _decrypt_web_setting(ciphertext: str) -> str:
+    key_data = load_json(_data_path(".secret_key")) or {}
+    return decrypt_value(ciphertext, key_data.get("secret_key", ""))
+
+
+def _get_telegram_settings():
+    return get_telegram_config(_get_web_settings(), _decrypt_web_setting)
+
+
+def _parse_timestamp(value: str, default_tz=timezone.utc):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    if raw.endswith("Z"):
+        raw = raw[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(raw)
+    except ValueError:
+        dt = None
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M"):
+            try:
+                dt = datetime.strptime(raw, fmt)
+                break
+            except ValueError:
+                continue
+        if dt is None:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=default_tz)
+    return dt.astimezone(timezone.utc)
+
+
+def _timestamp_age_minutes(dt_utc) -> float:
+    if dt_utc is None:
+        return 0.0
+    return max(0.0, (datetime.now(timezone.utc) - dt_utc).total_seconds() / 60)
+
+
+def _format_local_timestamp(dt_utc) -> str:
+    return dt_utc.astimezone(_LOCAL_TZ).strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def _get_schedule_time():
@@ -76,7 +127,7 @@ def push_latest_report():
         print(f"[Telegram 推送] 读取报告失败: {e}")
         return
     print(f"[Telegram 推送] 推送最新报告: {date_str}")
-    tg_token, tg_chat_id = get_telegram_config(_get_web_settings(), decrypt_value)
+    tg_token, tg_chat_id = _get_telegram_settings()
     if not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
         print("[Telegram 推送] 未配置 Bot Token，跳过")
         return
@@ -261,11 +312,11 @@ def run_daily_task(skip_telegram=False):
         price_ts = ps.get("timestamp", "")
         if price_ts:
             try:
-                pt = datetime.fromisoformat(price_ts.replace("Z", "+00:00"))
-                if pt.tzinfo is not None:
-                    pt = pt.astimezone(timezone.utc).replace(tzinfo=None)
-                age_minutes = (datetime.now(timezone.utc) - pt).total_seconds() / 60
-                ts_local = (pt + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%S")
+                pt = _parse_timestamp(price_ts, timezone.utc)
+                if pt is None:
+                    raise ValueError("invalid price timestamp")
+                age_minutes = _timestamp_age_minutes(pt)
+                ts_local = _format_local_timestamp(pt)
                 if ms.get("status") == "closed":
                     data_freshness["金价"] = ("⏸", f"休市({ms.get('reason', '')})|ts={ts_local}")
                 elif age_minutes < 30:
@@ -293,11 +344,11 @@ def run_daily_task(skip_telegram=False):
         macro_ts = macro_data.get("timestamp", "")
         if macro_ts:
             try:
-                mt = datetime.fromisoformat(macro_ts.replace("Z", "+00:00"))
-                if mt.tzinfo is not None:
-                    mt = mt.astimezone(timezone.utc).replace(tzinfo=None)
-                age_hours = (datetime.now(timezone.utc) - mt).total_seconds() / 3600
-                ts_local = (mt + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%S")
+                mt = _parse_timestamp(macro_ts, timezone.utc)
+                if mt is None:
+                    raise ValueError("invalid macro timestamp")
+                age_hours = _timestamp_age_minutes(mt) / 60
+                ts_local = _format_local_timestamp(mt)
                 if age_hours < 4:
                     data_freshness["宏观"] = ("✅", f"最新|ts={ts_local}")
                 elif age_hours < 12:
@@ -400,11 +451,11 @@ def run_daily_task(skip_telegram=False):
             news_ts = news_sentiment.get("timestamp", "")
             if news_ts:
                 try:
-                    nt = datetime.fromisoformat(news_ts.replace("Z", "+00:00").replace("+08:00", ""))
-                    if nt.tzinfo is not None:
-                        nt = nt.astimezone(timezone.utc).replace(tzinfo=None)
-                    age_hours = (datetime.now(timezone.utc) - nt).total_seconds() / 3600
-                    ts_local = (nt + timedelta(hours=8)).strftime("%Y-%m-%dT%H:%M:%S")
+                    nt = _parse_timestamp(news_ts, _LOCAL_TZ)
+                    if nt is None:
+                        raise ValueError("invalid news timestamp")
+                    age_hours = _timestamp_age_minutes(nt) / 60
+                    ts_local = _format_local_timestamp(nt)
                     if age_hours < 2:
                         data_freshness["新闻"] = ("✅", f"最新|ts={ts_local}")
                     elif age_hours < 6:
@@ -594,7 +645,7 @@ def run_daily_task(skip_telegram=False):
         holdings_date=holdings["date"]
     )
     
-    tg_token, tg_chat_id = get_telegram_config(_get_web_settings(), decrypt_value)
+    tg_token, tg_chat_id = _get_telegram_settings()
     if skip_telegram:
         print("  跳过 Telegram 推送（仅生成报告）")
     elif not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
@@ -617,8 +668,8 @@ def run_daily_task(skip_telegram=False):
     
     # 保存到本地
     report_date = datetime.now().strftime("%Y-%m-%d")
-    report_file = os.path.join("data", "reports", f"report_{report_date}.txt")
-    os.makedirs(os.path.join("data", "reports"), exist_ok=True)
+    report_file = _data_path("reports", f"report_{report_date}.txt")
+    os.makedirs(os.path.dirname(report_file), exist_ok=True)
     with open(report_file, "w", encoding="utf-8") as f:
         f.write(report)
     try:
@@ -706,7 +757,7 @@ def do_backfill(days: int = 30):
 
 def test_bot():
     """测试 Telegram Bot"""
-    tg_token, tg_chat_id = get_telegram_config(_get_web_settings(), decrypt_value)
+    tg_token, tg_chat_id = _get_telegram_settings()
     if not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
         print("请先在系统设置中配置 Telegram Bot Token")
         return
