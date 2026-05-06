@@ -694,6 +694,12 @@ footer {
           <div style="margin-bottom:16px">
             <label class="s-label">Model</label>
             <input type="text" id="settingsLlmModel" placeholder="gpt-4o-mini" class="s-input">
+            <div id="settingsLlmModelHint" class="s-hint"></div>
+          </div>
+          <div style="margin-bottom:16px">
+            <label class="s-label">月度 Token 预算</label>
+            <input type="number" id="settingsLlmBudget" min="0" max="500000" step="1000" placeholder="10000" class="s-input">
+            <div class="s-hint">所有 LLM 调用共享的月度 Token 上限（新闻分析 + 机构提取 + 模型诊断 + 推理生成）。设为 0 则禁用 LLM 功能。建议：基础 10000，全功能 40000-50000</div>
           </div>
           <button class="s-btn" onclick="doSaveLlm()">保存 LLM 配置</button>
         </div>
@@ -831,6 +837,14 @@ async function loadPortalSettings() {
   document.getElementById('settingsLlmKey').value = data.llm_api_key_masked || '';
   document.getElementById('settingsLlmBaseUrl').value = data.llm_base_url || 'https://api.openai.com/v1';
   document.getElementById('settingsLlmModel').value = data.llm_model || 'gpt-4o-mini';
+  document.getElementById('settingsLlmBudget').value = data.llm_budget ?? 10000;
+  const modelHint = document.getElementById('settingsLlmModelHint');
+  if (modelHint) {
+    const contextWindow = data.llm_context_window || 32000;
+    const outputLimit = data.llm_max_output_tokens || 4096;
+    const knownText = data.llm_model_known ? '已识别模型' : '未识别模型，使用保守默认';
+    modelHint.textContent = `${knownText}；上下文约 ${Number(contextWindow).toLocaleString()} tokens，单次输出上限 ${Number(outputLimit).toLocaleString()} tokens`;
+  }
   document.getElementById('settingsTgToken').value = data.telegram_bot_token_masked || '';
   document.getElementById('settingsTgChatId').value = data.telegram_chat_id || '';
   if (data.run_mode) {
@@ -845,9 +859,12 @@ async function loadPortalSettings() {
 
 async function doSaveLlm() {
   const llmKey = document.getElementById('settingsLlmKey').value;
+  const budgetRaw = document.getElementById('settingsLlmBudget').value.trim();
+  const budgetValue = budgetRaw === '' ? 10000 : parseInt(budgetRaw, 10);
   const body = {
     llm_base_url: document.getElementById('settingsLlmBaseUrl').value,
     llm_model: document.getElementById('settingsLlmModel').value,
+    llm_budget: Number.isFinite(budgetValue) ? budgetValue : 10000,
   };
   if (llmKey === '') body.llm_api_key = '';
   else if (llmKey && !llmKey.includes('****')) body.llm_api_key = llmKey;

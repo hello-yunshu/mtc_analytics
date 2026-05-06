@@ -25,6 +25,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from core.utils import load_json, save_json, encrypt_value, decrypt_value, is_trading_hours
 from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_ENABLED, SENSITIVE_FIELDS, get_telegram_config
+from core.llm_utils import (
+    DEFAULT_LLM_BASE_URL, DEFAULT_LLM_BUDGET, DEFAULT_LLM_MODEL,
+    get_model_token_limits, normalize_llm_base_url, normalize_llm_budget,
+    normalize_llm_model,
+)
 from core.macro_fetcher import get_macro_summary
 from core.security import (
     is_ip_banned, check_api_rate_limit, check_login_rate_limit,
@@ -402,6 +407,7 @@ def _get_settings():
             "llm_api_key": LLM_API_KEY,
             "llm_base_url": LLM_BASE_URL,
             "llm_model": LLM_MODEL,
+            "llm_budget": DEFAULT_LLM_BUDGET,
             "schedule_hour": 18,
             "schedule_minute": 30,
             "schedule_hour2": 8,
@@ -1491,8 +1497,24 @@ def api_get_model_params():
 @gold_bp.route("/api/settings", methods=["GET"])
 @login_required
 def api_get_settings():
-    settings = _get_settings()
+    settings = dict(_get_settings())
     settings.pop("password_hash", None)
+    settings["llm_budget"] = normalize_llm_budget(
+        settings.get("llm_budget", settings.get("iteration_llm_budget", DEFAULT_LLM_BUDGET))
+    )
+    settings.pop("iteration_llm_budget", None)
+    try:
+        settings["llm_base_url"] = normalize_llm_base_url(settings.get("llm_base_url", DEFAULT_LLM_BASE_URL))
+    except ValueError:
+        settings["llm_base_url"] = DEFAULT_LLM_BASE_URL
+    try:
+        settings["llm_model"] = normalize_llm_model(settings.get("llm_model", DEFAULT_LLM_MODEL))
+    except ValueError:
+        settings["llm_model"] = DEFAULT_LLM_MODEL
+    limits = get_model_token_limits(settings["llm_model"], settings)
+    settings["llm_context_window"] = limits["context_window"]
+    settings["llm_max_output_tokens"] = limits["max_output_tokens"]
+    settings["llm_model_known"] = limits["known"]
     for field in SENSITIVE_FIELDS:
         raw = _decrypt_value(settings.get(field, ""))
         if raw:
@@ -1516,7 +1538,7 @@ def api_save_settings():
         "telegram_push_hour": (0, 23), "telegram_push_minute": (0, 59),
         "realtime_interval_trading": (5, 120), "realtime_interval_nontrading": (30, 720),
         "top_n": (3, 20), "alert_threshold_large": (100, 10000),
-        "iteration_min_samples": (5, 100), "iteration_llm_budget": (0, 500000),
+        "iteration_min_samples": (5, 100),
     }
     for field, (lo, hi) in int_fields.items():
         if field in data:
@@ -1525,6 +1547,13 @@ def api_save_settings():
                 settings[field] = max(lo, min(hi, val))
             except (ValueError, TypeError):
                 pass
+    if "llm_budget" in data:
+        settings["llm_budget"] = normalize_llm_budget(data["llm_budget"])
+    elif "iteration_llm_budget" in data:
+        settings["llm_budget"] = normalize_llm_budget(data["iteration_llm_budget"])
+    elif "llm_budget" not in settings and "iteration_llm_budget" in settings:
+        settings["llm_budget"] = normalize_llm_budget(settings["iteration_llm_budget"])
+    settings.pop("iteration_llm_budget", None)
 
     float_fields = {
         "w_momentum": (0, 1), "w_extreme": (0, 1), "w_divergence": (0, 1),
@@ -1542,10 +1571,20 @@ def api_save_settings():
             except (ValueError, TypeError):
                 pass
 
-    str_fields = ["telegram_chat_id", "llm_base_url", "llm_model"]
+    str_fields = ["telegram_chat_id"]
     for field in str_fields:
         if field in data:
             settings[field] = str(data[field])[:500]
+    if "llm_base_url" in data:
+        try:
+            settings["llm_base_url"] = normalize_llm_base_url(data["llm_base_url"])
+        except ValueError as e:
+            return _api_error(str(e), 400)
+    if "llm_model" in data:
+        try:
+            settings["llm_model"] = normalize_llm_model(data["llm_model"])
+        except ValueError as e:
+            return _api_error(str(e), 400)
 
     for field in SENSITIVE_FIELDS:
         if field in data:

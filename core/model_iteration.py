@@ -16,6 +16,11 @@ from typing import Dict, List, Optional, Tuple
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 _DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
 from .utils import load_json, save_json
+from .llm_utils import (
+    DEFAULT_LLM_BASE_URL, DEFAULT_LLM_BUDGET, DEFAULT_LLM_MODEL,
+    get_model_token_limits, normalize_llm_base_url, normalize_llm_budget,
+    normalize_llm_model, prepare_chat_request,
+)
 from .db import (
     get_all_prediction_tracking, get_iteration_state,
     update_iteration_state, insert_iteration_history,
@@ -24,12 +29,15 @@ from .db import (
 )
 
 MIN_WEIGHT = 0.01
+MAX_WEIGHT = 0.25
+MIN_FACTOR_OBSERVATIONS = 8
+IC_EPSILON = 1e-12
 LLM_MAX_TOKENS = 500
 
 FACTOR_PERIOD_MAP = {
-    "short": ["price_trend", "volatility", "news_sentiment"],
-    "medium": ["momentum", "extreme", "divergence", "etf_flow"],
-    "long": ["real_rate", "dollar", "inflation", "cb_gold", "seasonality"],
+    "short": ["price_trend", "volatility", "news_sentiment", "etf_flow"],
+    "medium": ["momentum", "extreme", "divergence", "real_rate", "dollar", "inflation"],
+    "long": ["cb_gold", "seasonality"],
 }
 
 PERIOD_VERIFY_FIELD = {
@@ -37,6 +45,14 @@ PERIOD_VERIFY_FIELD = {
     "medium": ("actual_direction_10d", "actual_change_pct_10d"),
     "long": ("actual_direction_20d", "actual_change_pct_20d"),
 }
+
+PERIOD_VERIFY_NAME = {
+    "short": "5d",
+    "medium": "10d",
+    "long": "20d",
+}
+
+NEUTRAL_DIRECTIONS = {"", "中性", "中性（不参与准确率统计）"}
 
 PERIOD_LABELS = {
     "short": "短期",
@@ -55,7 +71,7 @@ def _get_config():
     defaults = {
         "min_samples": 20,
         "max_adjustment": 0.03,
-        "llm_budget": 10000,
+        "llm_budget": DEFAULT_LLM_BUDGET,
         "llm_threshold": 0.4,
         "min_interval_days": 3,
     }
@@ -71,10 +87,14 @@ def _get_config():
     except ImportError:
         pass
     settings = load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}
+    llm_budget = normalize_llm_budget(
+        settings.get("llm_budget", settings.get("iteration_llm_budget", defaults["llm_budget"])),
+        defaults["llm_budget"],
+    )
     return {
         "min_samples": int(settings.get("iteration_min_samples", defaults["min_samples"])),
         "max_adjustment": float(settings.get("iteration_max_adjustment", defaults["max_adjustment"])),
-        "llm_budget": int(settings.get("iteration_llm_budget", defaults["llm_budget"])),
+        "llm_budget": llm_budget,
         "llm_threshold": float(settings.get("iteration_llm_threshold", defaults["llm_threshold"])),
         "min_interval_days": int(settings.get("iteration_min_interval_days", defaults["min_interval_days"])),
     }
@@ -150,8 +170,16 @@ def _get_llm_config() -> Tuple[str, str, str, bool]:
         except Exception:
             pass
     api_key = decrypt_value(api_key_raw, secret) if api_key_raw else os.environ.get("LLM_API_KEY", "")
-    base_url = settings.get("llm_base_url", "") or os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
-    model = settings.get("llm_model", "") or os.environ.get("LLM_MODEL", "gpt-4o-mini")
+    try:
+        base_url = normalize_llm_base_url(
+            settings.get("llm_base_url", "") or os.environ.get("LLM_BASE_URL", DEFAULT_LLM_BASE_URL)
+        )
+    except ValueError:
+        base_url = DEFAULT_LLM_BASE_URL
+    try:
+        model = normalize_llm_model(settings.get("llm_model", "") or os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL))
+    except ValueError:
+        model = DEFAULT_LLM_MODEL
     enabled = bool(api_key)
     return api_key, base_url, model, enabled
 
@@ -207,6 +235,60 @@ def _get_factor_period(factor_key: str) -> str:
     return "medium"
 
 
+def _is_directional_actual(direction: str) -> bool:
+    return str(direction or "") not in NEUTRAL_DIRECTIONS
+
+
+def _has_period_verification(record: Dict) -> bool:
+    for dir_field, _ in PERIOD_VERIFY_FIELD.values():
+        if _is_directional_actual(record.get(dir_field, "")):
+            return True
+    return False
+
+
+def _is_iteration_sample(record: Dict) -> bool:
+    if not record.get("verified"):
+        return False
+    if record.get("prediction") in ("中性",):
+        return False
+    return _is_directional_actual(record.get("actual_direction", "")) or _has_period_verification(record)
+
+
+def _normalize_weights(weights: Dict) -> Dict:
+    raw = {k: max(MIN_WEIGHT, float(v)) for k, v in weights.items()}
+    if not raw:
+        return {}
+
+    remaining = set(raw.keys())
+    fixed = {}
+    remaining_mass = 1.0
+
+    while remaining:
+        total = sum(raw[k] for k in remaining)
+        if total <= 0:
+            equal = remaining_mass / len(remaining)
+            fixed.update({k: equal for k in remaining})
+            break
+
+        scaled = {k: raw[k] / total * remaining_mass for k in remaining}
+        over_cap = [k for k, v in scaled.items() if v > MAX_WEIGHT]
+        if not over_cap:
+            fixed.update(scaled)
+            break
+
+        for k in over_cap:
+            fixed[k] = MAX_WEIGHT
+            remaining.remove(k)
+        remaining_mass = max(0.0, 1.0 - sum(fixed.values()))
+        if remaining_mass <= 0:
+            break
+
+    total = sum(fixed.values())
+    if total > 0:
+        return {k: v / total for k, v in fixed.items()}
+    return raw
+
+
 def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True) -> Dict:
     """
     分析每个因子的预测贡献准确率 + 信息系数(IC)
@@ -214,14 +296,10 @@ def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True
       - 短期因子用5日验证
       - 中期因子用10日验证
       - 长期因子用20日验证
-    无对应周期数据时回退到1日验证
+    新记录必须使用对应周期验证；旧记录缺少 verified_periods 时才回退到1日验证
     """
     cfg = _get_config()
-    verified = [
-        r for r in tracking
-        if r.get("verified")
-        and r.get("prediction") not in ("中性",)
-    ]
+    verified = [r for r in tracking if _is_iteration_sample(r)]
     if len(verified) < cfg["min_samples"]:
         return {}
 
@@ -243,14 +321,20 @@ def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True
             if abs(f_score) < 0.05:
                 continue
 
+            verified_periods = r.get("verified_periods", []) or []
+            expected_period = PERIOD_VERIFY_NAME.get(factor_period)
             actual_dir = r.get(dir_field, "")
-            if not actual_dir or actual_dir in ("中性（不参与准确率统计）", "中性"):
-                if use_period_verify:
-                    actual_dir = r.get("actual_direction", "")
-                if not actual_dir or actual_dir in ("中性（不参与准确率统计）", "中性"):
+            actual_pct = r.get(pct_field, 0)
+            if use_period_verify and verified_periods and expected_period not in verified_periods:
+                continue
+            if not _is_directional_actual(actual_dir):
+                if use_period_verify and verified_periods:
+                    continue
+                actual_dir = r.get("actual_direction", "")
+                actual_pct = r.get("actual_change_pct", 0)
+                if not _is_directional_actual(actual_dir):
                     continue
 
-            actual_pct = r.get(pct_field, 0)
             if actual_pct is None:
                 actual_pct = 0
             try:
@@ -277,7 +361,7 @@ def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True
             cov_xy = sum((ic_denominators_x[i] - mean_x) * (ic_denominators_y[i] - mean_y) for i in range(n))
             var_x = sum((x - mean_x) ** 2 for x in ic_denominators_x)
             var_y = sum((y - mean_y) ** 2 for y in ic_denominators_y)
-            if var_x > 0 and var_y > 0:
+            if var_x > IC_EPSILON and var_y > IC_EPSILON:
                 ic = cov_xy / (var_x ** 0.5 * var_y ** 0.5)
                 ic_significant = abs(ic) > 2.0 / (n ** 0.5)
 
@@ -299,7 +383,7 @@ def compute_overall_accuracy(tracking: List[Dict]) -> Dict:
     verified = [
         r for r in tracking
         if r.get("verified")
-        and r.get("actual_direction") not in ("中性（不参与准确率统计）",)
+        and _is_directional_actual(r.get("actual_direction", ""))
     ]
     if not verified:
         return {"total": 0, "correct": 0, "accuracy": 0, "recent_accuracy": 0, "brier_score": None}
@@ -369,10 +453,17 @@ def rule_based_adjust(factor_stats: Dict, current_weights: Dict) -> Tuple[Dict, 
         if factor not in new_weights:
             continue
         acc = stats["accuracy"]
-        ic = stats.get("ic", 0.0)
+        if stats.get("total", 0) < MIN_FACTOR_OBSERVATIONS:
+            continue
+        ic_raw = stats.get("ic")
+        try:
+            ic = float(ic_raw) if ic_raw is not None else 0.0
+        except (TypeError, ValueError):
+            ic = 0.0
         factor_period = stats.get("period", _get_factor_period(factor))
         period_mult = PERIOD_ADJUST_MULTIPLIER.get(factor_period, 1.0)
         period_label = PERIOD_LABELS.get(factor_period, "")
+        sample_weight = min(1.0, stats.get("total", 0) / max(cfg["min_samples"], 1))
 
         combined_signal = 0.0
         if acc > 0.6:
@@ -384,6 +475,7 @@ def rule_based_adjust(factor_stats: Dict, current_weights: Dict) -> Tuple[Dict, 
             combined_signal += ic * 0.4
         elif ic < -0.05:
             combined_signal += ic * 0.4
+        combined_signal *= sample_weight
 
         if combined_signal > 0.01:
             delta = min(cfg["max_adjustment"] * period_mult, combined_signal * 0.06 * period_mult)
@@ -397,9 +489,7 @@ def rule_based_adjust(factor_stats: Dict, current_weights: Dict) -> Tuple[Dict, 
     for factor, delta in adjustments.items():
         new_weights[factor] = max(MIN_WEIGHT, new_weights.get(factor, 0.05) + delta)
 
-    total = sum(new_weights.values())
-    if total > 0:
-        new_weights = {k: v / total for k, v in new_weights.items()}
+    new_weights = _normalize_weights(new_weights)
 
     return new_weights, reasons
 
@@ -415,20 +505,12 @@ def llm_diagnose(tracking: List[Dict], factor_stats: Dict, overall_acc: Dict) ->
         return None
 
     iter_data = _get_iteration_data()
-    if not _check_token_budget(iter_data, 2000):
-        print("  [迭代] LLM Token 月度预算已耗尽，跳过 LLM 诊断")
-        return None
 
     recent_acc = overall_acc.get("recent_accuracy", 1.0)
     if recent_acc >= cfg["llm_threshold"] and overall_acc.get("accuracy", 1.0) >= cfg["llm_threshold"]:
         return None
 
-    verified = [
-        r for r in tracking
-        if r.get("verified")
-        and r.get("prediction") not in ("中性",)
-        and r.get("actual_direction") not in ("中性（不参与准确率统计）",)
-    ]
+    verified = [r for r in tracking if _is_iteration_sample(r)]
     recent_wrong = [r for r in verified[-10:]
                     if r.get("prediction") != r.get("actual_direction")]
     if not recent_wrong:
@@ -455,6 +537,16 @@ def llm_diagnose(tracking: List[Dict], factor_stats: Dict, overall_acc: Dict) ->
         f'输出JSON:{{"diagnosis":"1句诊断","suggestions":[{{"factor":"因子名","action":"up/down","reason":"原因"}}],"confidence":0.8}}\n'
         f"factor必须为: {','.join(WEIGHT_KEY_MAP.keys())}"
     )
+    messages = [{"role": "user", "content": prompt}]
+    prepared = prepare_chat_request(model, messages, LLM_MAX_TOKENS, temperature=0.2)
+    if not prepared["ok"]:
+        print(f"  [迭代] {prepared['reason']}，跳过 LLM 诊断")
+        return None
+    if not _check_token_budget(iter_data, prepared["estimated_tokens"]):
+        print("  [迭代] LLM Token 月度预算已耗尽，跳过 LLM 诊断")
+        return None
+    if prepared["output_was_capped"]:
+        print(f"  [迭代] max_tokens 已按模型限制调整为 {prepared['max_tokens']}")
 
     try:
         print(f"  [迭代] 正在调用 LLM 诊断模型...")
@@ -464,12 +556,7 @@ def llm_diagnose(tracking: List[Dict], factor_stats: Dict, overall_acc: Dict) ->
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.2,
-                "max_tokens": LLM_MAX_TOKENS,
-            },
+            json=prepared["payload"],
             timeout=30,
         )
         resp.raise_for_status()
@@ -502,6 +589,14 @@ def apply_llm_suggestions(llm_result: Dict, current_weights: Dict) -> Tuple[Dict
     reasons = []
 
     llm_max_adj = cfg["max_adjustment"] * 0.5
+    try:
+        llm_confidence = float(llm_result.get("confidence", 0.5))
+    except (TypeError, ValueError):
+        llm_confidence = 0.5
+    llm_confidence = max(0.0, min(1.0, llm_confidence))
+    if llm_confidence < 0.4:
+        return new_weights, reasons
+    confidence_scale = max(0.4, llm_confidence)
 
     for sug in llm_result.get("suggestions", []):
         factor = sug.get("factor", "")
@@ -516,17 +611,15 @@ def apply_llm_suggestions(llm_result: Dict, current_weights: Dict) -> Tuple[Dict
         period_label = PERIOD_LABELS.get(factor_period, "")
 
         if action == "up":
-            delta = min(llm_max_adj * period_mult, 0.01 * period_mult)
+            delta = min(llm_max_adj * period_mult, 0.01 * period_mult) * confidence_scale
             new_weights[factor] = new_weights.get(factor, 0.05) + delta
             reasons.append(f"LLM建议↑{period_label}{FACTOR_LABELS.get(factor, factor)}: {reason[:30]}")
         elif action == "down":
-            delta = min(llm_max_adj * period_mult, 0.01 * period_mult)
+            delta = min(llm_max_adj * period_mult, 0.01 * period_mult) * confidence_scale
             new_weights[factor] = max(MIN_WEIGHT, new_weights.get(factor, 0.05) - delta)
             reasons.append(f"LLM建议↓{period_label}{FACTOR_LABELS.get(factor, factor)}: {reason[:30]}")
 
-    total = sum(new_weights.values())
-    if total > 0:
-        new_weights = {k: v / total for k, v in new_weights.items()}
+    new_weights = _normalize_weights(new_weights)
 
     return new_weights, reasons
 
@@ -601,6 +694,8 @@ def _consensus_based_adjust(tracking: List[Dict], current_weights: Dict, new_wei
             continue
         if r.get("prediction") in ("中性",):
             continue
+        if not _is_directional_actual(r.get("actual_direction", "")):
+            continue
         alignment = r.get("consensus_alignment", {})
         if not alignment or not isinstance(alignment, dict):
             continue
@@ -622,6 +717,8 @@ def _consensus_based_adjust(tracking: List[Dict], current_weights: Dict, new_wei
     for r in recent:
         alignment = r.get("consensus_alignment", {})
         actual_dir = r.get("actual_direction", "")
+        if not _is_directional_actual(actual_dir):
+            continue
         consensus_dir = alignment.get("consensus_direction", "")
         model_dir = r.get("prediction", "")
 
@@ -651,10 +748,9 @@ def _consensus_based_adjust(tracking: List[Dict], current_weights: Dict, new_wei
                 old_w = new_weights[factor]
                 new_weights[factor] = max(MIN_WEIGHT, old_w + adjusted_delta)
 
-        total = sum(new_weights.values())
-        if total > 0:
-            for k in new_weights:
-                new_weights[k] /= total
+        normalized = _normalize_weights(new_weights)
+        new_weights.clear()
+        new_weights.update(normalized)
 
         reasons.append(
             f"机构共识修正：近期{divergent_total}次背离中共识正确{divergent_consensus_correct}次，"
@@ -682,12 +778,7 @@ def run_iteration(force: bool = False) -> Dict:
         "timestamp": datetime.now().isoformat(),
     }
 
-    verified = [
-        r for r in tracking
-        if r.get("verified")
-        and r.get("prediction") not in ("中性",)
-        and r.get("actual_direction") not in ("中性（不参与准确率统计）",)
-    ]
+    verified = [r for r in tracking if _is_iteration_sample(r)]
 
     if len(verified) < cfg["min_samples"] and not force:
         result["reason"] = f"已验证非中性样本不足（{len(verified)}/{cfg['min_samples']}），暂不启动自迭代"
@@ -742,7 +833,7 @@ def run_iteration(force: bool = False) -> Dict:
     llm_result = None
     llm_reasons = []
 
-    if llm_enabled:
+    if llm_enabled and cfg["llm_budget"] > 0:
         llm_result = llm_diagnose(tracking, factor_stats, overall_acc)
         if llm_result:
             new_weights, llm_reasons = apply_llm_suggestions(llm_result, new_weights)
@@ -811,13 +902,15 @@ def get_iteration_status() -> Dict:
         r for r in tracking
         if r.get("verified")
         and r.get("prediction") not in ("中性",)
-        and r.get("actual_direction") not in ("中性（不参与准确率统计）",)
+        and _is_directional_actual(r.get("actual_direction", ""))
     ]
 
     overall_acc = compute_overall_accuracy(tracking)
     factor_stats = analyze_factor_accuracy(tracking)
 
-    api_key, _, _, llm_enabled = _get_llm_config()
+    api_key, _, model, llm_enabled = _get_llm_config()
+    llm_available = llm_enabled and cfg["llm_budget"] > 0
+    llm_limits = get_model_token_limits(model, load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {})
 
     status = {
         "enabled": len(verified) >= cfg["min_samples"],
@@ -837,8 +930,10 @@ def get_iteration_status() -> Dict:
         },
         "period_accuracy": _compute_period_accuracy(factor_stats),
         "consensus_stats": _compute_consensus_stats(tracking),
-        "llm_available": llm_enabled,
-        "mode": "llm+rule" if llm_enabled else "rule",
+        "llm_available": llm_available,
+        "llm_model": model,
+        "llm_model_limits": llm_limits,
+        "mode": "llm+rule" if llm_available else "rule",
         "last_iteration": iter_data.get("last_iteration_date", "从未"),
         "total_iterations": iter_data.get("total_iterations", 0),
         "token_usage": iter_data.get("token_usage", {"month": "", "used": 0}),
@@ -860,7 +955,7 @@ def _compute_benchmark(tracking: List[Dict]) -> Dict:
         r for r in tracking
         if r.get("verified")
         and r.get("prediction") not in ("中性",)
-        and r.get("actual_direction") not in ("中性（不参与准确率统计）", "中性")
+        and _is_directional_actual(r.get("actual_direction", ""))
     ]
     if len(verified) < 10:
         return {"available": False, "reason": "样本不足"}
@@ -910,7 +1005,7 @@ def grid_search_weights(tracking: List[Dict], current_weights: Dict,
         r for r in tracking
         if r.get("verified")
         and r.get("prediction") not in ("中性",)
-        and r.get("actual_direction") not in ("中性（不参与准确率统计）", "中性")
+        and _is_directional_actual(r.get("actual_direction", ""))
     ]
     if len(verified) < 50:
         return {"available": False, "reason": f"样本不足({len(verified)}/50)"}
@@ -1039,6 +1134,8 @@ def _compute_consensus_stats(tracking: List[Dict]) -> Dict:
             continue
         if r.get("prediction") in ("中性",):
             continue
+        if not _is_directional_actual(r.get("actual_direction", "")):
+            continue
         alignment = r.get("consensus_alignment", {})
         if not alignment or not isinstance(alignment, dict):
             continue
@@ -1058,6 +1155,8 @@ def _compute_consensus_stats(tracking: List[Dict]) -> Dict:
     for r in with_consensus:
         alignment = r.get("consensus_alignment", {})
         actual_dir = r.get("actual_direction", "")
+        if not _is_directional_actual(actual_dir):
+            continue
         consensus_dir = alignment.get("consensus_direction", "")
         model_dir = r.get("prediction", "")
         align_type = alignment.get("alignment", "")
@@ -1114,7 +1213,6 @@ def rollback_last_iteration() -> Dict:
 
 
 REASONING_MAX_TOKENS = 400
-REASONING_ESTIMATED_TOKENS = 1200
 
 
 def generate_llm_reasoning(factors: Dict, direction: str, score: float,
@@ -1129,9 +1227,6 @@ def generate_llm_reasoning(factors: Dict, direction: str, score: float,
         return None
 
     iter_data = _get_iteration_data()
-    if not _check_token_budget(iter_data, REASONING_ESTIMATED_TOKENS):
-        print("  [推理] LLM Token 预算不足，使用规则模板")
-        return None
 
     factor_brief = []
     for key, label in FACTOR_LABELS.items():
@@ -1147,6 +1242,16 @@ def generate_llm_reasoning(factors: Dict, direction: str, score: float,
         f"因子评分：{factors_text}\n"
         f"用2-3句中文写一段专业推理，解释为何预测{direction}，需结合关键因子，语言简洁有洞察力。"
     )
+    messages = [{"role": "user", "content": prompt}]
+    prepared = prepare_chat_request(model, messages, REASONING_MAX_TOKENS, temperature=0.3)
+    if not prepared["ok"]:
+        print(f"  [推理] {prepared['reason']}，使用规则模板")
+        return None
+    if not _check_token_budget(iter_data, prepared["estimated_tokens"]):
+        print("  [推理] LLM Token 预算不足，使用规则模板")
+        return None
+    if prepared["output_was_capped"]:
+        print(f"  [推理] max_tokens 已按模型限制调整为 {prepared['max_tokens']}")
 
     try:
         print("  [推理] 正在调用 LLM 生成推理...")
@@ -1156,12 +1261,7 @@ def generate_llm_reasoning(factors: Dict, direction: str, score: float,
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.3,
-                "max_tokens": REASONING_MAX_TOKENS,
-            },
+            json=prepared["payload"],
             timeout=20,
         )
         resp.raise_for_status()

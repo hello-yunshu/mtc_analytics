@@ -47,6 +47,8 @@ TELEGRAM_CHAT_ID=
 LLM_API_KEY=
 LLM_BASE_URL=https://api.openai.com/v1
 LLM_MODEL=gpt-4o-mini
+LLM_CONTEXT_WINDOW=
+LLM_MAX_OUTPUT_TOKENS=
 FRED_API_KEY=
 RUN_MODE=web+schedule
 EOF
@@ -137,6 +139,8 @@ gold_tracker/
 | `LLM_API_KEY` | 否 | LLM API Key（新闻深度分析） |
 | `LLM_BASE_URL` | 否 | LLM API 地址 |
 | `LLM_MODEL` | 否 | LLM 模型名称 |
+| `LLM_CONTEXT_WINDOW` | 否 | 自定义模型上下文窗口 token 上限（未识别模型时可用） |
+| `LLM_MAX_OUTPUT_TOKENS` | 否 | 自定义模型单次输出 token 上限 |
 | `FRED_API_KEY` | 否 | FRED API Key（宏观指标） |
 | `RUN_MODE` | 否 | 运行模式，默认 `web+schedule` |
 | `HTTPS` | 否 | 生产环境设为 `true` 启用安全 Cookie |

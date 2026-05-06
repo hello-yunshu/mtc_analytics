@@ -49,6 +49,8 @@ TELEGRAM_CHAT_ID=你的Chat_ID
 LLM_API_KEY=你的API_Key
 LLM_BASE_URL=https://api.openai.com/v1
 LLM_MODEL=gpt-4o-mini
+LLM_CONTEXT_WINDOW=        # 可选：自定义模型上下文窗口 token 上限
+LLM_MAX_OUTPUT_TOKENS=     # 可选：自定义模型单次输出 token 上限
 
 # 宏观指标（可选，FRED 数据源）
 FRED_API_KEY=你的FRED_Key

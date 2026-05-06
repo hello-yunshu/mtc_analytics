@@ -164,6 +164,7 @@ def _verify_previous_prediction(gold_prices):
 
         verified_data = {}
         verified_periods = []
+        latest_verified_date = ""
 
         next_date = None
         for d in sorted_dates:
@@ -174,16 +175,20 @@ def _verify_previous_prediction(gold_prices):
         if next_date and next_date in prices_by_date:
             next_price = prices_by_date[next_date]
             price_change_pct = (next_price - pred_price) / pred_price * 100 if pred_price > 0 else 0
+            latest_verified_date = next_date
         else:
             current_price = gold_prices[-1]["close"]
             price_change_pct = (current_price - pred_price) / pred_price * 100 if pred_price > 0 else 0
+            latest_verified_date = gold_prices[-1].get("date", "")
 
         if abs(price_change_pct) > 0.3:
             actual_dir = "看多" if price_change_pct > 0 else "看空"
-            verify_date = next_date if next_date and next_date in prices_by_date else gold_prices[-1].get("date", "")
             verified_data["actual_direction"] = actual_dir
             verified_data["actual_change_pct"] = round(price_change_pct, 2)
-            verified_data["verified_date"] = verify_date
+            verified_periods.append("1d")
+        elif next_date and next_date in prices_by_date:
+            verified_data["actual_direction"] = "中性（不参与准确率统计）"
+            verified_data["actual_change_pct"] = round(price_change_pct, 2)
             verified_periods.append("1d")
 
         period_checks = [
@@ -200,16 +205,22 @@ def _verify_previous_prediction(gold_prices):
             if target_date in prices_by_date:
                 target_price = prices_by_date[target_date]
                 change_pct = (target_price - pred_price) / pred_price * 100 if pred_price > 0 else 0
+                latest_verified_date = target_date
                 if abs(change_pct) > 0.3:
                     period_dir = "看多" if change_pct > 0 else "看空"
                     verified_data[dir_col] = period_dir
                     verified_data[pct_col] = round(change_pct, 2)
                     verified_periods.append(period_name)
+                else:
+                    verified_data[dir_col] = "中性"
+                    verified_data[pct_col] = round(change_pct, 2)
+                    verified_periods.append(period_name)
 
         if verified_periods:
             verified_data["verified_periods"] = json.dumps(verified_periods)
+            verified_data["verified_date"] = latest_verified_date or gold_prices[-1].get("date", "")
 
-        if verified_data.get("actual_direction"):
+        if verified_periods:
             try:
                 update_prediction_verification(pred_date, verified_data)
             except Exception:

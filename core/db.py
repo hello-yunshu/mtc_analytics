@@ -986,20 +986,21 @@ def upsert_prediction_tracking(date: str, data: Dict):
     with _db_lock:
         conn = _get_conn()
         try:
-            existing = conn.execute("SELECT verified, actual_direction, actual_change_pct, verified_date, actual_direction_5d, actual_direction_10d, actual_direction_20d, verified_periods, institutional_consensus, consensus_alignment FROM prediction_tracking WHERE date = ?", (date,)).fetchone()
+            existing = conn.execute(
+                "SELECT verified, actual_direction, actual_change_pct, verified_date, actual_direction_5d, actual_change_pct_5d, actual_direction_10d, actual_change_pct_10d, actual_direction_20d, actual_change_pct_20d, verified_periods, institutional_consensus, consensus_alignment FROM prediction_tracking WHERE date = ?",
+                (date,)
+            ).fetchone()
             if existing and existing["verified"]:
-                conn.execute(
-                    "UPDATE prediction_tracking SET prediction = ?, confidence = ?, score = ?, price_at_prediction = ?, factors_summary = ?, llm_reasoning = ?, period_trends = ?, institutional_consensus = ?, consensus_alignment = ? WHERE date = ?",
-                    (data.get("prediction", ""), data.get("confidence", 0), data.get("score", 0),
-                     data.get("price_at_prediction", 0),
-                     json.dumps(data.get("factors_summary", {}), ensure_ascii=False) if not isinstance(data.get("factors_summary", {}), str) else data.get("factors_summary", "{}"),
-                     data.get("llm_reasoning", ""),
-                     json.dumps(data.get("period_trends", {}), ensure_ascii=False) if not isinstance(data.get("period_trends", {}), str) else data.get("period_trends", "{}"),
-                     json.dumps(data.get("institutional_consensus", {}), ensure_ascii=False) if not isinstance(data.get("institutional_consensus", {}), str) else data.get("institutional_consensus", "{}"),
-                     json.dumps(data.get("consensus_alignment", {}), ensure_ascii=False) if not isinstance(data.get("consensus_alignment", {}), str) else data.get("consensus_alignment", "{}"),
-                     date)
-                )
+                return
             else:
+                def existing_value(key, default=None):
+                    if not existing:
+                        return default
+                    try:
+                        return existing[key]
+                    except (KeyError, IndexError):
+                        return default
+
                 factors_summary = data.get("factors_summary", {})
                 if not isinstance(factors_summary, str):
                     factors_summary = json.dumps(factors_summary, ensure_ascii=False)
@@ -1024,16 +1025,16 @@ def upsert_prediction_tracking(date: str, data: Dict):
                      inst_consensus,
                      cons_align,
                      verified_val,
-                     data.get("actual_direction", existing["actual_direction"] if existing else ""),
-                     data.get("actual_change_pct", existing["actual_change_pct"] if existing else None),
-                     data.get("verified_date", existing["verified_date"] if existing else ""),
-                     data.get("actual_direction_5d", existing["actual_direction_5d"] if existing else ""),
-                     data.get("actual_change_pct_5d", existing.get("actual_change_pct_5d") if existing else None),
-                     data.get("actual_direction_10d", existing["actual_direction_10d"] if existing else ""),
-                     data.get("actual_change_pct_10d", existing.get("actual_change_pct_10d") if existing else None),
-                     data.get("actual_direction_20d", existing["actual_direction_20d"] if existing else ""),
-                     data.get("actual_change_pct_20d", existing.get("actual_change_pct_20d") if existing else None),
-                     data.get("verified_periods", existing["verified_periods"] if existing else ""),
+                     data.get("actual_direction", existing_value("actual_direction", "")),
+                     data.get("actual_change_pct", existing_value("actual_change_pct")),
+                     data.get("verified_date", existing_value("verified_date", "")),
+                     data.get("actual_direction_5d", existing_value("actual_direction_5d", "")),
+                     data.get("actual_change_pct_5d", existing_value("actual_change_pct_5d")),
+                     data.get("actual_direction_10d", existing_value("actual_direction_10d", "")),
+                     data.get("actual_change_pct_10d", existing_value("actual_change_pct_10d")),
+                     data.get("actual_direction_20d", existing_value("actual_direction_20d", "")),
+                     data.get("actual_change_pct_20d", existing_value("actual_change_pct_20d")),
+                     data.get("verified_periods", existing_value("verified_periods", "")),
                      datetime.now().isoformat())
                 )
             conn.commit()
@@ -1073,7 +1074,7 @@ def get_unverified_predictions() -> List[Dict]:
         conn = _get_conn()
         try:
             rows = conn.execute(
-                "SELECT * FROM prediction_tracking WHERE verified = 0 ORDER BY date ASC"
+                "SELECT * FROM prediction_tracking WHERE verified = 0 OR verified_periods IS NULL OR verified_periods = '' OR verified_periods NOT LIKE '%20d%' ORDER BY date ASC"
             ).fetchall()
             return [_row_to_prediction(r) for r in rows]
         finally:

@@ -27,7 +27,20 @@ _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__f
 _DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
 from .utils import load_json
 from .config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_ENABLED
+from .llm_utils import (
+    DEFAULT_LLM_BASE_URL, DEFAULT_LLM_MODEL, normalize_llm_base_url,
+    normalize_llm_model, prepare_chat_request,
+)
 from . import db
+
+try:
+    LLM_BASE_URL = normalize_llm_base_url(LLM_BASE_URL)
+except ValueError:
+    LLM_BASE_URL = DEFAULT_LLM_BASE_URL
+try:
+    LLM_MODEL = normalize_llm_model(LLM_MODEL)
+except ValueError:
+    LLM_MODEL = DEFAULT_LLM_MODEL
 
 _news_cache = None
 _news_cache_lock = threading.Lock()
@@ -658,15 +671,6 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
     if not LLM_ENABLED:
         return None
 
-    try:
-        from .model_iteration import _check_token_budget, _get_iteration_data
-        iter_data = _get_iteration_data()
-        if not _check_token_budget(iter_data, 500):
-            print("  [新闻] LLM Token 月度预算已耗尽，跳过 LLM 分析")
-            return None
-    except Exception:
-        pass
-
     uncertain = [n for n in kw_analyzed if abs(n.get("kw_score", 0)) < 0.5]
     uncertain.sort(key=lambda x: abs(x.get("kw_score", 0)), reverse=True)
 
@@ -704,6 +708,21 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
         '格式：{"r":[{"i":1,"s":"b/e/n"}],"sm":"1句总结","sa":0.0}\n'
         "s:b=利多,e=利空,n=中性;sa:-0.3~+0.3微调;注意否定词"
     )
+    messages = [{"role": "user", "content": prompt}]
+    prepared = prepare_chat_request(LLM_MODEL, messages, 300, temperature=0.1)
+    if not prepared["ok"]:
+        print(f"  [新闻] {prepared['reason']}，跳过 LLM 分析")
+        return None
+    try:
+        from .model_iteration import _check_token_budget, _get_iteration_data
+        iter_data = _get_iteration_data()
+        if not _check_token_budget(iter_data, prepared["estimated_tokens"]):
+            print("  [新闻] LLM Token 月度预算已耗尽，跳过 LLM 分析")
+            return None
+    except Exception:
+        pass
+    if prepared["output_was_capped"]:
+        print(f"  [新闻] max_tokens 已按模型限制调整为 {prepared['max_tokens']}")
 
     try:
         print(f"  正在调用 LLM 分析 {len(need_llm)} 条新闻（缓存命中 {len(cached_items)} 条）...")
@@ -713,12 +732,7 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
                 "Authorization": f"Bearer {LLM_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": LLM_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.1,
-                "max_tokens": 300,
-            },
+            json=prepared["payload"],
             timeout=30,
         )
         resp.raise_for_status()
@@ -991,12 +1005,18 @@ def reload_llm_config():
         config.LLM_API_KEY = LLM_API_KEY
         LLM_ENABLED = bool(LLM_API_KEY)
         config.LLM_ENABLED = LLM_ENABLED
-    if settings.get("llm_base_url"):
-        LLM_BASE_URL = settings["llm_base_url"]
-        config.LLM_BASE_URL = LLM_BASE_URL
-    if settings.get("llm_model"):
-        LLM_MODEL = settings["llm_model"]
-        config.LLM_MODEL = LLM_MODEL
+    try:
+        LLM_BASE_URL = normalize_llm_base_url(
+            settings.get("llm_base_url", "") or os.environ.get("LLM_BASE_URL", DEFAULT_LLM_BASE_URL)
+        )
+    except ValueError:
+        LLM_BASE_URL = DEFAULT_LLM_BASE_URL
+    config.LLM_BASE_URL = LLM_BASE_URL
+    try:
+        LLM_MODEL = normalize_llm_model(settings.get("llm_model", "") or os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL))
+    except ValueError:
+        LLM_MODEL = DEFAULT_LLM_MODEL
+    config.LLM_MODEL = LLM_MODEL
 
 
 def _reload_bearish_and_negation(settings):

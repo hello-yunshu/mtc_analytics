@@ -15,6 +15,11 @@ from flask import Flask, render_template, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from core.config import SENSITIVE_FIELDS
+from core.llm_utils import (
+    DEFAULT_LLM_BASE_URL, DEFAULT_LLM_BUDGET, DEFAULT_LLM_MODEL,
+    get_model_token_limits, normalize_llm_base_url, normalize_llm_budget,
+    normalize_llm_model,
+)
 from core.utils import load_json, save_json, encrypt_value, decrypt_value
 from core.security import is_ip_banned, check_api_rate_limit, get_logger as get_security_logger
 from blueprints.gold import gold_bp
@@ -168,8 +173,23 @@ def create_app():
                 result[f"{field}_masked"] = raw[:6] + "****" + raw[-4:] if len(raw) > 10 else "****"
             else:
                 result[f"{field}_masked"] = ""
-        result["llm_base_url"] = settings.get("llm_base_url", "https://api.openai.com/v1")
-        result["llm_model"] = settings.get("llm_model", "gpt-4o-mini")
+        try:
+            llm_base_url = normalize_llm_base_url(settings.get("llm_base_url", DEFAULT_LLM_BASE_URL))
+        except ValueError:
+            llm_base_url = DEFAULT_LLM_BASE_URL
+        try:
+            llm_model = normalize_llm_model(settings.get("llm_model", DEFAULT_LLM_MODEL))
+        except ValueError:
+            llm_model = DEFAULT_LLM_MODEL
+        llm_limits = get_model_token_limits(llm_model, settings)
+        result["llm_base_url"] = llm_base_url
+        result["llm_model"] = llm_model
+        result["llm_budget"] = normalize_llm_budget(
+            settings.get("llm_budget", settings.get("iteration_llm_budget", DEFAULT_LLM_BUDGET))
+        )
+        result["llm_context_window"] = llm_limits["context_window"]
+        result["llm_max_output_tokens"] = llm_limits["max_output_tokens"]
+        result["llm_model_known"] = llm_limits["known"]
         result["telegram_chat_id"] = settings.get("telegram_chat_id", "")
         result["run_mode"] = settings.get("run_mode", os.environ.get("RUN_MODE", "web+schedule"))
         return jsonify(result)
@@ -183,10 +203,23 @@ def create_app():
             return jsonify({"ok": False, "error": "CSRF验证失败"}), 403
         data = request.json or {}
         settings = load_json(SETTINGS_FILE) or {}
-        str_fields = ["llm_base_url", "llm_model", "telegram_chat_id"]
-        for field in str_fields:
-            if field in data:
-                settings[field] = str(data[field])[:500]
+        if "llm_base_url" in data:
+            try:
+                settings["llm_base_url"] = normalize_llm_base_url(data["llm_base_url"])
+            except ValueError as e:
+                return jsonify({"ok": False, "error": str(e)}), 400
+        if "llm_model" in data:
+            try:
+                settings["llm_model"] = normalize_llm_model(data["llm_model"])
+            except ValueError as e:
+                return jsonify({"ok": False, "error": str(e)}), 400
+        if "telegram_chat_id" in data:
+            settings["telegram_chat_id"] = str(data["telegram_chat_id"])[:500]
+        if "llm_budget" in data:
+            settings["llm_budget"] = normalize_llm_budget(data["llm_budget"])
+        elif "llm_budget" not in settings and "iteration_llm_budget" in settings:
+            settings["llm_budget"] = normalize_llm_budget(settings["iteration_llm_budget"])
+        settings.pop("iteration_llm_budget", None)
         if "run_mode" in data:
             valid_modes = {"web", "schedule", "realtime", "web+schedule", "web+realtime"}
             mode = str(data["run_mode"]).strip()

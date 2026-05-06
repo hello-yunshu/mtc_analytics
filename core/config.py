@@ -46,7 +46,7 @@ LLM_ENABLED = bool(LLM_API_KEY)
 # ==================== 模型自迭代配置 ====================
 ITERATION_MIN_SAMPLES = int(os.environ.get("ITERATION_MIN_SAMPLES", "20"))
 ITERATION_MAX_ADJUSTMENT = float(os.environ.get("ITERATION_MAX_ADJUSTMENT", "0.03"))
-ITERATION_LLM_MONTHLY_BUDGET = int(os.environ.get("ITERATION_LLM_MONTHLY_BUDGET", "6000"))
+ITERATION_LLM_MONTHLY_BUDGET = int(os.environ.get("ITERATION_LLM_MONTHLY_BUDGET", "10000"))
 ITERATION_LLM_DIAGNOSE_THRESHOLD = float(os.environ.get("ITERATION_LLM_DIAGNOSE_THRESHOLD", "0.4"))
 
 # ==================== FRED API 配置 ====================

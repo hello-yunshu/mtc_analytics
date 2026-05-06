@@ -30,6 +30,10 @@ from typing import Dict, List, Optional, Tuple
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 _DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
 from .utils import load_json, save_json
+from .llm_utils import (
+    DEFAULT_LLM_BASE_URL, DEFAULT_LLM_MODEL, normalize_llm_base_url,
+    normalize_llm_model, prepare_chat_request,
+)
 
 INSTITUTION_PATTERNS = [
     {"keys": ["高盛", "Goldman Sachs", "Goldman"], "name": "高盛", "name_en": "Goldman Sachs", "tier": 1},
@@ -104,8 +108,16 @@ def _get_llm_config():
     api_key = decrypt_value(api_key_raw, secret) if api_key_raw else ""
     if not api_key:
         api_key = os.environ.get("LLM_API_KEY", "")
-    base_url = settings.get("llm_base_url", "") or "https://api.openai.com/v1"
-    model = settings.get("llm_model", "") or "gpt-4o-mini"
+    try:
+        base_url = normalize_llm_base_url(
+            settings.get("llm_base_url", "") or os.environ.get("LLM_BASE_URL", DEFAULT_LLM_BASE_URL)
+        )
+    except ValueError:
+        base_url = DEFAULT_LLM_BASE_URL
+    try:
+        model = normalize_llm_model(settings.get("llm_model", "") or os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL))
+    except ValueError:
+        model = DEFAULT_LLM_MODEL
     return api_key, base_url, model, bool(api_key)
 
 
@@ -199,15 +211,6 @@ def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
     if not enabled:
         return []
 
-    try:
-        from .model_iteration import _check_token_budget, _get_iteration_data
-        iter_data = _get_iteration_data()
-        if not _check_token_budget(iter_data, 800):
-            print("  [机构共识] LLM Token 月度预算已耗尽，跳过 LLM 提取")
-            return []
-    except Exception:
-        pass
-
     gold_related = []
     for news in news_list:
         title = news.get("title", "")
@@ -236,6 +239,21 @@ def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
         f"只输出明确表达观点的机构，忽略无明确观点的。direction只能是看多/看空/中性。target_price为美元/盎司，没有则为null。\n"
         f"重要：target_price必须是黄金价格（如3200、3500等），绝对不能把年份（如2025、2026）当作目标价！如果新闻中只有年份没有具体价格，target_price设为null。"
     )
+    messages = [{"role": "user", "content": prompt}]
+    prepared = prepare_chat_request(model, messages, 500, temperature=0.1)
+    if not prepared["ok"]:
+        print(f"  [机构共识] {prepared['reason']}，跳过 LLM 提取")
+        return []
+    try:
+        from .model_iteration import _check_token_budget, _get_iteration_data
+        iter_data = _get_iteration_data()
+        if not _check_token_budget(iter_data, prepared["estimated_tokens"]):
+            print("  [机构共识] LLM Token 月度预算已耗尽，跳过 LLM 提取")
+            return []
+    except Exception:
+        pass
+    if prepared["output_was_capped"]:
+        print(f"  [机构共识] max_tokens 已按模型限制调整为 {prepared['max_tokens']}")
 
     try:
         resp = requests.post(
@@ -244,12 +262,7 @@ def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.1,
-                "max_tokens": 500,
-            },
+            json=prepared["payload"],
             timeout=20,
         )
         resp.raise_for_status()

@@ -464,7 +464,7 @@ class GoldPricePredictor:
                 signals.append(f"日涨{yield_change:.2f}bp，短期确认上行趋势")
 
         else:
-            return {"score": 0.0, "signal": "无真实利率数据，实际利率因子暂不可用"}
+            return {"score": 0.0, "signal": "无真实利率数据，实际利率因子暂不可用", "_no_data": True}
 
         score = max(-1.0, min(1.0, score))
         return {"score": score, "signal": "；".join(signals) if signals else "实际利率中性"}
@@ -533,7 +533,7 @@ class GoldPricePredictor:
                 signals.append(f"日涨{dxy_change:.2f}，短期确认走强")
 
         else:
-            return {"score": 0.0, "signal": "无真实美元数据，美元因子暂不可用"}
+            return {"score": 0.0, "signal": "无真实美元数据，美元因子暂不可用", "_no_data": True}
 
         score = max(-1.0, min(1.0, score))
         return {"score": score, "signal": "；".join(signals) if signals else "美元因子中性"}
@@ -613,7 +613,7 @@ class GoldPricePredictor:
             historical_nets.append(total)
 
         if not historical_nets:
-            return {"score": 0.0, "signal": "无历史数据"}
+            return {"score": 0.0, "signal": "无历史数据", "_no_data": True}
 
         sorted_nets = sorted(historical_nets)
         count_below = sum(1 for v in sorted_nets if v < current_net)
@@ -919,7 +919,7 @@ class GoldPricePredictor:
         signals = []
 
         if not self.news_sentiment:
-            return {"score": 0.0, "signal": "新闻数据暂无"}
+            return {"score": 0.0, "signal": "新闻数据暂无", "_no_data": True}
 
         sentiment_score = self.news_sentiment.get("sentiment_score", 0)
         bullish = self.news_sentiment.get("bullish_count", 0)
@@ -1030,7 +1030,7 @@ class GoldPricePredictor:
                     pass
 
             if not signals:
-                return {"score": 0.0, "signal": "无TIPS数据，通胀预期因子暂不可用"}
+                return {"score": 0.0, "signal": "无TIPS数据，通胀预期因子暂不可用", "_no_data": True}
 
         score = max(-1.0, min(1.0, score))
         return {"score": score, "signal": "；".join(signals) if signals else "通胀预期中性"}
@@ -1149,7 +1149,7 @@ class GoldPricePredictor:
             else:
                 signals.append("GLD ETF数据暂不可用")
                 score = max(-1.0, min(1.0, score))
-                return {"score": score, "signal": "；".join(signals) if signals else "ETF资金流中性"}
+                return {"score": score, "signal": "；".join(signals) if signals else "ETF资金流中性", "_no_data": True}
 
         if self.gold_prices and len(self.gold_prices) >= 2:
             gold_chg = (self.gold_prices[-1]["close"] - self.gold_prices[-2]["close"]) / self.gold_prices[-2]["close"] * 100
@@ -1326,6 +1326,9 @@ class GoldPricePredictor:
                         calibration_table = empirical
         except Exception:
             pass
+
+        if abs_score <= calibration_table[0][0]:
+            return calibration_table[0][1]
 
         for i in range(len(calibration_table) - 1):
             s1, c1 = calibration_table[i]
