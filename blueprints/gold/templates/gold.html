@@ -36,8 +36,8 @@
   --purple: #b58cff;
   --cyan: #61d6c9;
   --shadow: rgba(0,0,0,0.28);
-  --panel-shadow: 0 24px 70px rgba(0,0,0,0.28);
-  --inner-highlight: inset 0 1px 0 rgba(255,255,255,0.18);
+  --panel-shadow: 0 28px 80px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.12);
+  --inner-highlight: inset 0 1px 0 rgba(255,255,255,0.22);
   --scrollbar-thumb: rgba(255,255,255,0.18);
 }
 
@@ -62,8 +62,8 @@
     --purple: #7e5ad8;
     --cyan: #0f9f94;
     --shadow: rgba(15,23,42,0.10);
-    --panel-shadow: 0 22px 55px rgba(15,23,42,0.12);
-    --inner-highlight: inset 0 1px 0 rgba(255,255,255,0.76);
+    --panel-shadow: 0 28px 70px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.06);
+    --inner-highlight: inset 0 1px 0 rgba(255,255,255,0.80);
     --scrollbar-thumb: rgba(15,23,42,0.16);
   }
 }
@@ -88,8 +88,8 @@
   --purple: #7e5ad8;
   --cyan: #0f9f94;
   --shadow: rgba(15,23,42,0.10);
-  --panel-shadow: 0 22px 55px rgba(15,23,42,0.12);
-  --inner-highlight: inset 0 1px 0 rgba(255,255,255,0.76);
+  --panel-shadow: 0 28px 70px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.06);
+  --inner-highlight: inset 0 1px 0 rgba(255,255,255,0.80);
   --scrollbar-thumb: rgba(15,23,42,0.16);
 }
 
@@ -113,8 +113,8 @@
   --purple: #b58cff;
   --cyan: #61d6c9;
   --shadow: rgba(0,0,0,0.28);
-  --panel-shadow: 0 24px 70px rgba(0,0,0,0.28);
-  --inner-highlight: inset 0 1px 0 rgba(255,255,255,0.18);
+  --panel-shadow: 0 28px 80px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.12);
+  --inner-highlight: inset 0 1px 0 rgba(255,255,255,0.22);
   --scrollbar-thumb: rgba(255,255,255,0.18);
 }
 
@@ -136,7 +136,8 @@ body::before {
   background:
     radial-gradient(ellipse 55% 55% at 8% 15%, rgba(97,214,201,0.07) 0%, transparent 70%),
     radial-gradient(ellipse 45% 60% at 82% 8%, rgba(246,199,104,0.06) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 88% 78%, rgba(139,92,246,0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 55% at 85% 75%, rgba(139,92,246,0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 65% 20%, rgba(139,92,246,0.05) 0%, transparent 70%),
     radial-gradient(ellipse 55% 45% at 20% 85%, rgba(59,130,246,0.04) 0%, transparent 70%),
     radial-gradient(ellipse 35% 35% at 52% 45%, rgba(236,72,153,0.03) 0%, transparent 70%);
   z-index: 0;
@@ -157,7 +158,8 @@ body::after {
     background:
       radial-gradient(ellipse 55% 55% at 8% 15%, rgba(15,159,148,0.06) 0%, transparent 70%),
       radial-gradient(ellipse 45% 60% at 82% 8%, rgba(191,127,26,0.05) 0%, transparent 70%),
-      radial-gradient(ellipse 50% 50% at 88% 78%, rgba(124,58,237,0.04) 0%, transparent 70%),
+      radial-gradient(ellipse 55% 55% at 85% 75%, rgba(124,58,237,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 65% 20%, rgba(124,58,237,0.04) 0%, transparent 70%),
       radial-gradient(ellipse 55% 45% at 20% 85%, rgba(37,99,235,0.04) 0%, transparent 70%),
       radial-gradient(ellipse 35% 35% at 52% 45%, rgba(219,39,119,0.03) 0%, transparent 70%);
   }
@@ -178,7 +180,8 @@ body::after {
   background:
     radial-gradient(ellipse 55% 55% at 8% 15%, rgba(15,159,148,0.06) 0%, transparent 70%),
     radial-gradient(ellipse 45% 60% at 82% 8%, rgba(191,127,26,0.05) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 50% at 88% 78%, rgba(124,58,237,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 55% at 85% 75%, rgba(124,58,237,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 65% 20%, rgba(124,58,237,0.04) 0%, transparent 70%),
     radial-gradient(ellipse 55% 45% at 20% 85%, rgba(37,99,235,0.04) 0%, transparent 70%),
     radial-gradient(ellipse 35% 35% at 52% 45%, rgba(219,39,119,0.03) 0%, transparent 70%);
 }
@@ -204,9 +207,9 @@ body::after {
   left: 0;
   height: 100vh;
   z-index: 10;
-  box-shadow: 18px 0 55px rgba(0,0,0,0.22), var(--inner-highlight);
-  backdrop-filter: blur(24px) saturate(1.35);
-  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+  box-shadow: 20px 0 60px rgba(0,0,0,0.28), var(--inner-highlight);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
 }
 
 .sidebar-logo {
@@ -300,8 +303,13 @@ body::after {
   padding: 24px;
   margin-bottom: 20px;
   box-shadow: var(--panel-shadow), var(--inner-highlight);
-  backdrop-filter: blur(22px) saturate(1.32);
-  -webkit-backdrop-filter: blur(22px) saturate(1.32);
+  backdrop-filter: blur(26px) saturate(1.4);
+  -webkit-backdrop-filter: blur(26px) saturate(1.4);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 32px 90px rgba(0,0,0,0.38), 0 4px 12px rgba(0,0,0,0.15), var(--inner-highlight);
 }
 
 .dual-col-grid {
@@ -341,8 +349,8 @@ body::after {
   position: relative;
   overflow: hidden;
   box-shadow: var(--panel-shadow), var(--inner-highlight);
-  backdrop-filter: blur(22px) saturate(1.32);
-  -webkit-backdrop-filter: blur(22px) saturate(1.32);
+  backdrop-filter: blur(26px) saturate(1.4);
+  -webkit-backdrop-filter: blur(26px) saturate(1.4);
   display: flex;
   flex-direction: column;
   min-height: 140px;
@@ -404,8 +412,8 @@ body::after {
   padding: 24px;
   margin-bottom: 20px;
   box-shadow: var(--panel-shadow), var(--inner-highlight);
-  backdrop-filter: blur(22px) saturate(1.32);
-  -webkit-backdrop-filter: blur(22px) saturate(1.32);
+  backdrop-filter: blur(26px) saturate(1.4);
+  -webkit-backdrop-filter: blur(26px) saturate(1.4);
 }
 .settings-section h3 { font-size: 16px; font-weight: 600; color: var(--gold); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display:flex; align-items:center; gap:8px; }
 .settings-section h3 .ico { width:18px; height:18px; fill:none; stroke:var(--gold); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
@@ -536,8 +544,8 @@ body::after {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(4,8,15,0.54);
-  backdrop-filter: blur(18px) saturate(1.35);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -552,8 +560,8 @@ body::after {
   width: 360px;
   text-align: center;
   box-shadow: var(--panel-shadow), var(--inner-highlight);
-  backdrop-filter: blur(24px) saturate(1.35);
-  -webkit-backdrop-filter: blur(24px) saturate(1.35);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
 }
 
 .login-box h2 { color: var(--gold); margin-bottom: 8px; font-size: 22px; display:flex; align-items:center; justify-content:center; }
