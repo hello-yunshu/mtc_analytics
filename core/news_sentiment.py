@@ -26,21 +26,8 @@ from typing import List, Dict, Tuple, Optional
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 _DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
 from .utils import load_json
-from .config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_ENABLED
-from .llm_utils import (
-    DEFAULT_LLM_BASE_URL, DEFAULT_LLM_MODEL, normalize_llm_base_url,
-    normalize_llm_model, prepare_chat_request,
-)
+from .llm_utils import call_llm
 from . import db
-
-try:
-    LLM_BASE_URL = normalize_llm_base_url(LLM_BASE_URL)
-except ValueError:
-    LLM_BASE_URL = DEFAULT_LLM_BASE_URL
-try:
-    LLM_MODEL = normalize_llm_model(LLM_MODEL)
-except ValueError:
-    LLM_MODEL = DEFAULT_LLM_MODEL
 
 _news_cache = None
 _news_cache_lock = threading.Lock()
@@ -272,7 +259,9 @@ def fetch_news_sentiment() -> Dict:
 
     # Step 2: LLM 分析（如果已配置）
     llm_result = None
-    if LLM_ENABLED:
+    from .llm_utils import get_llm_config
+    _, _, _, llm_enabled = get_llm_config()
+    if llm_enabled:
         llm_result = _analyze_with_llm(kw_analyzed)
 
     # Step 3: 合并结果
@@ -634,13 +623,7 @@ def _analyze_sentiment_keyword(text: str) -> Tuple[str, float, List[str]]:
 
 
 def _record_llm_token_usage(tokens_used: int):
-    try:
-        from .model_iteration import _record_token_usage, _get_iteration_data, _save_iteration_data
-        iter_data = _get_iteration_data()
-        _record_token_usage(iter_data, tokens_used)
-        _save_iteration_data(iter_data)
-    except Exception:
-        pass
+    pass
 
 
 def _title_hash(title: str) -> str:
@@ -668,7 +651,12 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
             "score_adjustment": 0.0,
         }
     """
-    if not LLM_ENABLED:
+    if not kw_analyzed:
+        return None
+
+    from .llm_utils import get_llm_config
+    _, _, _, llm_enabled = get_llm_config()
+    if not llm_enabled:
         return None
 
     uncertain = [n for n in kw_analyzed if abs(n.get("kw_score", 0)) < 0.5]
@@ -702,105 +690,29 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
         for i, n in enumerate(need_llm)
     ])
 
-    prompt = (
-        "分析以下黄金新闻标题对金价的影响，输出JSON：\n"
-        f"{titles_text}\n"
-        '格式：{"r":[{"i":1,"s":"b/e/n"}],"sm":"1句总结","sa":0.0}\n'
-        "s:b=利多,e=利空,n=中性;sa:-0.3~+0.3微调;注意否定词"
-    )
-    messages = [{"role": "user", "content": prompt}]
-    prepared = prepare_chat_request(LLM_MODEL, messages, 300, temperature=0.1)
-    if not prepared["ok"]:
-        print(f"  [新闻] {prepared['reason']}，跳过 LLM 分析")
-        return None
-    try:
-        from .model_iteration import _check_token_budget, _get_iteration_data
-        iter_data = _get_iteration_data()
-        if not _check_token_budget(iter_data, prepared["estimated_tokens"]):
-            print("  [新闻] LLM Token 月度预算已耗尽，跳过 LLM 分析")
-            return None
-    except Exception:
-        pass
-    if prepared["output_was_capped"]:
-        print(f"  [新闻] max_tokens 已按模型限制调整为 {prepared['max_tokens']}")
+    system_msg = {
+        "role": "system",
+        "content": (
+            "你是一位专业的黄金市场新闻分析师。根据新闻标题和摘要判断对金价的影响方向。"
+            "必须严格输出JSON格式，不要输出其他内容。注意否定词和语气转折。"
+        ),
+    }
+    user_msg = {
+        "role": "user",
+        "content": (
+            "分析以下黄金新闻标题对金价的影响：\n"
+            f"{titles_text}\n"
+            '输出JSON：{"r":[{"i":1,"s":"b/e/n"}],"sm":"1句总结","sa":0.0}\n'
+            "字段说明：s:b=利多,e=利空,n=中性；sa:-0.3~+0.3微调分数；i为新闻序号\n"
+            "注意：1.否定词（不、未、难等）会翻转情绪方向 2.语气转折（但、然而）以最后一句为准 3.不确定的标为n"
+        ),
+    }
+    messages = [system_msg, user_msg]
 
-    try:
-        print(f"  正在调用 LLM 分析 {len(need_llm)} 条新闻（缓存命中 {len(cached_items)} 条）...")
-        resp = requests.post(
-            f"{LLM_BASE_URL.rstrip('/')}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {LLM_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json=prepared["payload"],
-            timeout=30,
-        )
-        resp.raise_for_status()
-
-        data = resp.json()
-        content = data["choices"][0]["message"]["content"].strip()
-
-        usage = data.get("usage", {})
-        tokens_used = usage.get("total_tokens", 0)
-        if tokens_used > 0:
-            _record_llm_token_usage(tokens_used)
-            print(f"  LLM 消耗 {tokens_used} tokens")
-
-        json_match = re.search(r'\{[\s\S]*\}', content)
-        if not json_match:
-            print(f"  [WARN] LLM 返回格式异常，跳过 LLM 分析")
-            if cached_items:
-                return {
-                    "items": cached_items,
-                    "summary": "",
-                    "score_adjustment": 0,
-                }
-            return None
-
-        llm_data = json.loads(json_match.group())
-
-        SENTIMENT_MAP = {"b": "bullish", "e": "bearish", "n": "neutral"}
-
-        items = llm_data.get("r", [])
-        summary = llm_data.get("sm", "")
-        score_adjustment = float(llm_data.get("sa", 0))
-        score_adjustment = max(-0.3, min(0.3, score_adjustment))
-
-        new_item_map = {}
-        cache_to_save = []
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        for item in items:
-            idx = item.get("i", 0) - 1
-            if 0 <= idx < len(need_llm):
-                s_code = item.get("s", "n")
-                sentiment = SENTIMENT_MAP.get(s_code, "neutral")
-                title = need_llm[idx]["title"]
-                new_item_map[title] = {
-                    "sentiment": sentiment,
-                    "reason": "",
-                }
-                cache_to_save.append({
-                    "title_hash": _title_hash(title),
-                    "title": title,
-                    "sentiment": sentiment,
-                    "analyzed_at": now_str,
-                })
-
-        if cache_to_save:
-            db.save_news_llm_cache(cache_to_save)
-
-        merged_items = {**cached_items, **new_item_map}
-
-        print(f"  LLM 分析完成: 新分析 {len(new_item_map)} 条 + 缓存 {len(cached_items)} 条，摘要: {summary[:50]}")
-
-        return {
-            "items": merged_items,
-            "summary": summary,
-            "score_adjustment": score_adjustment,
-        }
-
-    except requests.exceptions.RequestException as e:
-        print(f"  [WARN] LLM API 调用失败: {e}")
+    result = call_llm(messages, category="news",
+                      max_tokens=300, temperature=0.1,
+                      timeout=30, log_prefix="新闻")
+    if result is None:
         if cached_items:
             return {
                 "items": cached_items,
@@ -808,8 +720,15 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
                 "score_adjustment": 0,
             }
         return None
-    except (json.JSONDecodeError, KeyError, ValueError) as e:
-        print(f"  [WARN] LLM 返回解析失败: {e}")
+
+    content = result["content"]
+    tokens_used = result.get("tokens_used", 0)
+    if tokens_used > 0:
+        print(f"  LLM 消耗 {tokens_used} tokens")
+
+    json_match = re.search(r'\{[\s\S]*\}', content)
+    if not json_match:
+        print(f"  [WARN] LLM 返回格式异常，跳过 LLM 分析")
         if cached_items:
             return {
                 "items": cached_items,
@@ -817,6 +736,48 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
                 "score_adjustment": 0,
             }
         return None
+
+    llm_data = json.loads(json_match.group())
+
+    SENTIMENT_MAP = {"b": "bullish", "e": "bearish", "n": "neutral"}
+
+    items = llm_data.get("r", [])
+    summary = llm_data.get("sm", "")
+    score_adjustment = float(llm_data.get("sa", 0))
+    score_adjustment = max(-0.3, min(0.3, score_adjustment))
+
+    new_item_map = {}
+    cache_to_save = []
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    for item in items:
+        idx = item.get("i", 0) - 1
+        if 0 <= idx < len(need_llm):
+            s_code = item.get("s", "n")
+            sentiment = SENTIMENT_MAP.get(s_code, "neutral")
+            title = need_llm[idx]["title"]
+            new_item_map[title] = {
+                "sentiment": sentiment,
+                "reason": "",
+            }
+            cache_to_save.append({
+                "title_hash": _title_hash(title),
+                "title": title,
+                "sentiment": sentiment,
+                "analyzed_at": now_str,
+            })
+
+    if cache_to_save:
+        db.save_news_llm_cache(cache_to_save)
+
+    merged_items = {**cached_items, **new_item_map}
+
+    print(f"  LLM 分析完成: 新分析 {len(new_item_map)} 条 + 缓存 {len(cached_items)} 条，摘要: {summary[:50]}")
+
+    return {
+        "items": merged_items,
+        "summary": summary,
+        "score_adjustment": score_adjustment,
+    }
 
 
 def _merge_results(kw_analyzed: List[Dict], llm_result: Dict) -> List[Dict]:
@@ -980,43 +941,8 @@ def reload_keywords_from_settings():
 
 
 def reload_llm_config():
-    """从设置文件重新加载 LLM 配置（热更新）"""
-    global LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_ENABLED
-    from . import config
-    settings = load_json(os.path.join(_DATA_DIR, "web_settings.json"))
-    if not settings:
-        return
-
-    if "llm_api_key" in settings:
-        raw = settings["llm_api_key"] or ""
-        from .utils import decrypt_value
-        secret = ""
-        try:
-            from flask import current_app
-            secret = current_app.secret_key or ""
-        except Exception:
-            try:
-                key_data = load_json(os.path.join(_DATA_DIR, ".secret_key"))
-                if key_data and key_data.get("secret_key"):
-                    secret = key_data["secret_key"]
-            except Exception:
-                pass
-        LLM_API_KEY = decrypt_value(raw, secret) if raw else ""
-        config.LLM_API_KEY = LLM_API_KEY
-        LLM_ENABLED = bool(LLM_API_KEY)
-        config.LLM_ENABLED = LLM_ENABLED
-    try:
-        LLM_BASE_URL = normalize_llm_base_url(
-            settings.get("llm_base_url", "") or os.environ.get("LLM_BASE_URL", DEFAULT_LLM_BASE_URL)
-        )
-    except ValueError:
-        LLM_BASE_URL = DEFAULT_LLM_BASE_URL
-    config.LLM_BASE_URL = LLM_BASE_URL
-    try:
-        LLM_MODEL = normalize_llm_model(settings.get("llm_model", "") or os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL))
-    except ValueError:
-        LLM_MODEL = DEFAULT_LLM_MODEL
-    config.LLM_MODEL = LLM_MODEL
+    """从设置文件重新加载 LLM 配置（热更新）— 现在由 llm_utils 统一管理"""
+    pass
 
 
 def _reload_bearish_and_negation(settings):

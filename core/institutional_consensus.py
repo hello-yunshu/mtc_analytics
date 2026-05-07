@@ -23,17 +23,13 @@
 import re
 import json
 import os
-import requests
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 _DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
 from .utils import load_json, save_json
-from .llm_utils import (
-    DEFAULT_LLM_BASE_URL, DEFAULT_LLM_MODEL, normalize_llm_base_url,
-    normalize_llm_model, prepare_chat_request,
-)
+from .llm_utils import call_llm
 
 INSTITUTION_PATTERNS = [
     {"keys": ["高盛", "Goldman Sachs", "Goldman"], "name": "高盛", "name_en": "Goldman Sachs", "tier": 1},
@@ -88,37 +84,6 @@ HEADERS = {
 }
 
 _consensus_cache = None
-
-
-def _get_llm_config():
-    settings = load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}
-    api_key_raw = settings.get("llm_api_key", "")
-    from .utils import decrypt_value
-    secret = ""
-    try:
-        from flask import current_app
-        secret = current_app.secret_key or ""
-    except Exception:
-        try:
-            key_data = load_json(os.path.join(_DATA_DIR, ".secret_key"))
-            if key_data and key_data.get("secret_key"):
-                secret = key_data["secret_key"]
-        except Exception:
-            pass
-    api_key = decrypt_value(api_key_raw, secret) if api_key_raw else ""
-    if not api_key:
-        api_key = os.environ.get("LLM_API_KEY", "")
-    try:
-        base_url = normalize_llm_base_url(
-            settings.get("llm_base_url", "") or os.environ.get("LLM_BASE_URL", DEFAULT_LLM_BASE_URL)
-        )
-    except ValueError:
-        base_url = DEFAULT_LLM_BASE_URL
-    try:
-        model = normalize_llm_model(settings.get("llm_model", "") or os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL))
-    except ValueError:
-        model = DEFAULT_LLM_MODEL
-    return api_key, base_url, model, bool(api_key)
 
 
 def _identify_institution(text: str) -> Optional[Dict]:
@@ -207,7 +172,8 @@ def _extract_from_news(news_list: List[Dict]) -> List[Dict]:
 
 
 def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
-    api_key, base_url, model, enabled = _get_llm_config()
+    from .llm_utils import get_llm_config
+    api_key, base_url, model, enabled = get_llm_config()
     if not enabled:
         return []
 
@@ -231,104 +197,81 @@ def _llm_extract_views(news_list: List[Dict]) -> List[Dict]:
 
     inst_names = ",".join(inst["name"] for inst in INSTITUTION_PATTERNS)
 
-    prompt = (
-        f"以下新闻标题可能包含机构对黄金的观点，提取每个机构的观点方向和目标价。\n"
-        f"新闻：\n{titles_text}\n"
-        f"机构列表：{inst_names}\n"
-        f'输出JSON：{{"views":[{{"institution":"机构名","direction":"看多/看空/中性","target_price":3700,"source":"新闻序号"}}]}}\n'
-        f"只输出明确表达观点的机构，忽略无明确观点的。direction只能是看多/看空/中性。target_price为美元/盎司，没有则为null。\n"
-        f"重要：target_price必须是黄金价格（如3200、3500等），绝对不能把年份（如2025、2026）当作目标价！如果新闻中只有年份没有具体价格，target_price设为null。"
-    )
-    messages = [{"role": "user", "content": prompt}]
-    prepared = prepare_chat_request(model, messages, 500, temperature=0.1)
-    if not prepared["ok"]:
-        print(f"  [机构共识] {prepared['reason']}，跳过 LLM 提取")
+    system_msg = {
+        "role": "system",
+        "content": (
+            "你是一位专业的黄金市场机构观点提取专家。从新闻标题中识别机构名称和其对金价的明确观点。"
+            "必须严格输出JSON格式，不要输出其他内容。只提取明确表达观点的机构，忽略无明确观点的。"
+        ),
+    }
+    user_msg = {
+        "role": "user",
+        "content": (
+            "从以下新闻标题中提取机构对黄金的观点方向和目标价：\n"
+            f"新闻：\n{titles_text}\n"
+            f"已知机构列表：{inst_names}\n"
+            '输出JSON：{"views":[{"institution":"机构名","direction":"看多/看空/中性","target_price":3700,"source":"新闻序号"}]}\n'
+            "字段说明：direction只能是看多/看空/中性；target_price为美元/盎司，没有则为null；source为新闻序号\n"
+            "重要约束：target_price必须是黄金价格（如3200、3500等），绝对不能把年份（如2025、2026）当作目标价！如果新闻中只有年份没有具体价格，target_price设为null。"
+        ),
+    }
+    messages = [system_msg, user_msg]
+
+    result = call_llm(messages, category="consensus",
+                      max_tokens=500, temperature=0.1,
+                      timeout=20, log_prefix="机构共识")
+    if result is None:
         return []
-    try:
-        from .model_iteration import _check_token_budget, _get_iteration_data
-        iter_data = _get_iteration_data()
-        if not _check_token_budget(iter_data, prepared["estimated_tokens"]):
-            print("  [机构共识] LLM Token 月度预算已耗尽，跳过 LLM 提取")
-            return []
-    except Exception:
-        pass
-    if prepared["output_was_capped"]:
-        print(f"  [机构共识] max_tokens 已按模型限制调整为 {prepared['max_tokens']}")
 
-    try:
-        resp = requests.post(
-            f"{base_url.rstrip('/')}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=prepared["payload"],
-            timeout=20,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        content = data["choices"][0]["message"]["content"].strip()
+    content = result["content"]
+    tokens_used = result.get("tokens_used", 0)
+    if tokens_used > 0:
+        print(f"  [机构共识] LLM 消耗 {tokens_used} tokens")
 
-        usage = data.get("usage", {})
-        tokens_used = usage.get("total_tokens", 0)
-        if tokens_used > 0:
+    json_match = re.search(r'\{[\s\S]*\}', content)
+    if not json_match:
+        return []
+
+    parsed = json.loads(json_match.group())
+    views = []
+    seen = set()
+    for v in parsed.get("views", []):
+        inst_name = v.get("institution", "")
+        if not inst_name or inst_name in seen:
+            continue
+        direction = v.get("direction", "")
+        if direction not in ("看多", "看空", "中性"):
+            continue
+        target = v.get("target_price")
+        if target is not None:
             try:
-                from .model_iteration import _record_token_usage, _get_iteration_data, _save_iteration_data
-                iter_data = _get_iteration_data()
-                _record_token_usage(iter_data, tokens_used)
-                _save_iteration_data(iter_data)
-            except Exception:
-                pass
-            print(f"  [机构共识] LLM 消耗 {tokens_used} tokens")
-
-        json_match = re.search(r'\{[\s\S]*\}', content)
-        if not json_match:
-            return []
-
-        result = json.loads(json_match.group())
-        views = []
-        seen = set()
-        for v in result.get("views", []):
-            inst_name = v.get("institution", "")
-            if not inst_name or inst_name in seen:
-                continue
-            direction = v.get("direction", "")
-            if direction not in ("看多", "看空", "中性"):
-                continue
-            target = v.get("target_price")
-            if target is not None:
-                try:
-                    target = float(target)
-                    if not (500 <= target <= 10000):
-                        target = None
-                    if target is not None and _YEAR_PATTERN.match(str(int(target))):
-                        target = None
-                except (ValueError, TypeError):
+                target = float(target)
+                if not (500 <= target <= 10000):
                     target = None
+                if target is not None and _YEAR_PATTERN.match(str(int(target))):
+                    target = None
+            except (ValueError, TypeError):
+                target = None
 
-            tier = 2
-            for inst in INSTITUTION_PATTERNS:
-                if inst_name in inst["name"] or inst_name in inst["name_en"]:
-                    tier = inst["tier"]
-                    break
+        tier = 2
+        for inst in INSTITUTION_PATTERNS:
+            if inst_name in inst["name"] or inst_name in inst["name_en"]:
+                tier = inst["tier"]
+                break
 
-            views.append({
-                "institution": inst_name,
-                "institution_en": "",
-                "tier": tier,
-                "direction": direction,
-                "target_price": target,
-                "source_title": f"LLM提取(新闻#{v.get('source', '?')})",
-                "source_link": "",
-                "date": datetime.now().strftime("%Y-%m-%d"),
-            })
-            seen.add(inst_name)
+        views.append({
+            "institution": inst_name,
+            "institution_en": "",
+            "tier": tier,
+            "direction": direction,
+            "target_price": target,
+            "source_title": f"LLM提取(新闻#{v.get('source', '?')})",
+            "source_link": "",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+        })
+        seen.add(inst_name)
 
-        return views
-
-    except Exception as e:
-        print(f"  [机构共识] LLM提取失败: {e}")
-        return []
+    return views
 
 
 def _merge_views(keyword_views: List[Dict], llm_views: List[Dict]) -> List[Dict]:

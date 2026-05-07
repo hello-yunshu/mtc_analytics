@@ -9,22 +9,23 @@ API routes are prefixed with /gold via Blueprint registration.
 import json
 import re
 import os
-import secrets
 import time
 import math
 import threading
 import logging
 from datetime import datetime, timezone
-from functools import wraps
 
 from flask import (
-    render_template, request, jsonify, session, redirect, url_for,
-    Response, stream_with_context, current_app, g
+    render_template, request, jsonify, session,
+    Response, stream_with_context, current_app
 )
-from werkzeug.security import generate_password_hash, check_password_hash
 
 from core.utils import load_json, save_json, encrypt_value, decrypt_value, is_trading_hours
 from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_ENABLED, SENSITIVE_FIELDS, get_telegram_config
+from core.auth import (
+    login_required, csrf_required, generate_csrf_token,
+    verify_password, api_error, get_or_create_default_password,
+)
 from core.llm_utils import (
     DEFAULT_LLM_BASE_URL, DEFAULT_LLM_BUDGET, DEFAULT_LLM_MODEL,
     get_model_token_limits, normalize_llm_base_url, normalize_llm_budget,
@@ -52,8 +53,6 @@ SSE_MAX_CONNECTIONS = 10
 _sse_invalidated_sessions = set()
 _sse_invalidated_lock = threading.Lock()
 
-CSRF_TOKEN_EXPIRY = 3600
-
 _latest_price = {"data": None, "lock": threading.Lock()}
 _last_alert_price = {"value": None, "time": 0, "lock": threading.Lock()}
 _cached_macro = {"data": None, "lock": threading.Lock()}
@@ -69,24 +68,6 @@ PRICE_ALERT_COOLDOWN = 600
 _security_logger = get_security_logger()
 
 
-def _api_ok(**kwargs):
-    result = {"ok": True}
-    result.update(kwargs)
-    return jsonify(result)
-
-
-def _api_error(msg, status=400):
-    return jsonify({"ok": False, "error": msg}), status
-
-
-def _encrypt_value(plaintext: str) -> str:
-    return encrypt_value(plaintext, current_app.secret_key or "")
-
-
-def _decrypt_value(ciphertext: str) -> str:
-    return decrypt_value(ciphertext, current_app.secret_key or "")
-
-
 def _clean_nan(obj):
     if isinstance(obj, dict):
         return {k: _clean_nan(v) for k, v in obj.items()}
@@ -98,42 +79,18 @@ def _clean_nan(obj):
     return obj
 
 
+def _encrypt_value(plaintext: str) -> str:
+    return encrypt_value(plaintext, current_app.secret_key or "")
+
+
+def _decrypt_value(ciphertext: str) -> str:
+    return decrypt_value(ciphertext, current_app.secret_key or "")
+
+
 DATE_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
 
-def _get_or_create_default_password():
-    pw_file = os.path.join(_PROJECT_ROOT, "data", ".default_password")
-    initial_pw_file = os.path.join(_PROJECT_ROOT, "data", ".initial_password")
-    lock_file = pw_file + ".lock"
-    os.makedirs(os.path.dirname(pw_file), exist_ok=True)
-    import fcntl
-    with open(lock_file, "w") as lf:
-        fcntl.flock(lf, fcntl.LOCK_EX)
-        try:
-            existing = load_json(pw_file)
-            if existing and existing.get("password_hash"):
-                return existing["password_hash"]
-            random_pw = secrets.token_urlsafe(12)
-            pw_hash = generate_password_hash(random_pw, method='pbkdf2:sha256')
-            save_json(pw_file, {"password_hash": pw_hash}, private=True)
-            try:
-                with open(initial_pw_file, "w", encoding="utf-8") as f:
-                    f.write(random_pw)
-                os.chmod(initial_pw_file, 0o600)
-            except OSError:
-                pass
-            _security_logger.warning("首次启动 - 已生成随机登录密码: %s", random_pw)
-            print(f"\n{'='*50}")
-            print(f"  首次启动 - 已生成随机登录密码")
-            print(f"  密码: {random_pw}")
-            print(f"  请妥善保存，此密码仅显示一次")
-            print(f"{'='*50}\n")
-            return pw_hash
-        finally:
-            fcntl.flock(lf, fcntl.LOCK_UN)
-
-
-DEFAULT_PASSWORD_HASH = _get_or_create_default_password()
+DEFAULT_PASSWORD_HASH = get_or_create_default_password(os.path.join(_PROJECT_ROOT, "data"))
 
 if len(DEFAULT_PASSWORD_HASH) == 64 and all(c in '0123456789abcdef' for c in DEFAULT_PASSWORD_HASH):
     _security_logger.warning("检测到旧式SHA256密码哈希，请通过Web界面重新设置密码以升级安全性")
@@ -430,45 +387,6 @@ def _invalidate_settings_cache():
     with _settings_cache["lock"]:
         _settings_cache["data"] = None
         _settings_cache["time"] = 0
-
-
-def _verify_password(password, stored_hash):
-    return check_password_hash(stored_hash, password)
-
-
-def _generate_csrf_token():
-    if 'csrf_token' not in session or 'csrf_token_time' not in session:
-        session['csrf_token'] = secrets.token_hex(32)
-        session['csrf_token_time'] = time.time()
-    elif time.time() - session.get('csrf_token_time', 0) > CSRF_TOKEN_EXPIRY:
-        session['csrf_token'] = secrets.token_hex(32)
-        session['csrf_token_time'] = time.time()
-    return session['csrf_token']
-
-
-def _validate_csrf():
-    token = request.headers.get('X-CSRF-Token')
-    if not token or token != session.get('csrf_token'):
-        return False
-    return True
-
-
-def csrf_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not _validate_csrf():
-            return jsonify({"error": "CSRF验证失败"}), 403
-        return f(*args, **kwargs)
-    return decorated
-
-
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not session.get("logged_in"):
-            return jsonify({"error": "未登录"}), 401
-        return f(*args, **kwargs)
-    return decorated
 
 
 def _enrich_report_alerts(content):
@@ -966,12 +884,12 @@ def api_login():
         return jsonify({"ok": False, "error": "密码不能为空"}), 400
     settings = _get_settings()
     pw_hash = settings.get("password_hash", DEFAULT_PASSWORD_HASH)
-    if _verify_password(password, pw_hash):
+    if verify_password(password, pw_hash):
         old_csrf = session.get('csrf_token')
         session.clear()
         session["logged_in"] = True
         session.permanent = True
-        _generate_csrf_token()
+        generate_csrf_token()
         clear_login_attempts(ip)
         _security_logger.info("登录成功: IP=%s", ip)
         return jsonify({"ok": True, "csrf_token": session['csrf_token']})
@@ -998,7 +916,7 @@ def api_check_auth():
     logged_in = session.get("logged_in", False)
     csrf = ""
     if logged_in:
-        csrf = _generate_csrf_token()
+        csrf = generate_csrf_token()
     return jsonify({"logged_in": logged_in, "csrf_token": csrf})
 
 
@@ -1549,10 +1467,6 @@ def api_save_settings():
                 pass
     if "llm_budget" in data:
         settings["llm_budget"] = normalize_llm_budget(data["llm_budget"])
-    elif "iteration_llm_budget" in data:
-        settings["llm_budget"] = normalize_llm_budget(data["iteration_llm_budget"])
-    elif "llm_budget" not in settings and "iteration_llm_budget" in settings:
-        settings["llm_budget"] = normalize_llm_budget(settings["iteration_llm_budget"])
     settings.pop("iteration_llm_budget", None)
 
     float_fields = {
@@ -1579,12 +1493,12 @@ def api_save_settings():
         try:
             settings["llm_base_url"] = normalize_llm_base_url(data["llm_base_url"])
         except ValueError as e:
-            return _api_error(str(e), 400)
+            return api_error(str(e), 400)
     if "llm_model" in data:
         try:
             settings["llm_model"] = normalize_llm_model(data["llm_model"])
         except ValueError as e:
-            return _api_error(str(e), 400)
+            return api_error(str(e), 400)
 
     for field in SENSITIVE_FIELDS:
         if field in data:

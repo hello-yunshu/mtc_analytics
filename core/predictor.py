@@ -188,9 +188,20 @@ class GoldPricePredictor:
 
         llm_reasoning = None
         try:
-            from .model_iteration import generate_llm_reasoning
+            from .llm_utils import generate_llm_reasoning
+            factor_brief = []
+            for key, label in FACTOR_LABELS.items():
+                f = factors.get(key, {})
+                s = f.get("score", 0)
+                if abs(s) >= 0.05:
+                    factor_brief.append(f"{label}:{s:+.1f}")
+            factors_text = " ".join(factor_brief)
             llm_reasoning = generate_llm_reasoning(
-                factors, direction, round(total_score, 2), confidence
+                market_name="黄金",
+                direction=direction,
+                score=round(total_score, 2),
+                confidence=confidence,
+                factors_text=factors_text,
             )
         except Exception:
             pass

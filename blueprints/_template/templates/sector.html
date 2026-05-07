@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ SECTOR_NAME }} - MTC Analytics</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/css/mtc-base.css">
+<style>
+:root {
+  --sector-color: #70a7ff;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) { --sector-color: #2f72d8; }
+}
+:root[data-theme="light"] { --sector-color: #2f72d8; }
+:root[data-theme="dark"] { --sector-color: #70a7ff; }
+
+.sector-header {
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sector-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--sector-color);
+}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<div id="loginOverlay" class="login-overlay" style="display:none">
+  <div class="login-box">
+    <h2>登录</h2>
+    <p>MTC Analytics - {{ SECTOR_NAME }}</p>
+    <div id="loginError" class="login-error"></div>
+    <input type="password" id="loginPassword" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn btn-gold" onclick="doLogin()">登 录</button>
+  </div>
+</div>
+
+<div class="sector-header">
+  <h1>{{ SECTOR_NAME }}</h1>
+  <button class="btn btn-outline btn-sm" onclick="MTC.doLogout()">退出</button>
+</div>
+
+<main style="padding:0 32px 32px;position:relative;z-index:1">
+  <div class="card">
+    <div class="card-title">板块数据</div>
+    <p style="color:var(--text3)">在此处添加板块特有内容...</p>
+  </div>
+</main>
+
+<script src="/static/js/mtc-base.js"></script>
+<script>
+MTC.configure({
+  apiPrefix: '/sector',
+  loginPath: '/sector/api/check_auth',
+  logoutPath: '/gold/api/logout',
+  checkAuthPath: '/sector/api/check_auth',
+  changePasswordPath: '/api/change_password',
+  onAuthChange: function(loggedIn) {
+    document.getElementById('loginOverlay').style.display = loggedIn ? 'none' : 'flex';
+  },
+  onLoginSuccess: function() {
+    MTC.showToast('登录成功');
+  },
+});
+
+function doLogin() {
+  const pwEl = document.getElementById('loginPassword');
+  if (!pwEl) return;
+  MTC.doLogin(pwEl.value).then(function(result) {
+    if (!result.ok) {
+      const errEl = document.getElementById('loginError');
+      if (errEl) { errEl.style.display = 'block'; errEl.textContent = result.error; }
+    }
+  });
+}
+
+MTC.checkAuth();
+</script>
+</body>
+</html>

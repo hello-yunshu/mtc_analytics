@@ -9,7 +9,6 @@ import os
 import re
 import json
 import copy
-import requests
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -20,6 +19,10 @@ from .llm_utils import (
     DEFAULT_LLM_BASE_URL, DEFAULT_LLM_BUDGET, DEFAULT_LLM_MODEL,
     get_model_token_limits, normalize_llm_base_url, normalize_llm_budget,
     normalize_llm_model, prepare_chat_request,
+    validate_llm_json, BUDGET_CATEGORIES, BUDGET_CATEGORY_LABELS,
+    get_category_budget, get_budget_ratios,
+    get_llm_config, get_llm_settings, get_llm_budget,
+    call_llm, get_token_usage, save_token_usage,
 )
 from .db import (
     get_all_prediction_tracking, get_iteration_state,
@@ -152,58 +155,6 @@ def _save_iteration_data(data: Dict):
         "current_weights": data.get("current_weights", {}),
     }
     update_iteration_state(state)
-
-
-def _get_llm_config() -> Tuple[str, str, str, bool]:
-    settings = load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}
-    api_key_raw = settings.get("llm_api_key", "")
-    from .utils import decrypt_value
-    secret = ""
-    try:
-        from flask import current_app
-        secret = current_app.secret_key or ""
-    except Exception:
-        try:
-            key_data = load_json(os.path.join(_DATA_DIR, ".secret_key"))
-            if key_data and key_data.get("secret_key"):
-                secret = key_data["secret_key"]
-        except Exception:
-            pass
-    api_key = decrypt_value(api_key_raw, secret) if api_key_raw else os.environ.get("LLM_API_KEY", "")
-    try:
-        base_url = normalize_llm_base_url(
-            settings.get("llm_base_url", "") or os.environ.get("LLM_BASE_URL", DEFAULT_LLM_BASE_URL)
-        )
-    except ValueError:
-        base_url = DEFAULT_LLM_BASE_URL
-    try:
-        model = normalize_llm_model(settings.get("llm_model", "") or os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL))
-    except ValueError:
-        model = DEFAULT_LLM_MODEL
-    enabled = bool(api_key)
-    return api_key, base_url, model, enabled
-
-
-def _check_token_budget(data: Dict, estimated_tokens: int) -> bool:
-    cfg = _get_config()
-    now = datetime.now()
-    month_key = now.strftime("%Y-%m")
-    usage = data.get("token_usage", {"month": "", "used": 0})
-    if usage.get("month") != month_key:
-        usage = {"month": month_key, "used": 0}
-        data["token_usage"] = usage
-    if int(usage.get("used", 0)) + estimated_tokens > cfg["llm_budget"]:
-        return False
-    return True
-
-
-def _record_token_usage(data: Dict, tokens_used: int):
-    month_key = datetime.now().strftime("%Y-%m")
-    usage = data.get("token_usage", {"month": "", "used": 0})
-    if usage.get("month") != month_key:
-        usage = {"month": month_key, "used": 0}
-    usage["used"] = int(usage.get("used", 0)) + tokens_used
-    data["token_usage"] = usage
 
 
 def _save_weight_snapshot(weights: Dict, reason: str) -> str:
@@ -494,17 +445,20 @@ def rule_based_adjust(factor_stats: Dict, current_weights: Dict) -> Tuple[Dict, 
     return new_weights, reasons
 
 
-def llm_diagnose(tracking: List[Dict], factor_stats: Dict, overall_acc: Dict) -> Optional[Dict]:
+def llm_diagnose(tracking: List[Dict], factor_stats: Dict, overall_acc: Dict, *,
+                 market_name: str = "黄金", factor_labels: Dict = None,
+                 weight_key_map: Dict = None) -> Optional[Dict]:
     """
     使用 LLM 诊断模型失败原因并给出调整建议
     仅在近期准确率低于阈值时触发
     """
     cfg = _get_config()
-    api_key, base_url, model, enabled = _get_llm_config()
+    api_key, base_url, model, enabled = get_llm_config()
     if not enabled:
         return None
 
-    iter_data = _get_iteration_data()
+    _factor_labels = factor_labels or FACTOR_LABELS
+    _weight_key_map = weight_key_map or WEIGHT_KEY_MAP
 
     recent_acc = overall_acc.get("recent_accuracy", 1.0)
     if recent_acc >= cfg["llm_threshold"] and overall_acc.get("accuracy", 1.0) >= cfg["llm_threshold"]:
@@ -522,64 +476,68 @@ def llm_diagnose(tracking: List[Dict], factor_stats: Dict, overall_acc: Dict) ->
         for fk, fv in r.get("factors_summary", {}).items():
             s = fv.get("score", 0)
             if abs(s) >= 0.1:
-                factors_brief.append(f"{FACTOR_LABELS.get(fk, fk)}:{s:+.1f}")
+                factors_brief.append(f"{_factor_labels.get(fk, fk)}:{s:+.1f}")
         cases_text += f"\n{i+1}. 预测{r['prediction']}(置信{r.get('confidence',0)}%) 实际{r['actual_direction']}({r.get('actual_change_pct',0):+.1f}%) 因子:{' '.join(factors_brief)}"
 
     factor_acc_text = ""
     for fk, stats in factor_stats.items():
-        factor_acc_text += f"\n{FACTOR_LABELS.get(fk, fk)}: {stats['accuracy']:.0%}({stats['correct']}/{stats['total']})"
+        factor_acc_text += f"\n{_factor_labels.get(fk, fk)}: {stats['accuracy']:.0%}({stats['correct']}/{stats['total']})"
 
-    prompt = (
-        f"黄金预测模型近期准确率仅{recent_acc:.0%}，分析失败原因并建议权重调整。\n"
-        f"整体准确率:{overall_acc.get('accuracy',0):.0%}\n"
-        f"近期错误案例:{cases_text}\n"
-        f"各因子准确率:{factor_acc_text}\n"
-        f'输出JSON:{{"diagnosis":"1句诊断","suggestions":[{{"factor":"因子名","action":"up/down","reason":"原因"}}],"confidence":0.8}}\n'
-        f"factor必须为: {','.join(WEIGHT_KEY_MAP.keys())}"
+    valid_factors = ",".join(_weight_key_map.keys())
+    system_msg = {
+        "role": "system",
+        "content": (
+            f"你是一位量化模型诊断专家。分析{market_name}预测模型的失败原因，给出因子权重调整建议。"
+            "必须严格输出JSON格式，不要输出其他内容。"
+        ),
+    }
+    user_msg = {
+        "role": "user",
+        "content": (
+            f"{market_name}预测模型近期准确率仅{recent_acc:.0%}，分析失败原因并建议权重调整。\n"
+            f"整体准确率:{overall_acc.get('accuracy',0):.0%}\n"
+            f"近期错误案例:{cases_text}\n"
+            f"各因子准确率:{factor_acc_text}\n"
+            f'输出JSON:{{"diagnosis":"1句诊断","suggestions":[{{"factor":"因子名","action":"up/down","reason":"原因"}}],"confidence":0.8}}\n'
+            f"factor必须为: {valid_factors}\n"
+            "要求：1.diagnosis简洁精准 2.suggestions中reason需说明为何上调或下调 3.confidence为0-1的置信度"
+        ),
+    }
+    messages = [system_msg, user_msg]
+
+    result = call_llm(messages, category="diagnose",
+                      max_tokens=LLM_MAX_TOKENS, temperature=0.2,
+                      timeout=30, log_prefix="迭代")
+    if result is None:
+        return None
+
+    content = result["content"]
+    parsed = validate_llm_json(
+        content,
+        required_keys=["diagnosis", "suggestions", "confidence"],
+        key_types={"diagnosis": str, "suggestions": list, "confidence": (int, float)},
     )
-    messages = [{"role": "user", "content": prompt}]
-    prepared = prepare_chat_request(model, messages, LLM_MAX_TOKENS, temperature=0.2)
-    if not prepared["ok"]:
-        print(f"  [迭代] {prepared['reason']}，跳过 LLM 诊断")
+    if parsed is None:
+        print("  [迭代] LLM 返回格式异常，跳过诊断")
         return None
-    if not _check_token_budget(iter_data, prepared["estimated_tokens"]):
-        print("  [迭代] LLM Token 月度预算已耗尽，跳过 LLM 诊断")
+
+    if not isinstance(parsed.get("suggestions"), list):
+        print("  [迭代] LLM suggestions 格式异常，跳过诊断")
         return None
-    if prepared["output_was_capped"]:
-        print(f"  [迭代] max_tokens 已按模型限制调整为 {prepared['max_tokens']}")
 
-    try:
-        print(f"  [迭代] 正在调用 LLM 诊断模型...")
-        resp = requests.post(
-            f"{base_url.rstrip('/')}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=prepared["payload"],
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
+    for sug in parsed.get("suggestions", []):
+        if not isinstance(sug, dict):
+            continue
+        factor = sug.get("factor", "")
+        if factor not in _weight_key_map:
+            sug["factor"] = ""
+        action = sug.get("action", "")
+        if action not in ("up", "down"):
+            sug["action"] = ""
+    parsed["suggestions"] = [s for s in parsed["suggestions"] if s.get("factor") and s.get("action")]
 
-        usage = data.get("usage", {})
-        tokens_used = usage.get("total_tokens", 1500)
-        _record_token_usage(iter_data, tokens_used)
-        _save_iteration_data(iter_data)
-
-        content = data["choices"][0]["message"]["content"].strip()
-        json_match = re.search(r'\{[\s\S]*\}', content)
-        if not json_match:
-            print("  [迭代] LLM 返回格式异常，跳过诊断")
-            return None
-
-        result = json.loads(json_match.group())
-        print(f"  [迭代] LLM 诊断完成: {result.get('diagnosis', '')[:60]}")
-        return result
-
-    except Exception as e:
-        print(f"  [迭代] LLM 诊断失败: {e}")
-        return None
+    print(f"  [迭代] LLM 诊断完成: {parsed.get('diagnosis', '')[:60]}")
+    return parsed
 
 
 def apply_llm_suggestions(llm_result: Dict, current_weights: Dict) -> Tuple[Dict, List[str]]:
@@ -829,11 +787,12 @@ def run_iteration(force: bool = False) -> Dict:
 
     new_weights, rule_reasons = rule_based_adjust(factor_stats, current_weights)
 
-    api_key, base_url, model, llm_enabled = _get_llm_config()
+    api_key, base_url, model, llm_enabled = get_llm_config()
+    llm_budget = get_llm_budget()
     llm_result = None
     llm_reasons = []
 
-    if llm_enabled and cfg["llm_budget"] > 0:
+    if llm_enabled and llm_budget > 0:
         llm_result = llm_diagnose(tracking, factor_stats, overall_acc)
         if llm_result:
             new_weights, llm_reasons = apply_llm_suggestions(llm_result, new_weights)
@@ -908,9 +867,11 @@ def get_iteration_status() -> Dict:
     overall_acc = compute_overall_accuracy(tracking)
     factor_stats = analyze_factor_accuracy(tracking)
 
-    api_key, _, model, llm_enabled = _get_llm_config()
-    llm_available = llm_enabled and cfg["llm_budget"] > 0
-    llm_limits = get_model_token_limits(model, load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {})
+    api_key, _, model, llm_enabled = get_llm_config()
+    llm_budget = get_llm_budget()
+    llm_available = llm_enabled and llm_budget > 0
+    llm_settings = get_llm_settings()
+    llm_limits = get_model_token_limits(model, llm_settings)
 
     status = {
         "enabled": len(verified) >= cfg["min_samples"],
@@ -936,8 +897,17 @@ def get_iteration_status() -> Dict:
         "mode": "llm+rule" if llm_available else "rule",
         "last_iteration": iter_data.get("last_iteration_date", "从未"),
         "total_iterations": iter_data.get("total_iterations", 0),
-        "token_usage": iter_data.get("token_usage", {"month": "", "used": 0}),
-        "token_budget": cfg["llm_budget"],
+        "token_usage": get_token_usage(),
+        "token_budget": llm_budget,
+        "token_budget_categories": {
+            cat: {
+                "ratio": ratio,
+                "budget": get_category_budget(llm_budget, cat, llm_settings),
+                "used": get_token_usage().get("categories", {}).get(cat, {}).get("used", 0),
+                "label": BUDGET_CATEGORY_LABELS.get(cat, cat),
+            }
+            for cat, ratio in get_budget_ratios(llm_settings).items()
+        },
         "recent_history": iter_data.get("history", [])[-5:],
         "current_weights": iter_data.get("current_weights", {}),
         "pred_threshold": float((load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}).get("pred_threshold", 0.08)),
@@ -1210,75 +1180,3 @@ def rollback_last_iteration() -> Dict:
 
     print(f"  [迭代] 已回滚到快照 {snapshot_name}")
     return {"status": "rolled_back", "snapshot": snapshot_name, "weights": old_weights}
-
-
-REASONING_MAX_TOKENS = 400
-
-
-def generate_llm_reasoning(factors: Dict, direction: str, score: float,
-                           confidence: int) -> Optional[str]:
-    """
-    层次3：LLM 增强的推理生成
-    仅在 LLM 可用且 token 预算充足时调用
-    返回 LLM 生成的推理文本，失败时返回 None（调用方回退到规则模板）
-    """
-    api_key, base_url, model, enabled = _get_llm_config()
-    if not enabled:
-        return None
-
-    iter_data = _get_iteration_data()
-
-    factor_brief = []
-    for key, label in FACTOR_LABELS.items():
-        f = factors.get(key, {})
-        s = f.get("score", 0)
-        if abs(s) >= 0.05:
-            factor_brief.append(f"{label}:{s:+.1f}")
-
-    factors_text = " ".join(factor_brief)
-
-    prompt = (
-        f"黄金预测模型输出：方向{direction}，评分{score:+.2f}，置信度{confidence}%\n"
-        f"因子评分：{factors_text}\n"
-        f"用2-3句中文写一段专业推理，解释为何预测{direction}，需结合关键因子，语言简洁有洞察力。"
-    )
-    messages = [{"role": "user", "content": prompt}]
-    prepared = prepare_chat_request(model, messages, REASONING_MAX_TOKENS, temperature=0.3)
-    if not prepared["ok"]:
-        print(f"  [推理] {prepared['reason']}，使用规则模板")
-        return None
-    if not _check_token_budget(iter_data, prepared["estimated_tokens"]):
-        print("  [推理] LLM Token 预算不足，使用规则模板")
-        return None
-    if prepared["output_was_capped"]:
-        print(f"  [推理] max_tokens 已按模型限制调整为 {prepared['max_tokens']}")
-
-    try:
-        print("  [推理] 正在调用 LLM 生成推理...")
-        resp = requests.post(
-            f"{base_url.rstrip('/')}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=prepared["payload"],
-            timeout=20,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-        usage = data.get("usage", {})
-        tokens_used = usage.get("total_tokens", 800)
-        _record_token_usage(iter_data, tokens_used)
-        _save_iteration_data(iter_data)
-
-        content = data["choices"][0]["message"]["content"].strip()
-        if len(content) < 10:
-            return None
-
-        print(f"  [推理] LLM 推理生成完成（{tokens_used} tokens）")
-        return content
-
-    except Exception as e:
-        print(f"  [推理] LLM 推理生成失败: {e}")
-        return None

@@ -7,15 +7,15 @@ MTC Analytics - 多维度金融分析平台
 """
 
 import os
-import re
 import secrets
 import logging
 import time
 
 from flask import Flask, render_template, request, jsonify, session
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 
 from core.config import SENSITIVE_FIELDS
+from core.auth import validate_new_password
 from core.llm_utils import (
     DEFAULT_LLM_BASE_URL, DEFAULT_LLM_BUDGET, DEFAULT_LLM_MODEL,
     get_model_token_limits, normalize_llm_base_url, normalize_llm_budget,
@@ -136,16 +136,9 @@ def create_app():
         new_pw = str(data.get("new_password", ""))
         confirm_pw = str(data.get("new_password_confirm", ""))
 
-        if not new_pw:
-            return jsonify({"ok": False, "error": "密码不能为空"}), 400
-        if len(new_pw) < 8:
-            return jsonify({"ok": False, "error": "密码长度至少8位"}), 400
-        if not re.search(r'[A-Za-z]', new_pw):
-            return jsonify({"ok": False, "error": "密码必须包含英文字母"}), 400
-        if not (re.search(r'[0-9]', new_pw) or re.search(r'[^A-Za-z0-9]', new_pw)):
-            return jsonify({"ok": False, "error": "密码必须包含数字或标点符号"}), 400
-        if new_pw != confirm_pw:
-            return jsonify({"ok": False, "error": "两次输入的密码不一致"}), 400
+        err = validate_new_password(new_pw, confirm_pw)
+        if err:
+            return jsonify({"ok": False, "error": err}), 400
 
         settings = load_json(SETTINGS_FILE)
         if not settings:
@@ -195,6 +188,9 @@ def create_app():
         result["llm_context_window"] = llm_limits["context_window"]
         result["llm_max_output_tokens"] = llm_limits["max_output_tokens"]
         result["llm_model_known"] = llm_limits["known"]
+        result["llm_budget_ratios"] = settings.get("llm_budget_ratios", {})
+        result["iteration_llm_threshold"] = float(settings.get("iteration_llm_threshold", 0.4))
+        result["llm_reasoning_interval"] = int(settings.get("llm_reasoning_interval", 6))
         result["telegram_chat_id"] = settings.get("telegram_chat_id", "")
         result["run_mode"] = settings.get("run_mode", os.environ.get("RUN_MODE", "web+schedule"))
         return jsonify(result)
@@ -225,6 +221,33 @@ def create_app():
         elif "llm_budget" not in settings and "iteration_llm_budget" in settings:
             settings["llm_budget"] = normalize_llm_budget(settings["iteration_llm_budget"])
         settings.pop("iteration_llm_budget", None)
+        if "llm_budget_ratios" in data:
+            ratios = data["llm_budget_ratios"]
+            if isinstance(ratios, dict):
+                valid_cats = {"diagnose", "reasoning", "news", "consensus"}
+                clean = {}
+                for cat in valid_cats:
+                    if cat in ratios:
+                        try:
+                            v = float(ratios[cat])
+                            if 0 <= v <= 1:
+                                clean[cat] = v
+                        except (TypeError, ValueError):
+                            pass
+                if clean:
+                    settings["llm_budget_ratios"] = clean
+        if "iteration_llm_threshold" in data:
+            try:
+                v = float(data["iteration_llm_threshold"])
+                settings["iteration_llm_threshold"] = max(0.1, min(0.8, v))
+            except (TypeError, ValueError):
+                pass
+        if "llm_reasoning_interval" in data:
+            try:
+                v = int(data["llm_reasoning_interval"])
+                settings["llm_reasoning_interval"] = max(1, min(72, v))
+            except (TypeError, ValueError):
+                pass
         if "run_mode" in data:
             valid_modes = {"web", "schedule", "realtime", "web+schedule", "web+realtime"}
             mode = str(data["run_mode"]).strip()
