@@ -353,6 +353,10 @@ body::after {
 .dual-col-grid > div {
   margin-bottom: 0;
 }
+.dual-col-grid > .span-full,
+.mobile-stack > .span-full {
+  grid-column: 1 / -1;
+}
 
 .card-title {
   font-size: 13px;
@@ -1462,10 +1466,13 @@ function renderDashSummary(p) {
     html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">🔔 全维度警示详情</div>`;
     html += `<div class="dual-col-grid">`;
-    for (const [dimName, dimAlerts] of Object.entries(dimGroups)) {
+    const dimEntries = Object.entries(dimGroups);
+    for (let di = 0; di < dimEntries.length; di++) {
+      const [dimName, dimAlerts] = dimEntries[di];
       const hasHigh = dimAlerts.some(a => a.level === 'critical' || a.level === 'high');
       const dimColor = hasHigh ? 'var(--bull)' : dimAlerts.some(a => a.level === 'medium') ? 'var(--gold)' : 'var(--text3)';
-      html += `<div style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${dimColor}">`;
+      const isLastOdd = di === dimEntries.length - 1 && dimEntries.length % 2 === 1;
+      html += `<div ${isLastOdd ? 'class="span-full"' : ''} style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${dimColor}">`;
       html += `<div style="font-size:12px;font-weight:600;color:${dimColor};margin-bottom:6px">${dimName}<span style="color:var(--text3);font-weight:400;margin-left:6px">${dimAlerts.length}个</span></div>`;
       for (const a of dimAlerts) {
         const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.18);color:var(--bull);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.12);color:var(--bull);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(245,158,11,0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(100,116,139,0.1);color:var(--text3);margin-right:4px">低</span>';
@@ -1521,24 +1528,24 @@ function renderDashSummary(p) {
   }
 
   if (p.bullSignals.length || p.bearSignals.length || p.neutralSignals.length) {
+    const signalCount = (p.bullSignals.length ? 1 : 0) + (p.bearSignals.length ? 1 : 0) + (p.neutralSignals.length ? 1 : 0);
     html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">📊 信号汇总</div>`;
     html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
     if (p.bullSignals.length) {
-      html += `<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bull);border-radius:8px;padding:14px 16px">`;
+      html += `<div ${signalCount === 1 ? 'class="span-full"' : ''} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bull);border-radius:8px;padding:14px 16px">`;
       html += `<div style="font-size:12px;color:var(--bull);margin-bottom:8px;font-weight:700">🔴 利多（${p.bullSignals.length}）</div>`;
       p.bullSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
     if (p.bearSignals.length) {
-      html += `<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bear);border-radius:8px;padding:14px 16px">`;
+      html += `<div ${signalCount === 1 ? 'class="span-full"' : ''} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bear);border-radius:8px;padding:14px 16px">`;
       html += `<div style="font-size:12px;color:var(--bear);margin-bottom:8px;font-weight:700">🟢 利空（${p.bearSignals.length}）</div>`;
       p.bearSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
-    html += `</div>`;
     if (p.neutralSignals.length) {
-      html += `<div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--text3);border-radius:8px;padding:14px 16px;margin-top:12px">`;
+      html += `<div ${signalCount === 3 || signalCount === 1 ? 'class="span-full"' : ''} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--text3);border-radius:8px;padding:14px 16px">`;
       html += `<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:700">⚪ 中性（${p.neutralSignals.length}）</div>`;
       p.neutralSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5">• ${escHtml(s)}</div>`; });
       html += `</div>`;
@@ -2285,8 +2292,8 @@ function scrollToAlertSection() {
   setTimeout(() => { el.style.boxShadow = ''; }, 2500);
 }
 
-function subCard(title, accentColor, innerHtml) {
-  return `<div class="sub-card" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${accentColor};border-radius:8px;padding:12px 14px;margin-bottom:10px">` +
+function subCard(title, accentColor, innerHtml, extraClass) {
+  return `<div class="sub-card${extraClass ? ' ' + extraClass : ''}" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${accentColor};border-radius:8px;padding:12px 14px;margin-bottom:10px">` +
     `<div style="font-size:13px;font-weight:700;color:${accentColor};margin-bottom:8px">${title}</div>` +
     innerHtml +
     `</div>`;
@@ -2506,7 +2513,7 @@ function renderPredictionSection(text) {
       micro: { label: '微观', icon: '🔍', color: '#06b6d4' },
       calendar: { label: '日历', icon: '📅', color: '#6366f1' },
     };
-    let factorGroupHtml = '';
+    let factorGroupItems = [];
     for (const [gk, gc] of Object.entries(groupConfig)) {
       const gFactors = (ps.factor_groups || {})[gk] || [];
       if (!gFactors.length) continue;
@@ -2522,10 +2529,14 @@ function renderPredictionSection(text) {
         fgInner += `<span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:${fColor};min-width:36px;text-align:right">${f.score >= 0 ? '+' : ''}${f.score.toFixed(1)}</span>`;
         fgInner += `</div>`;
       }
-      factorGroupHtml += subCard(gc.icon + ' ' + gc.label, gc.color, fgInner);
+      factorGroupItems.push(subCard(gc.icon + ' ' + gc.label, gc.color, fgInner));
     }
-    if (factorGroupHtml) {
-      html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${factorGroupHtml}</div>`;
+    if (factorGroupItems.length) {
+      if (factorGroupItems.length % 2 === 1) {
+        const lastIdx = factorGroupItems.length - 1;
+        factorGroupItems[lastIdx] = factorGroupItems[lastIdx].replace('class="sub-card"', 'class="sub-card span-full"');
+      }
+      html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${factorGroupItems.join('')}</div>`;
     }
 
     if (ps.llm_reasoning) {
@@ -2568,7 +2579,7 @@ function renderPredictionSection(text) {
       html += subCard('📊 预测方向', 'var(--gold)', dirHtml);
     }
 
-    let fallbackFactorHtml = '';
+    let fallbackFactorItems = [];
     for (const fg of factorGroups) {
       const colonIdx = fg.text.indexOf('：');
       const groupLabel = colonIdx >= 0 ? fg.text.substring(0, colonIdx) : fg.text.split('：')[0];
@@ -2596,10 +2607,14 @@ function renderPredictionSection(text) {
       } else {
         fgInner = `<div style="font-size:12px;color:var(--text3)">${escHtml(fg.text)}</div>`;
       }
-      fallbackFactorHtml += subCard(groupLabel, fg.color, fgInner);
+      fallbackFactorItems.push(subCard(groupLabel, fg.color, fgInner));
     }
-    if (fallbackFactorHtml) {
-      html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${fallbackFactorHtml}</div>`;
+    if (fallbackFactorItems.length) {
+      if (fallbackFactorItems.length % 2 === 1) {
+        const lastIdx = fallbackFactorItems.length - 1;
+        fallbackFactorItems[lastIdx] = fallbackFactorItems[lastIdx].replace('class="sub-card"', 'class="sub-card span-full"');
+      }
+      html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${fallbackFactorItems.join('')}</div>`;
     }
 
   if (detailLines.length) {
@@ -2914,13 +2929,15 @@ function renderTechnicalSection(text) {
 
   if (subSections.length) {
     html += `<div class="dual-col-grid">`;
-    for (const sec of subSections) {
+    for (let i = 0; i < subSections.length; i++) {
+      const sec = subSections[i];
       const accentColor = subColors[sec.header] || 'var(--text2)';
       let inner = '';
       for (const l of sec.lines) {
         inner += colorizeLine(l, accentColor);
       }
-      html += subCard(sec.header, accentColor, inner);
+      const isLastOdd = i === subSections.length - 1 && subSections.length % 2 === 1;
+      html += subCard(sec.header, accentColor, inner, isLastOdd ? 'span-full' : '');
     }
     html += `</div>`;
   }
@@ -2988,29 +3005,35 @@ function renderHoldingsSection(text) {
 
   if (subSections.length) {
     html += `<div class="dual-col-grid">`;
-    for (const sec of subSections) {
+    const brokerSection = subSections.find(s => s.header === '📋 机构详细');
+    const otherSections = subSections.filter(s => s.header !== '📋 机构详细');
+
+    if (brokerSection) {
+      const accentColor = subColors[brokerSection.header] || 'var(--text2)';
+      let inner = '';
+      let inBroker = false;
+      for (const l of brokerSection.lines) {
+        const brokerMatch = l.match(/^\d+\.\s+(.+)/);
+        if (brokerMatch) {
+          if (inBroker) inner += `</div>`;
+          inner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:6px">`;
+          inner += `<div style="font-size:13px;font-weight:600;color:var(--text)">${escHtml(brokerMatch[1])}</div>`;
+          inBroker = true;
+        } else if (l.includes('多头:') || l.includes('净多头:')) {
+          const isUp = l.includes('🔴');
+          const isDown = l.includes('🟢');
+          const color = isUp ? 'var(--bull)' : isDown ? 'var(--bear)' : 'var(--text2)';
+          inner += `<div style="font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:3px">${escHtml(l.replace(/[🟢🔴⚪]/g, ''))} <span style="color:${color};font-weight:600">${isUp ? '↑' : isDown ? '↓' : '→'}</span></div>`;
+        }
+      }
+      if (inBroker) inner += `</div>`;
+      html += subCard(brokerSection.header, accentColor, inner, 'span-full');
+    }
+
+    for (const sec of otherSections) {
       const accentColor = subColors[sec.header] || 'var(--text2)';
 
-      if (sec.header === '📋 机构详细') {
-        let inner = '';
-        let inBroker = false;
-        for (const l of sec.lines) {
-          const brokerMatch = l.match(/^\d+\.\s+(.+)/);
-          if (brokerMatch) {
-            if (inBroker) inner += `</div>`;
-            inner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:6px">`;
-            inner += `<div style="font-size:13px;font-weight:600;color:var(--text)">${escHtml(brokerMatch[1])}</div>`;
-            inBroker = true;
-          } else if (l.includes('多头:') || l.includes('净多头:')) {
-            const isUp = l.includes('🔴');
-            const isDown = l.includes('🟢');
-            const color = isUp ? 'var(--bull)' : isDown ? 'var(--bear)' : 'var(--text2)';
-            inner += `<div style="font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:3px">${escHtml(l.replace(/[🟢🔴⚪]/g, ''))} <span style="color:${color};font-weight:600">${isUp ? '↑' : isDown ? '↓' : '→'}</span></div>`;
-          }
-        }
-        if (inBroker) inner += `</div>`;
-        html += subCard(sec.header, accentColor, inner);
-      } else if (sec.header === '📅 中长期持仓趋势') {
+      if (sec.header === '📅 中长期持仓趋势') {
         let inner = '';
         for (const l of sec.lines) {
           if (l.includes('近') && (l.includes('日 📈') || l.includes('日 📉') || l.includes('日 ➡️') || l.includes('日 '))) {
@@ -3078,13 +3101,15 @@ function renderCbEtfSection(text) {
 
   if (subSections.length) {
     html += `<div class="dual-col-grid">`;
-    for (const sec of subSections) {
+    for (let i = 0; i < subSections.length; i++) {
+      const sec = subSections[i];
       const accentColor = subColors[sec.header] || 'var(--text2)';
       let inner = '';
       for (const l of sec.lines) {
         inner += colorizeLine(l, accentColor);
       }
-      html += subCard(sec.header, accentColor, inner);
+      const isLastOdd = i === subSections.length - 1 && subSections.length % 2 === 1;
+      html += subCard(sec.header, accentColor, inner, isLastOdd ? 'span-full' : '');
     }
     html += `</div>`;
   }
