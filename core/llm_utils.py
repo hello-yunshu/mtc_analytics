@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 
 DEFAULT_LLM_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_LLM_MODEL = "gpt-4o-mini"
-DEFAULT_LLM_BUDGET = 10000
+DEFAULT_LLM_BUDGET = 50000
 MAX_GLOBAL_LLM_BUDGET = 500000
 
 FALLBACK_CONTEXT_WINDOW = 32000

@@ -3897,7 +3897,6 @@ async function runNow() {
 }
 
 let _regenTimer = null;
-let _regenStartMtime = 0;
 async function regenerateReport() {
   if (!isLoggedIn()) return;
   const btn = document.getElementById('btnRegenerate');
@@ -3905,11 +3904,6 @@ async function regenerateReport() {
   const resetBtn = () => { if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新生成报告'; } };
   if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 生成中...'; }
   if (badge) { badge.style.display = 'inline'; badge.style.background = '#fef3cd'; badge.style.color = '#856404'; badge.textContent = '⏳ 生成中'; }
-  try {
-    const histRes = await api('/gold/api/report_history');
-    const histData = await histRes.json();
-    _regenStartMtime = (histData.mtimes && histData.mtimes[0]) || 0;
-  } catch(e) {}
   showToast('正在重新生成报告，请稍候...');
   try {
     const res = await api('/gold/api/run_now', {method:'POST'});

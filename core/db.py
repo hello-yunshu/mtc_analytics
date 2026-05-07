@@ -950,17 +950,6 @@ def insert_report(date: str, content: str) -> int:
             conn.close()
 
 
-def delete_report(report_id: int) -> bool:
-    with _db_lock:
-        conn = _get_conn()
-        try:
-            cursor = conn.execute("DELETE FROM reports WHERE id = ?", (report_id,))
-            conn.commit()
-            return cursor.rowcount > 0
-        finally:
-            conn.close()
-
-
 def delete_report_by_date(date: str) -> bool:
     with _db_lock:
         conn = _get_conn()
@@ -1371,7 +1360,7 @@ def migrate_from_json():
                     with open(fpath, "r", encoding="utf-8") as f:
                         content = f.read()
                     if content:
-                        upsert_report(d, content)
+                        insert_report(d, content)
                 except Exception:
                     pass
         print("  迁移报告文件")
