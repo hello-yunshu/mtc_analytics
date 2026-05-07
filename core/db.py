@@ -937,7 +937,6 @@ def insert_report(date: str, content: str) -> int:
     with _db_lock:
         conn = _get_conn()
         try:
-            conn.execute("DELETE FROM reports WHERE date = ?", (date,))
             cursor = conn.execute(
                 "INSERT INTO reports (date, content, created_at) VALUES (?,?,?)",
                 (date, content, datetime.now().isoformat())
@@ -1018,14 +1017,17 @@ def get_report_dates_by_gen(days: int = 30) -> List[Dict]:
                 "SELECT id, date, created_at FROM reports WHERE date >= ? ORDER BY created_at DESC",
                 (cutoff,)
             ).fetchall()
+            seen = set()
             result = []
             for r in rows:
-                result.append({
-                    "id": r["id"],
-                    "gen_date": r["created_at"][:10],
-                    "data_date": r["date"],
-                    "gen_time": r["created_at"][:19].replace("T", " "),
-                })
+                if r["date"] not in seen:
+                    seen.add(r["date"])
+                    result.append({
+                        "id": r["id"],
+                        "gen_date": r["created_at"][:10],
+                        "data_date": r["date"],
+                        "gen_time": r["created_at"][:19].replace("T", " "),
+                    })
             return result
         finally:
             conn.close()
