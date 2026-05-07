@@ -1709,46 +1709,40 @@ async function loadReportHistory() {
   const tabBar = document.getElementById('reportTabs');
   if (!tabBar) return;
   tabBar.innerHTML = '';
-  const ids = data.ids || [];
   const dates = data.dates || [];
   const dataDates = data.data_dates || [];
   const genTimes = data.gen_times || [];
-  ids.forEach((rid, i) => {
-    const d = dates[i];
+  dates.forEach((d, i) => {
     const dd = dataDates[i];
     const gt = genTimes[i] || '';
-    const sameDayCount = dataDates.filter((x,j) => j <= i && x === dd).length;
     const wrapper = document.createElement('div');
     wrapper.className = 'tab-wrapper';
     const btn = document.createElement('button');
     btn.className = 'tab-btn' + (i===0?' active':'');
-    let label = dd.substring(5);
-    if (dd !== d) label += `(${d.substring(5)})`;
-    if (sameDayCount > 1) label += ` #${sameDayCount}`;
-    btn.textContent = label;
+    btn.textContent = dd.substring(5);
     btn.title = `数据日期: ${dd}\n生成时间: ${gt || '未知'}`;
     btn.onclick = () => {
       tabBar.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
-      loadReportById(rid);
+      loadReport(dd);
     };
     const delBtn = document.createElement('button');
     delBtn.className = 'tab-del';
     delBtn.title = '删除此报告';
     delBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    delBtn.onclick = (e) => { e.stopPropagation(); deleteReport(rid, dd); };
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteReport(dd); };
     wrapper.appendChild(btn);
     wrapper.appendChild(delBtn);
     tabBar.appendChild(wrapper);
   });
-  if (ids.length > 0) loadReportById(ids[0]);
+  if (dates.length > 0) loadReport(dataDates[0]);
   checkTaskStatus();
   } catch(e) { console.error('loadReportHistory error', e); }
 }
 
-async function loadReportById(reportId) {
+async function loadReport(date) {
   try {
-  const res = await api('/gold/api/report_by_id/'+reportId);
+  const res = await api('/gold/api/report_by_date/'+date);
   if (!res.ok) return;
   const data = await res.json();
   const content = data.content || '';
@@ -3966,12 +3960,11 @@ async function regenerateReport() {
   }, 5000);
 }
 
-async function deleteReport(reportId, dataDate) {
+async function deleteReport(dataDate) {
   if (!isLoggedIn()) return;
-  const label = dataDate || '';
-  if (!confirm(`确定要删除 ${label} 的报告吗？此操作不可撤销。`)) return;
+  if (!confirm(`确定要删除 ${dataDate} 的报告吗？此操作不可撤销。`)) return;
   try {
-    const res = await api('/gold/api/report_delete/' + reportId, {method:'POST'});
+    const res = await api('/gold/api/report_delete/' + dataDate, {method:'POST'});
     const data = await res.json();
     if (data.ok) {
       showToast(data.message || '报告已删除');

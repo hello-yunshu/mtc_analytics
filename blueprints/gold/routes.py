@@ -1641,21 +1641,20 @@ def api_task_status():
     return jsonify(result)
 
 
-@gold_bp.route("/api/report_delete/<int:report_id>", methods=["POST"])
+@gold_bp.route("/api/report_delete/<date_str>", methods=["POST"])
 @login_required
 @csrf_required
-def api_report_delete(report_id):
+def api_report_delete(date_str):
+    if not DATE_PATTERN.match(date_str):
+        return jsonify({"ok": False, "error": "日期格式无效"}), 400
     try:
-        report = db.get_report_by_id(report_id)
-        if not report:
-            return jsonify({"ok": False, "error": "报告不存在"}), 404
-        deleted = db.delete_report(report_id)
-        report_file = os.path.join(REPORTS_DIR, f"report_{report['date']}.txt")
+        deleted = db.delete_report_by_date(date_str)
+        report_file = os.path.join(REPORTS_DIR, f"report_{date_str}.txt")
         if os.path.exists(report_file):
             os.remove(report_file)
         if deleted:
-            return jsonify({"ok": True, "message": f"报告已删除"})
-        return jsonify({"ok": False, "error": "删除失败"}), 500
+            return jsonify({"ok": True, "message": f"报告 {date_str} 已删除"})
+        return jsonify({"ok": False, "error": f"报告 {date_str} 不存在"}), 404
     except Exception as e:
         return jsonify({"ok": False, "error": f"删除失败: {e}"}), 500
 

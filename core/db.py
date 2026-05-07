@@ -937,6 +937,7 @@ def insert_report(date: str, content: str) -> int:
     with _db_lock:
         conn = _get_conn()
         try:
+            conn.execute("DELETE FROM reports WHERE date = ?", (date,))
             cursor = conn.execute(
                 "INSERT INTO reports (date, content, created_at) VALUES (?,?,?)",
                 (date, content, datetime.now().isoformat())
