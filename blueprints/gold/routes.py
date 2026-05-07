@@ -1569,18 +1569,26 @@ def api_run_now():
             _task_state["finished_at"] = None
             _task_state["error"] = None
             _task_state["report_date"] = None
+        report_date = datetime.now().strftime("%Y-%m-%d")
         try:
             from main import run_daily_task
             result = run_daily_task()
             with _task_state["lock"]:
                 _task_state["status"] = "completed"
                 _task_state["finished_at"] = time.time()
-                _task_state["report_date"] = datetime.now().strftime("%Y-%m-%d")
+                _task_state["report_date"] = report_date
         except Exception as e:
             with _task_state["lock"]:
                 _task_state["status"] = "failed"
                 _task_state["finished_at"] = time.time()
                 _task_state["error"] = str(e)
+            try:
+                db.delete_report(report_date)
+                report_file = os.path.join(REPORTS_DIR, f"report_{report_date}.txt")
+                if os.path.exists(report_file):
+                    os.remove(report_file)
+            except Exception:
+                pass
 
     try:
         import threading
@@ -1606,6 +1614,14 @@ def api_task_status():
                 _task_state["error"] = "任务超时，已标记为中断"
                 _task_state["finished_at"] = time.time()
             status = "interrupted"
+            report_date = state.get("report_date") or datetime.now().strftime("%Y-%m-%d")
+            try:
+                db.delete_report(report_date)
+                report_file = os.path.join(REPORTS_DIR, f"report_{report_date}.txt")
+                if os.path.exists(report_file):
+                    os.remove(report_file)
+            except Exception:
+                pass
     result = {
         "status": status,
         "started_at": datetime.fromtimestamp(started_at).isoformat() if started_at else None,

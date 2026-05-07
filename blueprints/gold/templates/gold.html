@@ -353,6 +353,18 @@
 }
 .tab-btn:hover { border-color: var(--gold); color: var(--text); background: rgba(246,199,104,0.08); }
 .tab-btn.active { background: linear-gradient(135deg, rgba(246,199,104,0.45), rgba(255,240,180,0.3)); color: var(--gold); border-color: rgba(246,199,104,0.35); text-shadow: 0 0 12px rgba(246,199,104,0.25); }
+.tab-del {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; margin-left: -4px;
+  padding: 0; border: none; border-radius: 6px;
+  background: transparent; color: var(--text3);
+  cursor: pointer; transition: all 0.2s ease; opacity: 0;
+  font-size: 0; line-height: 0;
+}
+.tab-del svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2; fill: none; }
+.tab-wrapper:hover .tab-del { opacity: 0.5; }
+.tab-del:hover { opacity: 1 !important; background: rgba(231,76,60,0.12); color: #e74c3c; }
+.tab-wrapper { display: inline-flex; align-items: center; gap: 2px; }
 
 /* ===== Toast ===== */
 
@@ -591,7 +603,7 @@
         </div>
       </div>
 
-      <div class="tab-bar" id="reportTabs" style="position:relative"></div>
+      <div class="tab-bar" id="reportTabs"></div>
 
       <div id="reportContent">加载中...</div>
     </div>
@@ -1713,7 +1725,7 @@ async function loadReportHistory() {
   dates.forEach((d, i) => {
     const dd = dataDates[i];
     const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'display:inline-flex;align-items:center;gap:2px';
+    wrapper.className = 'tab-wrapper';
     const btn = document.createElement('button');
     btn.className = 'tab-btn' + (i===0?' active':'');
     btn.textContent = d.substring(5) + (dd !== d ? `(${dd.substring(5)}数据)` : '');
@@ -1724,12 +1736,9 @@ async function loadReportHistory() {
       loadReport(dd);
     };
     const delBtn = document.createElement('button');
-    delBtn.className = 'tab-btn';
-    delBtn.style.cssText = 'padding:4px 6px;font-size:11px;color:var(--text3);border:none;background:none;cursor:pointer;opacity:0.4;transition:opacity 0.2s';
-    delBtn.innerHTML = '✕';
+    delBtn.className = 'tab-del';
     delBtn.title = '删除此报告';
-    delBtn.onmouseenter = () => { delBtn.style.opacity='1'; delBtn.style.color='var(--danger,#e74c3c)'; };
-    delBtn.onmouseleave = () => { delBtn.style.opacity='0.4'; delBtn.style.color='var(--text3)'; };
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     delBtn.onclick = (e) => { e.stopPropagation(); deleteReport(dd, d); };
     wrapper.appendChild(btn);
     wrapper.appendChild(delBtn);
