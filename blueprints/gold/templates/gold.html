@@ -345,16 +345,16 @@
 .tab-btn.active { background: rgba(246,199,104,0.35); color: var(--gold); border-color: rgba(246,199,104,0.35); }
 .tab-del {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; margin-left: -4px;
-  padding: 0; border: none; border-radius: 6px;
+  width: 20px; height: 20px; margin-left: 2px;
+  padding: 0; border: none; border-radius: 5px;
   background: transparent; color: var(--text3);
   cursor: pointer; transition: all 0.2s ease; opacity: 0;
-  font-size: 0; line-height: 0;
+  font-size: 0; line-height: 0; flex-shrink: 0;
 }
-.tab-del svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2; fill: none; }
-.tab-wrapper:hover .tab-del { opacity: 0.5; }
+.tab-del svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2.2; fill: none; }
+.tab-wrapper:hover .tab-del { opacity: 0.45; }
 .tab-del:hover { opacity: 1 !important; background: rgba(231,76,60,0.12); color: #e74c3c; }
-.tab-wrapper { display: inline-flex; align-items: center; gap: 2px; }
+.tab-wrapper { display: inline-flex; align-items: center; }
 
 /* ===== Toast ===== */
 
@@ -852,11 +852,11 @@
           <div class="form-grid">
             <div class="form-group">
               <label>利多关键词（逗号分隔，格式：关键词:权重）</label>
-              <textarea id="setBullishKw" rows="4" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical" placeholder="降息:1.5,宽松:1.0,避险:1.3,..."></textarea>
+              <textarea id="setBullishKw" rows="4" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.055);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical" placeholder="降息:1.5,宽松:1.0,避险:1.3,..."></textarea>
             </div>
             <div class="form-group">
               <label>利空关键词（逗号分隔，格式：关键词:权重）</label>
-              <textarea id="setBearishKw" rows="4" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical" placeholder="加息:1.5,收紧:1.2,抛售:1.3,..."></textarea>
+              <textarea id="setBearishKw" rows="4" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.055);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical" placeholder="加息:1.5,收紧:1.2,抛售:1.3,..."></textarea>
             </div>
           </div>
           <div class="form-group">
@@ -1709,39 +1709,42 @@ async function loadReportHistory() {
   const tabBar = document.getElementById('reportTabs');
   if (!tabBar) return;
   tabBar.innerHTML = '';
+  const ids = data.ids || [];
   const dates = data.dates || [];
   const dataDates = data.data_dates || [];
-  const mtimes = data.mtimes || [];
-  dates.forEach((d, i) => {
+  const genTimes = data.gen_times || [];
+  ids.forEach((rid, i) => {
+    const d = dates[i];
     const dd = dataDates[i];
+    const gt = genTimes[i] || '';
     const wrapper = document.createElement('div');
     wrapper.className = 'tab-wrapper';
     const btn = document.createElement('button');
     btn.className = 'tab-btn' + (i===0?' active':'');
-    btn.textContent = d.substring(5) + (dd !== d ? `(${dd.substring(5)}数据)` : '');
-    btn.title = `生成日期: ${d}\n数据日期: ${dd}\n生成时间: ${mtimes[i] || '未知'}`;
+    btn.textContent = d.substring(5) + (dd !== d ? `(${dd.substring(5)})` : '');
+    btn.title = `数据日期: ${dd}\n生成时间: ${gt || '未知'}`;
     btn.onclick = () => {
       tabBar.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
-      loadReport(dd);
+      loadReportById(rid);
     };
     const delBtn = document.createElement('button');
     delBtn.className = 'tab-del';
     delBtn.title = '删除此报告';
     delBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    delBtn.onclick = (e) => { e.stopPropagation(); deleteReport(dd, d); };
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteReport(rid, dd); };
     wrapper.appendChild(btn);
     wrapper.appendChild(delBtn);
     tabBar.appendChild(wrapper);
   });
-  if (dates.length > 0) loadReport(dataDates[0]);
+  if (ids.length > 0) loadReportById(ids[0]);
   checkTaskStatus();
   } catch(e) { console.error('loadReportHistory error', e); }
 }
 
-async function loadReport(date) {
+async function loadReportById(reportId) {
   try {
-  const res = await api('/gold/api/report_by_date/'+date);
+  const res = await api('/gold/api/report_by_id/'+reportId);
   if (!res.ok) return;
   const data = await res.json();
   const content = data.content || '';
@@ -3959,12 +3962,12 @@ async function regenerateReport() {
   }, 5000);
 }
 
-async function deleteReport(dataDate, genDate) {
+async function deleteReport(reportId, dataDate) {
   if (!isLoggedIn()) return;
-  const label = genDate || dataDate;
+  const label = dataDate || '';
   if (!confirm(`确定要删除 ${label} 的报告吗？此操作不可撤销。`)) return;
   try {
-    const res = await api('/gold/api/report_delete/' + dataDate, {method:'POST'});
+    const res = await api('/gold/api/report_delete/' + reportId, {method:'POST'});
     const data = await res.json();
     if (data.ok) {
       showToast(data.message || '报告已删除');

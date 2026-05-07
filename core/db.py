@@ -312,6 +312,7 @@ def init_db():
             _migrate_prediction_tracking_schema(conn)
             _migrate_gold_prices_schema(conn)
             _migrate_macro_indicators_schema(conn)
+            _migrate_reports_schema(conn)
         finally:
             conn.close()
 
@@ -387,6 +388,27 @@ def _migrate_macro_indicators_schema(conn):
             conn.commit()
     except Exception:
         pass
+
+
+def _migrate_reports_schema(conn):
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(reports)").fetchall()]
+    if "id" not in cols:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS reports_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                content TEXT,
+                created_at TEXT
+            )
+        """)
+        conn.execute("""
+            INSERT INTO reports_new (date, content, created_at)
+            SELECT date, content, created_at FROM reports
+        """)
+        conn.execute("DROP TABLE reports")
+        conn.execute("ALTER TABLE reports_new RENAME TO reports")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_reports_date ON reports(date)")
+        conn.commit()
 
 
 def cleanup():
@@ -911,20 +933,32 @@ def get_technical_analysis_history(days: int = 30) -> List[Dict]:
 
 # ==================== 报告 ====================
 
-def upsert_report(date: str, content: str):
+def insert_report(date: str, content: str) -> int:
     with _db_lock:
         conn = _get_conn()
         try:
-            conn.execute(
-                "INSERT OR REPLACE INTO reports (date, content, created_at) VALUES (?,?,?)",
+            cursor = conn.execute(
+                "INSERT INTO reports (date, content, created_at) VALUES (?,?,?)",
                 (date, content, datetime.now().isoformat())
             )
             conn.commit()
+            return cursor.lastrowid
         finally:
             conn.close()
 
 
-def delete_report(date: str) -> bool:
+def delete_report(report_id: int) -> bool:
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            cursor = conn.execute("DELETE FROM reports WHERE id = ?", (report_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+
+def delete_report_by_date(date: str) -> bool:
     with _db_lock:
         conn = _get_conn()
         try:
@@ -939,8 +973,24 @@ def get_report(date: str) -> Optional[str]:
     with _db_lock:
         conn = _get_conn()
         try:
-            row = conn.execute("SELECT content FROM reports WHERE date = ?", (date,)).fetchone()
+            row = conn.execute(
+                "SELECT content FROM reports WHERE date = ? ORDER BY created_at DESC LIMIT 1",
+                (date,)
+            ).fetchone()
             return row["content"] if row else None
+        finally:
+            conn.close()
+
+
+def get_report_by_id(report_id: int) -> Optional[Dict]:
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            row = conn.execute(
+                "SELECT id, date, content, created_at FROM reports WHERE id = ?",
+                (report_id,)
+            ).fetchone()
+            return dict(row) if row else None
         finally:
             conn.close()
 
@@ -951,7 +1001,7 @@ def get_report_dates(days: int = 30) -> List[str]:
         try:
             cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             rows = conn.execute(
-                "SELECT date FROM reports WHERE date >= ? ORDER BY date DESC", (cutoff,)
+                "SELECT DISTINCT date FROM reports WHERE date >= ? ORDER BY date DESC", (cutoff,)
             ).fetchall()
             return [r["date"] for r in rows]
         finally:
@@ -964,30 +1014,30 @@ def get_report_dates_by_gen(days: int = 30) -> List[Dict]:
         try:
             cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             rows = conn.execute(
-                "SELECT date, created_at FROM reports WHERE date >= ? ORDER BY created_at DESC",
+                "SELECT id, date, created_at FROM reports WHERE date >= ? ORDER BY created_at DESC",
                 (cutoff,)
             ).fetchall()
-            seen = set()
             result = []
             for r in rows:
-                data_date = r["date"]
-                if data_date not in seen:
-                    seen.add(data_date)
-                    gen_date = r["created_at"][:10]
-                    result.append({"gen_date": gen_date, "data_date": data_date})
+                result.append({
+                    "id": r["id"],
+                    "gen_date": r["created_at"][:10],
+                    "data_date": r["date"],
+                    "gen_time": r["created_at"][:19].replace("T", " "),
+                })
             return result
         finally:
             conn.close()
 
 
-def get_report_meta(dates: List[str]) -> dict:
+def get_report_meta(report_ids: List[int]) -> dict:
     with _db_lock:
         conn = _get_conn()
         try:
             result = {}
-            for d in dates:
-                row = conn.execute("SELECT created_at FROM reports WHERE date = ?", (d,)).fetchone()
-                result[d] = row["created_at"][:19].replace("T", " ") if row else ""
+            for rid in report_ids:
+                row = conn.execute("SELECT created_at FROM reports WHERE id = ?", (rid,)).fetchone()
+                result[rid] = row["created_at"][:19].replace("T", " ") if row else ""
             return result
         finally:
             conn.close()

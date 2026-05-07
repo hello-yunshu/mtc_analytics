@@ -936,25 +936,33 @@ def api_report():
     records = db.get_report_dates_by_gen(5)
     if not records:
         return jsonify({"error": "暂无报告", "date": "", "content": ""})
-    date_str = records[0]["data_date"]
-    content = db.get_report(date_str)
-    if not content:
+    rec = records[0]
+    report = db.get_report_by_id(rec["id"])
+    if not report:
         return jsonify({"error": "暂无报告", "date": "", "content": ""})
-    meta = db.get_report_meta([date_str])
-    gen_time = meta.get(date_str, "")
-    content = _enrich_report_alerts(content)
-    return jsonify({"date": date_str, "content": content, "gen_time": gen_time})
+    content = _enrich_report_alerts(report["content"] or "")
+    return jsonify({"date": report["date"], "content": content, "gen_time": rec["gen_time"], "id": report["id"]})
 
 
 @gold_bp.route("/api/report_history")
 @login_required
 def api_report_history():
-    records = db.get_report_dates_by_gen(5)
+    records = db.get_report_dates_by_gen(10)
+    ids = [r["id"] for r in records]
     gen_dates = [r["gen_date"] for r in records]
     data_dates = [r["data_date"] for r in records]
-    meta = db.get_report_meta(data_dates)
-    mtimes = [meta.get(d, "") for d in data_dates]
-    return jsonify({"dates": gen_dates, "data_dates": data_dates, "mtimes": mtimes})
+    gen_times = [r["gen_time"] for r in records]
+    return jsonify({"ids": ids, "dates": gen_dates, "data_dates": data_dates, "gen_times": gen_times})
+
+
+@gold_bp.route("/api/report_by_id/<int:report_id>")
+@login_required
+def api_report_by_id(report_id):
+    report = db.get_report_by_id(report_id)
+    if not report:
+        return jsonify({"error": "报告不存在", "date": "", "content": ""})
+    content = _enrich_report_alerts(report["content"] or "")
+    return jsonify({"date": report["date"], "content": content, "gen_time": report["created_at"][:19].replace("T", " "), "id": report["id"]})
 
 
 @gold_bp.route("/api/report_by_date/<date_str>")
@@ -965,8 +973,9 @@ def api_report_by_date(date_str):
     content = db.get_report(date_str)
     if not content:
         return jsonify({"error": "报告不存在", "date": date_str, "content": ""})
-    meta = db.get_report_meta([date_str])
-    gen_time = meta.get(date_str, "")
+    records = db.get_report_dates_by_gen(30)
+    match = [r for r in records if r["data_date"] == date_str]
+    gen_time = match[0]["gen_time"] if match else ""
     content = _enrich_report_alerts(content)
     return jsonify({"date": date_str, "content": content, "gen_time": gen_time})
 
@@ -1583,7 +1592,7 @@ def api_run_now():
                 _task_state["finished_at"] = time.time()
                 _task_state["error"] = str(e)
             try:
-                db.delete_report(report_date)
+                db.delete_report_by_date(report_date)
                 report_file = os.path.join(REPORTS_DIR, f"report_{report_date}.txt")
                 if os.path.exists(report_file):
                     os.remove(report_file)
@@ -1616,7 +1625,7 @@ def api_task_status():
             status = "interrupted"
             report_date = state.get("report_date") or datetime.now().strftime("%Y-%m-%d")
             try:
-                db.delete_report(report_date)
+                db.delete_report_by_date(report_date)
                 report_file = os.path.join(REPORTS_DIR, f"report_{report_date}.txt")
                 if os.path.exists(report_file):
                     os.remove(report_file)
@@ -1632,21 +1641,21 @@ def api_task_status():
     return jsonify(result)
 
 
-@gold_bp.route("/api/report_delete/<date_str>", methods=["POST"])
+@gold_bp.route("/api/report_delete/<int:report_id>", methods=["POST"])
 @login_required
 @csrf_required
-def api_report_delete(date_str):
-    if not DATE_PATTERN.match(date_str):
-        return jsonify({"ok": False, "error": "日期格式无效"}), 400
+def api_report_delete(report_id):
     try:
-        deleted = db.delete_report(date_str)
-        report_file = os.path.join(REPORTS_DIR, f"report_{date_str}.txt")
-        file_existed = os.path.exists(report_file)
-        if file_existed:
+        report = db.get_report_by_id(report_id)
+        if not report:
+            return jsonify({"ok": False, "error": "报告不存在"}), 404
+        deleted = db.delete_report(report_id)
+        report_file = os.path.join(REPORTS_DIR, f"report_{report['date']}.txt")
+        if os.path.exists(report_file):
             os.remove(report_file)
-        if deleted or file_existed:
-            return jsonify({"ok": True, "message": f"报告 {date_str} 已删除"})
-        return jsonify({"ok": False, "error": f"报告 {date_str} 不存在"}), 404
+        if deleted:
+            return jsonify({"ok": True, "message": f"报告已删除"})
+        return jsonify({"ok": False, "error": "删除失败"}), 500
     except Exception as e:
         return jsonify({"ok": False, "error": f"删除失败: {e}"}), 500
 

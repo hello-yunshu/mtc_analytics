@@ -152,7 +152,7 @@ def _get_realtime_intervals():
 
 from core.db import (
     upsert_gold_prices, upsert_holdings, insert_macro_snapshot,
-    upsert_news_sentiment, insert_support_resistance, upsert_report,
+    upsert_news_sentiment, insert_support_resistance, insert_report,
     upsert_prediction_tracking, get_unverified_predictions,
     update_prediction_verification, get_all_prediction_tracking, cleanup,
 )
@@ -674,7 +674,7 @@ def run_daily_task(skip_telegram=False):
     with open(report_file, "w", encoding="utf-8") as f:
         f.write(report)
     try:
-        upsert_report(report_date, report)
+        insert_report(report_date, report)
     except Exception:
         pass
     try:
