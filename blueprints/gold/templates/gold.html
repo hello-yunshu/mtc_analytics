@@ -353,8 +353,7 @@ body::after {
 .dual-col-grid > div {
   margin-bottom: 0;
 }
-.dual-col-grid > .span-full,
-.mobile-stack > .span-full {
+.span-full {
   grid-column: 1 / -1;
 }
 
@@ -1493,8 +1492,12 @@ function renderDashSummary(p) {
       { label: '日历', value: p.factors.calendar, icon: '📅' }
     ];
     html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">`;
+    let factorIdx = 0;
+    const factorTotal = factorGroups.filter(g => g.value).length;
     for (const g of factorGroups) {
       if (!g.value) continue;
+      factorIdx++;
+      const isLastOdd = factorIdx === factorTotal && factorTotal % 2 === 1;
       const subFactors = g.value.split('|').map(s => s.trim()).filter(Boolean);
       const groupScores = subFactors.map(sf => {
         const m = sf.match(/(?:🟢|🔴|⚪)(.*?)([+-]\d+\.?\d*)$/u);
@@ -1505,7 +1508,7 @@ function renderDashSummary(p) {
       });
       const groupAvg = groupScores.reduce((a, b) => a + b.score, 0) / groupScores.length;
       const groupColor = predColor(groupAvg);
-      html += `<div style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${groupColor}">`;
+      html += `<div ${isLastOdd ? 'class="span-full"' : ''} style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${groupColor}">`;
       html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
       html += `<span style="font-size:12px;font-weight:600;color:var(--text)">${g.icon} ${g.label}</span>`;
       html += `<span style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${groupColor}">${groupAvg >= 0 ? '+' : ''}${groupAvg.toFixed(2)}</span>`;
@@ -2981,7 +2984,7 @@ function renderHoldingsSection(text) {
     }
   }
 
-  let summaryInner = `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+  let summaryItems = [];
   for (const l of mainLines) {
     let label = '', value = '', color = 'var(--text)';
     if (l.includes('净多头合计')) {
@@ -2994,10 +2997,16 @@ function renderHoldingsSection(text) {
       label = '机构分布'; value = l.replace(/.*：/, '').trim(); color = 'var(--text2)';
     }
     if (label) {
-      summaryInner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
-      summaryInner += `<div style="font-size:10px;color:var(--text3);margin-bottom:3px">${label}</div>`;
-      summaryInner += `<div style="font-size:15px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace">${escHtml(value)}</div>`;
-      summaryInner += `</div>`;
+      summaryItems.push(`<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">${label}</div><div style="font-size:15px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace">${escHtml(value)}</div></div>`);
+    }
+  }
+  let summaryInner = `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+  for (let si = 0; si < summaryItems.length; si++) {
+    const isOddLast = si === summaryItems.length - 1 && summaryItems.length % 2 === 1;
+    if (isOddLast) {
+      summaryInner += summaryItems[si].replace('class="sub-panel"', 'class="sub-panel span-full"');
+    } else {
+      summaryInner += summaryItems[si];
     }
   }
   summaryInner += `</div>`;
@@ -3146,12 +3155,26 @@ function renderBacktestSection(text) {
     }
   }
 
-  let inner = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+  let inner = '';
+  let gridItems = [];
+
+  function flushGrid() {
+    if (!gridItems.length) return;
+    inner += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+    for (let gi = 0; gi < gridItems.length; gi++) {
+      const isOddLast = gi === gridItems.length - 1 && gridItems.length % 2 === 1;
+      inner += `<div class="sub-panel${isOddLast ? ' span-full' : ''}" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
+      inner += gridItems[gi];
+      inner += `</div>`;
+    }
+    inner += `</div>`;
+    gridItems = [];
+  }
 
   for (const item of statLines) {
     if (!item.key) {
-      inner += `</div><div style="font-size:12px;color:var(--text2);padding:4px 0;margin-top:4px">${escHtml(item.val)}</div>`;
-      inner += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">`;
+      flushGrid();
+      inner += `<div style="font-size:12px;color:var(--text2);padding:4px 0;margin-top:4px">${escHtml(item.val)}</div>`;
       continue;
     }
 
@@ -3164,13 +3187,11 @@ function renderBacktestSection(text) {
       else valueColor = 'var(--bear)';
     }
 
-    inner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
-    inner += `<div style="font-size:10px;color:var(--text3);margin-bottom:3px">${escHtml(item.key)}</div>`;
-    inner += `<div style="font-size:14px;font-weight:700;color:${valueColor};font-family:'JetBrains Mono',monospace">${escHtml(item.val)}</div>`;
-    inner += `</div>`;
+    let itemHtml = `<div style="font-size:10px;color:var(--text3);margin-bottom:3px">${escHtml(item.key)}</div>`;
+    itemHtml += `<div style="font-size:14px;font-weight:700;color:${valueColor};font-family:'JetBrains Mono',monospace">${escHtml(item.val)}</div>`;
+    gridItems.push(itemHtml);
   }
-
-  inner += `</div>`;
+  flushGrid();
   html += subCard('📊 历史准确率', '#10b981', inner);
 
   html += `<div id="iteration-status-container" style="margin-top:8px"></div>`;
@@ -3403,13 +3424,15 @@ function renderIterationSection(text) {
   }
 
   let inner = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
-  for (const item of statLines) {
+  for (let si = 0; si < statLines.length; si++) {
+    const item = statLines[si];
     let valueColor = 'var(--text)';
     if (item.val.includes('LLM')) valueColor = 'var(--gold)';
     else if (item.val.includes('已启用') || item.val.includes('纯规则')) valueColor = 'var(--bull)';
     else if (item.val.includes('待激活')) valueColor = 'var(--text3)';
 
-    inner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
+    const isOddLast = si === statLines.length - 1 && statLines.length % 2 === 1;
+    inner += `<div class="sub-panel${isOddLast ? ' span-full' : ''}" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
     inner += `<div style="font-size:10px;color:var(--text3);margin-bottom:3px">${escHtml(item.key)}</div>`;
     inner += `<div style="font-size:13px;font-weight:600;color:${valueColor}">${escHtml(item.val)}</div>`;
     inner += `</div>`;
