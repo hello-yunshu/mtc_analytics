@@ -326,35 +326,47 @@
 .login-box { width: 360px; }
 
 /* ===== Tabs ===== */
-.tab-bar { display: flex; margin-bottom: 20px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden; backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); }
-.tab-wrapper { display: inline-flex; align-items: center; border-right: 1px solid var(--glass-border); }
-.tab-wrapper:last-child { border-right: none; }
-.tab-btn {
-  padding: 8px 14px;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  color: var(--text2);
+.tab-bar { display: flex; align-items: center; gap: 0; margin-bottom: 20px; }
+.tab-item {
+  position: relative;
+  padding: 7px 18px;
+  color: var(--text3);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.2s;
   font-family: var(--font-sans);
   white-space: nowrap;
+  user-select: none;
 }
-.tab-btn:hover { color: var(--text); background: rgba(246,199,104,0.08); }
-.tab-btn.active { background: rgba(246,199,104,0.35); color: var(--gold); }
-.tab-del {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; margin-right: 6px;
-  padding: 0; border: none; border-radius: 5px;
+.tab-item:hover { color: var(--text); }
+.tab-item.active { color: var(--gold); }
+.tab-item + .tab-item::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text3);
+  opacity: 0.35;
+  font-size: 16px;
+  pointer-events: none;
+}
+.tab-item .tab-del {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  margin-left: 4px;
+  padding: 0; border: none; border-radius: 4px;
   background: transparent; color: var(--text3);
-  cursor: pointer; transition: all 0.2s ease;
-  font-size: 0; line-height: 0; flex-shrink: 0;
-  visibility: hidden; opacity: 0;
+  cursor: pointer;
+  font-size: 0; line-height: 0;
+  vertical-align: middle;
+  transition: color 0.15s, background 0.15s;
 }
-.tab-del svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2; fill: none; }
-.tab-wrapper:hover .tab-del { visibility: visible; opacity: 0.4; }
-.tab-del:hover { opacity: 1 !important; background: rgba(231,76,60,0.12); color: #e74c3c; }
+.tab-item .tab-del svg { width: 10px; height: 10px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+.tab-item:hover .tab-del { display: inline-flex; }
+.tab-item .tab-del:hover { background: rgba(231,76,60,0.12); color: #e74c3c; }
 
 /* ===== Toast ===== */
 
@@ -1715,25 +1727,24 @@ async function loadReportHistory() {
   dates.forEach((d, i) => {
     const dd = dataDates[i];
     const gt = genTimes[i] || '';
-    const wrapper = document.createElement('div');
-    wrapper.className = 'tab-wrapper';
-    const btn = document.createElement('button');
-    btn.className = 'tab-btn' + (i===0?' active':'');
-    btn.textContent = dd.substring(5);
-    btn.title = `数据日期: ${dd}\n生成时间: ${gt || '未知'}`;
-    btn.onclick = () => {
-      tabBar.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
+    const item = document.createElement('span');
+    item.className = 'tab-item' + (i===0?' active':'');
+    item.title = `数据日期: ${dd}\n生成时间: ${gt || '未知'}`;
+    item.onclick = () => {
+      tabBar.querySelectorAll('.tab-item').forEach(b=>b.classList.remove('active'));
+      item.classList.add('active');
       loadReport(dd);
     };
+    const label = document.createElement('span');
+    label.textContent = dd.substring(5);
     const delBtn = document.createElement('button');
     delBtn.className = 'tab-del';
     delBtn.title = '删除此报告';
     delBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     delBtn.onclick = (e) => { e.stopPropagation(); deleteReport(dd); };
-    wrapper.appendChild(btn);
-    wrapper.appendChild(delBtn);
-    tabBar.appendChild(wrapper);
+    item.appendChild(label);
+    item.appendChild(delBtn);
+    tabBar.appendChild(item);
   });
   if (dates.length > 0) loadReport(dataDates[0]);
   checkTaskStatus();
