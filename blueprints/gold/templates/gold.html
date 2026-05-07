@@ -327,9 +327,8 @@
 
 /* ===== Tabs ===== */
 .tab-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+.tab-group { display: inline-flex; align-items: center; gap: 3px; }
 .tab-item {
-  display: inline-flex;
-  align-items: center;
   padding: 6px 14px;
   background: var(--glass);
   border: 1px solid var(--glass-border);
@@ -346,22 +345,20 @@
 }
 .tab-item:hover { border-color: var(--gold); color: var(--text); }
 .tab-item.active { background: rgba(246,199,104,0.35); color: var(--gold); border-color: rgba(246,199,104,0.35); }
-.tab-item .tab-del {
+.tab-del {
   display: none;
   align-items: center;
   justify-content: center;
   width: 16px; height: 16px;
-  margin-left: 2px;
   padding: 0; border: none; border-radius: 4px;
   background: transparent; color: var(--text3);
   cursor: pointer;
   font-size: 0; line-height: 0;
-  vertical-align: middle;
   transition: color 0.15s;
 }
-.tab-item .tab-del svg { width: 9px; height: 9px; stroke: currentColor; stroke-width: 2.5; fill: none; }
-.tab-item:hover .tab-del { display: inline-flex; }
-.tab-item .tab-del:hover { color: #e74c3c; }
+.tab-del svg { width: 9px; height: 9px; stroke: currentColor; stroke-width: 2.5; fill: none; }
+.tab-group:hover .tab-del { display: inline-flex; }
+.tab-del:hover { color: #e74c3c; }
 
 /* ===== Toast ===== */
 
@@ -1722,24 +1719,25 @@ async function loadReportHistory() {
   dates.forEach((d, i) => {
     const dd = dataDates[i];
     const gt = genTimes[i] || '';
+    const group = document.createElement('span');
+    group.className = 'tab-group';
     const item = document.createElement('span');
     item.className = 'tab-item' + (i===0?' active':'');
     item.title = `数据日期: ${dd}\n生成时间: ${gt || '未知'}`;
+    item.textContent = dd.substring(5);
     item.onclick = () => {
       tabBar.querySelectorAll('.tab-item').forEach(b=>b.classList.remove('active'));
       item.classList.add('active');
       loadReport(dd);
     };
-    const label = document.createElement('span');
-    label.textContent = dd.substring(5);
     const delBtn = document.createElement('button');
     delBtn.className = 'tab-del';
     delBtn.title = '删除此报告';
     delBtn.innerHTML = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     delBtn.onclick = (e) => { e.stopPropagation(); deleteReport(dd); };
-    item.appendChild(label);
-    item.appendChild(delBtn);
-    tabBar.appendChild(item);
+    group.appendChild(item);
+    group.appendChild(delBtn);
+    tabBar.appendChild(group);
   });
   if (dates.length > 0) loadReport(dataDates[0]);
   checkTaskStatus();
