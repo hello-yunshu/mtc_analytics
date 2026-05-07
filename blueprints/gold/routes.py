@@ -21,7 +21,7 @@ from flask import (
 )
 
 from core.utils import load_json, save_json, encrypt_value, decrypt_value, is_trading_hours
-from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, LLM_ENABLED, SENSITIVE_FIELDS, get_telegram_config
+from core.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL, SENSITIVE_FIELDS, get_telegram_config
 from core.auth import (
     login_required, csrf_required, generate_csrf_token,
     verify_password, api_error, get_or_create_default_password,
@@ -31,9 +31,10 @@ from core.llm_utils import (
     get_model_token_limits, normalize_llm_base_url, normalize_llm_budget,
     normalize_llm_model,
 )
-from core.macro_fetcher import get_macro_summary
+from core.macro_fetcher import get_macro_summary as _get_macro_summary
+from core.gold_price import is_us_workday
 from core.security import (
-    is_ip_banned, check_api_rate_limit, check_login_rate_limit,
+    check_login_rate_limit,
     record_failed_login, clear_login_attempts, get_logger as get_security_logger,
     cleanup_expired_entries,
 )
@@ -99,6 +100,13 @@ def _decrypt_value(ciphertext: str) -> str:
 
 DATE_PATTERN = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 
+FACTOR_LABELS = {
+    "real_rate": "实际利率", "dollar": "美元因子", "inflation": "通胀预期",
+    "momentum": "持仓动量", "extreme": "持仓极值", "divergence": "背离信号",
+    "cb_gold": "央行购金", "etf_flow": "ETF资金流", "price_trend": "技术趋势",
+    "volatility": "波动率", "news_sentiment": "新闻情绪", "seasonality": "季节性",
+}
+
 
 DEFAULT_PASSWORD_HASH = get_or_create_default_password(os.path.join(_PROJECT_ROOT, "data"))
 
@@ -125,8 +133,7 @@ def _check_and_notify_price_alert(price_data: dict):
     day_low = price_data.get("low", 0) or 0
     source = price_data.get("source", "")
     try:
-        from core.db import insert_price_event
-        insert_price_event(
+        db.insert_price_event(
             event_type=event_type, price=price, change_pct=change_pct,
             day_high=day_high, day_low=day_low, source=source, notified=True,
         )
@@ -152,6 +159,9 @@ def _check_and_notify_price_alert(price_data: dict):
         pass
 
 
+_logger = logging.getLogger(__name__)
+
+
 def _price_refresh_loop():
     while True:
         try:
@@ -164,8 +174,8 @@ def _price_refresh_loop():
                 with _latest_price["lock"]:
                     _latest_price["data"] = price
                 _check_and_notify_price_alert(price)
-        except Exception:
-            pass
+        except Exception as e:
+            _logger.debug("价格刷新失败: %s", e)
         time.sleep(30)
 
 
@@ -177,8 +187,7 @@ def _fetch_and_cache_macro():
             with _cached_macro["lock"]:
                 _cached_macro["data"] = data
             try:
-                from core.db import insert_macro_snapshot
-                insert_macro_snapshot(data["indicators"], data.get("timestamp"))
+                db.insert_macro_snapshot(data["indicators"], data.get("timestamp"))
             except Exception:
                 pass
     except Exception:
@@ -228,8 +237,7 @@ def _calc_and_cache_support_resistance():
         with _cached_sr["lock"]:
             _cached_sr["data"] = sr_data
         try:
-            from core.db import insert_support_resistance
-            insert_support_resistance(sr_data)
+            db.insert_support_resistance(sr_data)
         except Exception:
             pass
     except Exception:
@@ -244,8 +252,6 @@ def _fetch_and_cache_news():
             with _cached_news["lock"]:
                 _cached_news["data"] = data
             try:
-                from core.db import upsert_news_sentiment
-                from core.gold_price import is_us_workday
                 from datetime import date as _date, timedelta as _td
                 today = _date.today()
                 trade_date = today.isoformat()
@@ -255,7 +261,7 @@ def _fetch_and_cache_news():
                         if is_us_workday(prev):
                             trade_date = prev.isoformat()
                             break
-                upsert_news_sentiment(trade_date, data)
+                db.upsert_news_sentiment(trade_date, data)
             except Exception:
                 pass
     except Exception:
@@ -270,8 +276,7 @@ def _refresh_gold_prices_cache():
             with _cached_gold_prices["lock"]:
                 _cached_gold_prices["data"] = prices
             try:
-                from core.db import upsert_gold_prices
-                upsert_gold_prices(prices)
+                db.upsert_gold_prices(prices)
             except Exception:
                 pass
     except Exception:
@@ -280,8 +285,7 @@ def _refresh_gold_prices_cache():
 
 def _refresh_holdings_cache():
     try:
-        from core.db import get_holdings
-        data = get_holdings(30)
+        data = db.get_holdings(30)
         if data:
             with _cached_holdings["lock"]:
                 _cached_holdings["data"] = data
@@ -296,10 +300,8 @@ def _refresh_technical_cache():
         if not prices:
             prices = db.get_gold_prices(120)
         if prices and len(prices) >= 5:
-            from datetime import datetime as _dt
-            from core.gold_price import is_us_workday
             filtered = [p for p in prices
-                        if not p.get("date") or is_us_workday(_dt.strptime(p["date"], "%Y-%m-%d").date())]
+                        if not p.get("date") or is_us_workday(datetime.strptime(p["date"], "%Y-%m-%d").date())]
             if len(filtered) >= 5:
                 ta_data = _calc_technical_analysis(filtered)
             else:
@@ -336,7 +338,8 @@ def _background_refresh_loop():
             _refresh_holdings_cache()
             _refresh_technical_cache()
             cleanup_expired_entries()
-        except Exception:
+        except Exception as e:
+            _logger.warning("后台刷新失败: %s", e)
             time.sleep(300)
 
 
@@ -408,11 +411,9 @@ def _enrich_report_alerts(content):
         from core.alert_engine import AlertEngine, DIMENSION_LABEL, DISPLAY_DIMENSION_ORDER
         from core.analyzer import LEVEL_ICON, LEVEL_LABEL
         from core.gold_price import get_daily_history
-        from core.macro_fetcher import get_macro_summary
-        from core.db import get_holdings
-        history = get_holdings(30)
+        macro_data = _get_macro_summary()
+        history = db.get_holdings(30)
         gold_prices = get_daily_history(60, prefer_international=True)
-        macro_data = get_macro_summary()
         today_data = history[-1] if history else {}
         _ws = _get_settings()
         engine = AlertEngine(
@@ -499,7 +500,6 @@ def _enrich_report_alerts(content):
 
 
 def _inject_sub_sections(content, dim_alerts_map):
-    import re as _re
 
     overview_pos = content.find("📈 今日概况")
     if overview_pos >= 0 and "📊 期货多空" not in content[overview_pos:overview_pos + 200]:
@@ -895,7 +895,6 @@ def api_login():
     settings = _get_settings()
     pw_hash = settings.get("password_hash", DEFAULT_PASSWORD_HASH)
     if verify_password(password, pw_hash):
-        old_csrf = session.get('csrf_token')
         session.clear()
         session["logged_in"] = True
         session.permanent = True
@@ -976,8 +975,9 @@ def api_report_by_date(date_str):
     records = db.get_report_dates_by_gen(30)
     match = [r for r in records if r["data_date"] == date_str]
     gen_time = match[0]["gen_time"] if match else ""
+    report_id = match[0]["id"] if match else None
     content = _enrich_report_alerts(content)
-    return jsonify({"date": date_str, "content": content, "gen_time": gen_time})
+    return jsonify({"date": date_str, "content": content, "gen_time": gen_time, "id": report_id})
 
 
 @gold_bp.route("/api/holdings_chart")
@@ -1013,14 +1013,12 @@ def api_gold_price_chart():
         if prices:
             with _cached_gold_prices["lock"]:
                 _cached_gold_prices["data"] = prices
-    from datetime import datetime as _dt
-    from core.gold_price import is_us_workday
     chart_data = []
     for p in prices[-60:]:
         d = p.get("date", "")
         if d:
             try:
-                dt = _dt.strptime(d, "%Y-%m-%d").date()
+                dt = datetime.strptime(d, "%Y-%m-%d").date()
                 if not is_us_workday(dt):
                     continue
             except ValueError:
@@ -1043,8 +1041,7 @@ def api_sentiment_chart():
 @login_required
 def api_macro_history_chart():
     try:
-        from core.db import get_macro_history
-        history = get_macro_history(60)
+        history = db.get_macro_history(60)
     except Exception:
         history = []
     from core.macro_fetcher import YAHOO_SYMBOLS
@@ -1090,14 +1087,8 @@ def api_prediction_factors_chart():
     if not latest:
         return jsonify([])
     factors = latest.get("factors_summary", {})
-    factor_labels = {
-        "real_rate": "实际利率", "dollar": "美元因子", "inflation": "通胀预期",
-        "momentum": "持仓动量", "extreme": "持仓极值", "divergence": "背离信号",
-        "cb_gold": "央行购金", "etf_flow": "ETF资金流", "price_trend": "技术趋势",
-        "volatility": "波动率", "news_sentiment": "新闻情绪", "seasonality": "季节性",
-    }
     result = []
-    for key, label in factor_labels.items():
+    for key, label in FACTOR_LABELS.items():
         f = factors.get(key, {})
         result.append({"key": key, "label": label, "score": f.get("score", 0), "signal": f.get("signal", "")})
     return jsonify(_clean_nan(result))
@@ -1131,14 +1122,8 @@ def api_prediction_summary():
     bull_signals = 0
     bear_signals = 0
     factors = latest.get("factors_summary", {})
-    factor_labels = {
-        "real_rate": "实际利率", "dollar": "美元因子", "inflation": "通胀预期",
-        "momentum": "持仓动量", "extreme": "持仓极值", "divergence": "背离信号",
-        "cb_gold": "央行购金", "etf_flow": "ETF资金流", "price_trend": "技术趋势",
-        "volatility": "波动率", "news_sentiment": "新闻情绪", "seasonality": "季节性",
-    }
     factor_list = []
-    for key, label in factor_labels.items():
+    for key, label in FACTOR_LABELS.items():
         f = factors.get(key, {})
         fs = f.get("score", 0)
         if fs > threshold:
@@ -1246,15 +1231,13 @@ def api_prediction_summary():
 def api_macro():
     force = request.args.get("force") == "1"
     if force:
-        import threading
         threading.Thread(target=_fetch_and_cache_macro, daemon=True).start()
         time.sleep(1)
     with _cached_macro["lock"]:
         data = _cached_macro["data"]
     if not data:
         try:
-            from core.db import get_latest_macro
-            data = get_latest_macro()
+            data = db.get_latest_macro()
             if data:
                 with _cached_macro["lock"]:
                     _cached_macro["data"] = data
@@ -1358,8 +1341,7 @@ def api_support_resistance():
     if sr_data:
         return jsonify(sr_data)
     try:
-        from core.db import get_latest_support_resistance
-        sr_data = get_latest_support_resistance()
+        sr_data = db.get_latest_support_resistance()
         if sr_data:
             sup_count = len(sr_data.get("support", []))
             res_count = len(sr_data.get("resistance", []))
@@ -1404,10 +1386,8 @@ def api_technical_analysis():
                 _cached_gold_prices["data"] = prices
     if not prices or len(prices) < 5:
         return jsonify({"error": "金价数据不足"})
-    from datetime import datetime as _dt
-    from core.gold_price import is_us_workday
     filtered = [p for p in prices
-                if not p.get("date") or is_us_workday(_dt.strptime(p["date"], "%Y-%m-%d").date())]
+                if not p.get("date") or is_us_workday(datetime.strptime(p["date"], "%Y-%m-%d").date())]
     calc_prices = filtered if len(filtered) >= 5 else prices
     ta_data = _calc_technical_analysis(calc_prices)
     if ta_data:
@@ -1423,7 +1403,7 @@ def api_technical_analysis():
 @gold_bp.route("/api/model_params", methods=["GET"])
 @login_required
 def api_get_model_params():
-    from core.news_sentiment import BULLISH_KEYWORDS, BEARISH_KEYWORDS, NEGATION_WORDS, NEGATION_FLIP_MAP
+    from core.news_sentiment import BULLISH_KEYWORDS, BEARISH_KEYWORDS, NEGATION_WORDS
     return jsonify({
         "bullish_keywords": {k: v for k, v in BULLISH_KEYWORDS.items()},
         "bearish_keywords": {k: v for k, v in BEARISH_KEYWORDS.items()},
@@ -1570,18 +1550,17 @@ def api_run_now():
                 _task_state["status"] = "interrupted"
                 _task_state["error"] = "任务超时，已标记为中断"
                 _task_state["finished_at"] = time.time()
+        report_date = datetime.now().strftime("%Y-%m-%d")
+        _task_state["status"] = "running"
+        _task_state["started_at"] = time.time()
+        _task_state["finished_at"] = None
+        _task_state["error"] = None
+        _task_state["report_date"] = None
 
     def _run_with_state():
-        with _task_state["lock"]:
-            _task_state["status"] = "running"
-            _task_state["started_at"] = time.time()
-            _task_state["finished_at"] = None
-            _task_state["error"] = None
-            _task_state["report_date"] = None
-        report_date = datetime.now().strftime("%Y-%m-%d")
         try:
             from main import run_daily_task
-            result = run_daily_task()
+            run_daily_task()
             with _task_state["lock"]:
                 _task_state["status"] = "completed"
                 _task_state["finished_at"] = time.time()
@@ -1600,7 +1579,6 @@ def api_run_now():
                 pass
 
     try:
-        import threading
         t = threading.Thread(target=_run_with_state, daemon=True)
         t.start()
         return jsonify({"ok": True, "message": "任务已启动，请稍后查看报告"})
@@ -1737,8 +1715,7 @@ def api_iteration_grid_search():
         current_weights = status.get("current_weights", {})
         if not current_weights:
             return jsonify({"available": False, "reason": "无当前权重数据"})
-        from core.db import get_all_prediction_tracking
-        tracking = get_all_prediction_tracking(365)
+        tracking = db.get_all_prediction_tracking(365)
         result = grid_search_weights(tracking, current_weights)
         return jsonify(result)
     except Exception:
@@ -1788,8 +1765,7 @@ def api_full_alerts():
             news_sentiment = _cached_news["data"]
         if not news_sentiment:
             try:
-                from core.db import get_latest_news_sentiment
-                news_sentiment = get_latest_news_sentiment()
+                news_sentiment = db.get_latest_news_sentiment()
                 if news_sentiment:
                     with _cached_news["lock"]:
                         _cached_news["data"] = news_sentiment
@@ -1809,8 +1785,7 @@ def api_full_alerts():
             support_resistance = _cached_sr["data"]
         if not support_resistance:
             try:
-                from core.db import get_latest_support_resistance
-                support_resistance = get_latest_support_resistance()
+                support_resistance = db.get_latest_support_resistance()
                 if support_resistance:
                     with _cached_sr["lock"]:
                         _cached_sr["data"] = support_resistance

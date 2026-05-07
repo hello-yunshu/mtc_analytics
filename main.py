@@ -5,7 +5,6 @@ AI 黄金分析主程序
 五因子预测：持仓动量、价格趋势、背离信号、波动率、新闻情绪
 """
 
-import sys
 import os
 import time
 import json
@@ -13,7 +12,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 
 from core.config import (
-    TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TOP_N,
+    TOP_N,
     SCHEDULE_HOUR, SCHEDULE_MINUTE,
     SCHEDULE_HOUR2, SCHEDULE_MINUTE2,
     TELEGRAM_PUSH_HOUR, TELEGRAM_PUSH_MINUTE,
@@ -29,7 +28,7 @@ from core.predictor import GoldPricePredictor
 from core.reporter import format_report, format_alert_only
 from core.telegram_bot import TelegramBot
 from core.macro_fetcher import fetch_macro_indicators
-from core.model_iteration import run_iteration, get_iteration_status
+from core.model_iteration import run_iteration
 from core.institutional_consensus import fetch_institutional_consensus, compare_with_consensus, compute_consensus_with_manual, get_manual_views
 from core.utils import load_json, is_trading_hours, decrypt_value
 
@@ -111,14 +110,13 @@ def _get_telegram_push_time():
 
 
 def push_latest_report():
-    """读取最新报告并推送到 Telegram"""
     from core import db
     try:
-        dates = db.get_report_dates(days=30)
-        if not dates:
+        records = db.get_report_dates_by_gen(days=30)
+        if not records:
             print("[Telegram 推送] 未找到任何报告，跳过推送")
             return
-        date_str = dates[0]
+        date_str = records[0]["data_date"]
         report = db.get_report(date_str)
         if not report:
             print("[Telegram 推送] 报告内容为空，跳过推送")
@@ -154,7 +152,7 @@ from core.db import (
     upsert_gold_prices, upsert_holdings, insert_macro_snapshot,
     upsert_news_sentiment, insert_support_resistance, insert_report,
     upsert_prediction_tracking, get_unverified_predictions,
-    update_prediction_verification, get_all_prediction_tracking, cleanup,
+    update_prediction_verification, cleanup,
 )
 
 
@@ -197,12 +195,6 @@ def _verify_previous_prediction(gold_prices):
         if d:
             prices_by_date[d] = p.get("close", 0)
     sorted_dates = sorted(prices_by_date.keys())
-
-    all_tracking = []
-    try:
-        all_tracking = get_all_prediction_tracking(days=365)
-    except Exception:
-        pass
 
     for record in tracking:
         pred_dir = record.get("prediction", "")
@@ -296,7 +288,7 @@ def run_daily_task(skip_telegram=False):
     print(f"{'='*50}\n")
     
     # 1. 获取实时金价并归档
-    print("[1/8] 正在获取实时金价...")
+    print("[1/9] 正在获取实时金价...")
     data_freshness = {}
     realtime = get_realtime_price()
     archive_realtime_price(realtime)
@@ -335,7 +327,7 @@ def run_daily_task(skip_telegram=False):
                 data_freshness["金价"] = ("⚪", "时间戳未知")
 
     # 2. 获取宏观指标
-    print("[2/8] 正在获取宏观指标...")
+    print("[2/9] 正在获取宏观指标...")
     macro_data = fetch_macro_indicators()
     if macro_data and macro_data.get("indicators"):
         try:
@@ -362,7 +354,7 @@ def run_daily_task(skip_telegram=False):
             data_freshness["宏观"] = ("⚪", "时间戳未知")
 
     # 3. 获取持仓数据
-    print("[3/8] 正在获取持仓数据...")
+    print("[3/9] 正在获取持仓数据...")
     holdings = {"long_top": [], "short_top": [], "date": "", "contract": "", "trade_date": ""}
     if sge_holiday:
         print(f"  SGE休市({sge_status.get('reason', '')})，跳过持仓数据获取")
@@ -395,7 +387,7 @@ def run_daily_task(skip_telegram=False):
         data_freshness["持仓"] = ("⚪", "日期未知")
     
     # 3. 计算净多头
-    print("[4/8] 正在计算净多头...")
+    print("[4/9] 正在计算净多头...")
     positions = calculate_net_positions(holdings, top_n=_get_top_n())
     
     trade_date_str = holdings.get("date") or datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
@@ -414,7 +406,7 @@ def run_daily_task(skip_telegram=False):
         print(f"  {pos['name']:<12} 净多头: {pos['net']:>8,} 手  变化: {'+' if chg>0 else ''}{chg:>6,} 手")
     
     # 4. 短期警示分析
-    print("[5/8] 正在分析短期警示...")
+    print("[5/9] 正在分析短期警示...")
     analyzer = HoldingsAnalyzer()
     if has_holdings:
         analyzer.add_today_data(today_data)
@@ -432,7 +424,7 @@ def run_daily_task(skip_telegram=False):
         print(f"  短期警示: {len(alerts)} 个")
     
     # 5. 长期趋势分析
-    print("[6/8] 正在分析长期趋势...")
+    print("[6/9] 正在分析长期趋势...")
     trend_data = None
     if len(analyzer.history) > 1:
         trend_analyzer = TrendAnalyzer(analyzer.history)

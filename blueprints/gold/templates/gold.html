@@ -1266,16 +1266,20 @@ function predDir(score) {
 async function loadDashboard() {
   if (!isLoggedIn()) return;
   try {
-  const res = await api('/gold/api/report');
-  if (!res.ok) return;
-  const data = await res.json();
+  const [reportRes, psRes, rtRes] = await Promise.allSettled([
+    api('/gold/api/report'),
+    api('/gold/api/prediction_summary'),
+    api('/gold/api/realtime_price'),
+  ]);
+
+  if (reportRes.status === 'rejected' || !reportRes.value.ok) return;
+  const data = await reportRes.value.json();
   if (!data.content) return;
 
   const p = parseReport(data.content);
 
   try {
-     const psRes = await api('/gold/api/prediction_summary');
-     const psData = await psRes.json();
+     const psData = psRes.status === 'fulfilled' ? await psRes.value.json() : null;
      if (psData && !psData.error) {
        _predSummary = psData;
        _predThreshold = psData.threshold || 0.08;
@@ -1306,8 +1310,7 @@ async function loadDashboard() {
   if (priceSubEl) priceSubEl.textContent = p.change ? (parseFloat(p.change)>0?'↑':'↓')+' '+p.change+'%' : '';
 
   try {
-    const rtRes = await api('/gold/api/realtime_price');
-    const rtData = await rtRes.json();
+    const rtData = rtRes.status === 'fulfilled' ? await rtRes.value.json() : null;
     if (rtData && rtData.market_status) {
       const msEl = document.getElementById('statMarketStatus');
       if (msEl) {
@@ -1372,7 +1375,7 @@ async function loadDashboard() {
   const dashEl = document.getElementById('dashReportPreview');
   if (dashEl) dashEl.innerHTML = renderDashSummary(p);
 
-  loadMacro();
+  Promise.allSettled([loadMacro(), loadSupportResistance(), loadTechnicalAnalysis()]);
   } catch(e) { console.error('loadDashboard error', e); }
 }
 
@@ -1430,9 +1433,6 @@ async function loadMacro() {
       if (el) el.textContent = 'N/A';
     });
   }
-
-  loadSupportResistance();
-  loadTechnicalAnalysis();
 }
 
 async function loadSupportResistance() {

@@ -82,15 +82,11 @@ def _get_conn() -> sqlite3.Connection:
     return conn
 
 
-from contextlib import contextmanager
-
-@contextmanager
-def _conn_ctx():
-    conn = _get_conn()
+def _safe_json_loads(text, default=None):
     try:
-        yield conn
-    finally:
-        conn.close()
+        return json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return default
 
 
 # ==================== 权重快照 ====================
@@ -117,6 +113,20 @@ def insert_weight_snapshot(name: str, reason: str, weights: Dict) -> str:
     return name
 
 
+def _parse_weight_row(row) -> Optional[Dict]:
+    if not row:
+        return None
+    weights = _safe_json_loads(row["weights"])
+    if weights is None:
+        return None
+    return {
+        "name": row["name"],
+        "timestamp": row["timestamp"],
+        "reason": row["reason"],
+        "weights": weights,
+    }
+
+
 def get_weight_snapshot(name: str) -> Optional[Dict]:
     with _db_lock:
         conn = _get_conn()
@@ -125,18 +135,7 @@ def get_weight_snapshot(name: str) -> Optional[Dict]:
                 "SELECT name, timestamp, reason, weights FROM weight_snapshots WHERE name = ?",
                 (name,)
             ).fetchone()
-            if not row:
-                return None
-            try:
-                weights = json.loads(row["weights"])
-            except (json.JSONDecodeError, TypeError):
-                return None
-            return {
-                "name": row["name"],
-                "timestamp": row["timestamp"],
-                "reason": row["reason"],
-                "weights": weights,
-            }
+            return _parse_weight_row(row)
         finally:
             conn.close()
 
@@ -148,18 +147,7 @@ def get_latest_weight_snapshot() -> Optional[Dict]:
             row = conn.execute(
                 "SELECT name, timestamp, reason, weights FROM weight_snapshots ORDER BY id DESC LIMIT 1"
             ).fetchone()
-            if not row:
-                return None
-            try:
-                weights = json.loads(row["weights"])
-            except (json.JSONDecodeError, TypeError):
-                return None
-            return {
-                "name": row["name"],
-                "timestamp": row["timestamp"],
-                "reason": row["reason"],
-                "weights": weights,
-            }
+            return _parse_weight_row(row)
         finally:
             conn.close()
 
@@ -451,7 +439,6 @@ def cleanup():
                 pass
 
             conn.commit()
-            conn.execute("VACUUM")
         finally:
             conn.close()
 
@@ -484,16 +471,18 @@ def upsert_gold_prices(prices):
         try:
             if isinstance(prices, dict):
                 prices = [prices]
-            for p in prices:
-                d = p.get("date", "")
-                if not d:
-                    continue
-                conn.execute(
+            now_iso = datetime.now().isoformat()
+            rows = [
+                (p.get("date", ""), p.get("open"), p.get("high"), p.get("low"), p.get("close"),
+                 p.get("source", ""), p.get("unit", "USD/oz"), now_iso)
+                for p in prices if p.get("date")
+            ]
+            if rows:
+                conn.executemany(
                     "INSERT OR REPLACE INTO gold_prices (date, open, high, low, close, source, unit, created_at) VALUES (?,?,?,?,?,?,?,?)",
-                    (d, p.get("open"), p.get("high"), p.get("low"), p.get("close"),
-                     p.get("source", ""), p.get("unit", "USD/oz"), datetime.now().isoformat())
+                    rows
                 )
-            conn.commit()
+                conn.commit()
         finally:
             conn.close()
 
@@ -698,29 +687,24 @@ def get_macro_history(days: int = 30) -> List[Dict]:
         try:
             cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             rows = conn.execute(
-                "SELECT DISTINCT timestamp FROM macro_indicators WHERE timestamp >= ? ORDER BY timestamp",
+                "SELECT timestamp, indicator_key, value, change, change_pct, source, name, unit, direction FROM macro_indicators WHERE timestamp >= ? ORDER BY timestamp",
                 (cutoff + " 00:00:00",)
             ).fetchall()
-            result = []
-            for r in rows:
-                ts = r["timestamp"]
-                indicator_rows = conn.execute(
-                    "SELECT indicator_key, value, change, change_pct, source, name, unit, direction FROM macro_indicators WHERE timestamp = ?",
-                    (ts,)
-                ).fetchall()
-                indicators = {}
-                for ir in indicator_rows:
-                    indicators[ir["indicator_key"]] = {
-                        "value": ir["value"],
-                        "change": ir["change"],
-                        "change_pct": ir["change_pct"],
-                        "source": ir["source"],
-                        "name": ir["name"] or "",
-                        "unit": ir["unit"] or "",
-                        "direction": ir["direction"] or "",
-                    }
-                result.append({"timestamp": ts, "date": ts[:10], "indicators": indicators})
-            return result
+            by_ts = {}
+            for ir in rows:
+                ts = ir["timestamp"]
+                if ts not in by_ts:
+                    by_ts[ts] = {}
+                by_ts[ts][ir["indicator_key"]] = {
+                    "value": ir["value"],
+                    "change": ir["change"],
+                    "change_pct": ir["change_pct"],
+                    "source": ir["source"],
+                    "name": ir["name"] or "",
+                    "unit": ir["unit"] or "",
+                    "direction": ir["direction"] or "",
+                }
+            return [{"timestamp": ts, "date": ts[:10], "indicators": indicators} for ts, indicators in by_ts.items()]
         finally:
             conn.close()
 
@@ -768,11 +752,7 @@ def get_latest_news_sentiment() -> Optional[Dict]:
             if not row:
                 return None
             result = dict(row)
-            if result.get("key_events"):
-                try:
-                    result["key_events"] = json.loads(result["key_events"])
-                except (json.JSONDecodeError, TypeError):
-                    result["key_events"] = []
+            result["key_events"] = _safe_json_loads(result.get("key_events"), []) or []
             return result
         finally:
             conn.close()
@@ -790,11 +770,7 @@ def get_news_sentiment_history(days: int = 90) -> List[Dict]:
             result = []
             for r in rows:
                 d = dict(r)
-                if d.get("key_events"):
-                    try:
-                        d["key_events"] = json.loads(d["key_events"])
-                    except (json.JSONDecodeError, TypeError):
-                        d["key_events"] = []
+                d["key_events"] = _safe_json_loads(d.get("key_events"), []) or []
                 result.append(d)
             return result
         finally:
@@ -872,10 +848,7 @@ def get_latest_support_resistance() -> Optional[Dict]:
             ).fetchone()
             if not row:
                 return None
-            try:
-                return json.loads(row["data"])
-            except (json.JSONDecodeError, TypeError):
-                return None
+            return _safe_json_loads(row["data"])
         finally:
             conn.close()
 
@@ -904,10 +877,7 @@ def get_latest_technical_analysis() -> Optional[Dict]:
             ).fetchone()
             if not row:
                 return None
-            try:
-                return json.loads(row["data"])
-            except (json.JSONDecodeError, TypeError):
-                return None
+            return _safe_json_loads(row["data"])
         finally:
             conn.close()
 
@@ -923,12 +893,11 @@ def get_technical_analysis_history(days: int = 30) -> List[Dict]:
             ).fetchall()
             result = []
             for row in rows:
-                try:
-                    parsed = json.loads(row["data"])
-                    parsed["db_timestamp"] = row["timestamp"]
-                    result.append(parsed)
-                except (json.JSONDecodeError, TypeError):
+                parsed = _safe_json_loads(row["data"])
+                if not parsed:
                     continue
+                parsed["db_timestamp"] = row["timestamp"]
+                result.append(parsed)
             return result
         finally:
             conn.close()
@@ -987,19 +956,6 @@ def get_report_by_id(report_id: int) -> Optional[Dict]:
             conn.close()
 
 
-def get_report_dates(days: int = 30) -> List[str]:
-    with _db_lock:
-        conn = _get_conn()
-        try:
-            cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-            rows = conn.execute(
-                "SELECT DISTINCT date FROM reports WHERE date >= ? ORDER BY date DESC", (cutoff,)
-            ).fetchall()
-            return [r["date"] for r in rows]
-        finally:
-            conn.close()
-
-
 def get_report_dates_by_gen(days: int = 30) -> List[Dict]:
     with _db_lock:
         conn = _get_conn()
@@ -1025,17 +981,6 @@ def get_report_dates_by_gen(days: int = 30) -> List[Dict]:
             conn.close()
 
 
-def get_report_meta(report_ids: List[int]) -> dict:
-    with _db_lock:
-        conn = _get_conn()
-        try:
-            result = {}
-            for rid in report_ids:
-                row = conn.execute("SELECT created_at FROM reports WHERE id = ?", (rid,)).fetchone()
-                result[rid] = row["created_at"][:19].replace("T", " ") if row else ""
-            return result
-        finally:
-            conn.close()
 
 
 def upsert_prediction_tracking(date: str, data: Dict):
@@ -1164,41 +1109,11 @@ def update_prediction_verification(date: str, verified_data: Dict):
 
 def _row_to_prediction(row) -> Dict:
     r = dict(row)
-    if r.get("factors_summary"):
-        try:
-            r["factors_summary"] = json.loads(r["factors_summary"])
-        except (json.JSONDecodeError, TypeError):
-            r["factors_summary"] = {}
-    else:
-        r["factors_summary"] = {}
-    if r.get("period_trends"):
-        try:
-            r["period_trends"] = json.loads(r["period_trends"])
-        except (json.JSONDecodeError, TypeError):
-            r["period_trends"] = {}
-    else:
-        r["period_trends"] = {}
-    if r.get("verified_periods"):
-        try:
-            r["verified_periods"] = json.loads(r["verified_periods"])
-        except (json.JSONDecodeError, TypeError):
-            r["verified_periods"] = []
-    else:
-        r["verified_periods"] = []
-    if r.get("institutional_consensus"):
-        try:
-            r["institutional_consensus"] = json.loads(r["institutional_consensus"])
-        except (json.JSONDecodeError, TypeError):
-            r["institutional_consensus"] = {}
-    else:
-        r["institutional_consensus"] = {}
-    if r.get("consensus_alignment"):
-        try:
-            r["consensus_alignment"] = json.loads(r["consensus_alignment"])
-        except (json.JSONDecodeError, TypeError):
-            r["consensus_alignment"] = {}
-    else:
-        r["consensus_alignment"] = {}
+    r["factors_summary"] = _safe_json_loads(r.get("factors_summary"), {}) or {}
+    r["period_trends"] = _safe_json_loads(r.get("period_trends"), {}) or {}
+    r["verified_periods"] = _safe_json_loads(r.get("verified_periods"), []) or []
+    r["institutional_consensus"] = _safe_json_loads(r.get("institutional_consensus"), {}) or {}
+    r["consensus_alignment"] = _safe_json_loads(r.get("consensus_alignment"), {}) or {}
     r["verified"] = bool(r.get("verified", 0))
     return r
 
@@ -1238,13 +1153,7 @@ def get_iteration_history(limit: int = 50) -> List[Dict]:
             result = []
             for r in rows:
                 d = dict(r)
-                if d.get("adjustments"):
-                    try:
-                        d["adjustments"] = json.loads(d["adjustments"])
-                    except (json.JSONDecodeError, TypeError):
-                        d["adjustments"] = []
-                else:
-                    d["adjustments"] = []
+                d["adjustments"] = _safe_json_loads(d.get("adjustments"), []) or []
                 result.append(d)
             result.reverse()
             return result
@@ -1268,13 +1177,8 @@ def get_iteration_state() -> Dict:
                 "token_used": row["token_used"] or 0,
                 "last_iteration_date": row["last_iteration_date"] or "",
                 "total_iterations": row["total_iterations"] or 0,
-                "current_weights": {},
+                "current_weights": _safe_json_loads(row["current_weights"], {}) or {},
             }
-            if row["current_weights"]:
-                try:
-                    result["current_weights"] = json.loads(row["current_weights"])
-                except (json.JSONDecodeError, TypeError):
-                    result["current_weights"] = {}
             return result
         finally:
             conn.close()
@@ -1461,14 +1365,13 @@ def get_price_event_stats(days: int = 90) -> Dict:
         conn = _get_conn()
         try:
             cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-            surge_count = conn.execute(
-                "SELECT COUNT(*) as cnt FROM price_events WHERE date >= ? AND event_type = 'surge'",
+            counts = conn.execute(
+                "SELECT event_type, COUNT(*) as cnt FROM price_events WHERE date >= ? GROUP BY event_type",
                 (cutoff,)
-            ).fetchone()["cnt"]
-            crash_count = conn.execute(
-                "SELECT COUNT(*) as cnt FROM price_events WHERE date >= ? AND event_type = 'crash'",
-                (cutoff,)
-            ).fetchone()["cnt"]
+            ).fetchall()
+            count_map = {r["event_type"]: r["cnt"] for r in counts}
+            surge_count = count_map.get("surge", 0)
+            crash_count = count_map.get("crash", 0)
             recent = conn.execute(
                 "SELECT timestamp, event_type, price, change_pct FROM price_events WHERE date >= ? ORDER BY timestamp DESC LIMIT 5",
                 (cutoff,)
