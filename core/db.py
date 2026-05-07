@@ -924,6 +924,17 @@ def upsert_report(date: str, content: str):
             conn.close()
 
 
+def delete_report(date: str) -> bool:
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            cursor = conn.execute("DELETE FROM reports WHERE date = ?", (date,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+
 def get_report(date: str) -> Optional[str]:
     with _db_lock:
         conn = _get_conn()

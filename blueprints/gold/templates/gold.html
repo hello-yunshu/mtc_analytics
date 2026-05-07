@@ -585,10 +585,13 @@
     <div id="page-report" class="page">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
         <h2 style="font-size:24px;font-weight:700;margin:0"><svg class="ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 报告详情</h2>
-        <button class="btn btn-outline" id="btnRegenerate" onclick="regenerateReport()" style="font-size:13px;padding:6px 16px"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新生成报告</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="taskStatusBadge" style="display:none;font-size:12px;padding:3px 10px;border-radius:12px;background:var(--bg2);color:var(--text3)"></span>
+          <button class="btn btn-outline" id="btnRegenerate" onclick="regenerateReport()" style="font-size:13px;padding:6px 16px"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新生成报告</button>
+        </div>
       </div>
 
-      <div class="tab-bar" id="reportTabs"></div>
+      <div class="tab-bar" id="reportTabs" style="position:relative"></div>
 
       <div id="reportContent">加载中...</div>
     </div>
@@ -1708,9 +1711,11 @@ async function loadReportHistory() {
   const dataDates = data.data_dates || [];
   const mtimes = data.mtimes || [];
   dates.forEach((d, i) => {
+    const dd = dataDates[i];
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:inline-flex;align-items:center;gap:2px';
     const btn = document.createElement('button');
     btn.className = 'tab-btn' + (i===0?' active':'');
-    const dd = dataDates[i];
     btn.textContent = d.substring(5) + (dd !== d ? `(${dd.substring(5)}数据)` : '');
     btn.title = `生成日期: ${d}\n数据日期: ${dd}\n生成时间: ${mtimes[i] || '未知'}`;
     btn.onclick = () => {
@@ -1718,9 +1723,20 @@ async function loadReportHistory() {
       btn.classList.add('active');
       loadReport(dd);
     };
-    tabBar.appendChild(btn);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'tab-btn';
+    delBtn.style.cssText = 'padding:4px 6px;font-size:11px;color:var(--text3);border:none;background:none;cursor:pointer;opacity:0.4;transition:opacity 0.2s';
+    delBtn.innerHTML = '✕';
+    delBtn.title = '删除此报告';
+    delBtn.onmouseenter = () => { delBtn.style.opacity='1'; delBtn.style.color='var(--danger,#e74c3c)'; };
+    delBtn.onmouseleave = () => { delBtn.style.opacity='0.4'; delBtn.style.color='var(--text3)'; };
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteReport(dd, d); };
+    wrapper.appendChild(btn);
+    wrapper.appendChild(delBtn);
+    tabBar.appendChild(wrapper);
   });
   if (dates.length > 0) loadReport(dataDates[0]);
+  checkTaskStatus();
   } catch(e) { console.error('loadReportHistory error', e); }
 }
 
@@ -3881,8 +3897,10 @@ let _regenStartMtime = 0;
 async function regenerateReport() {
   if (!isLoggedIn()) return;
   const btn = document.getElementById('btnRegenerate');
+  const badge = document.getElementById('taskStatusBadge');
   const resetBtn = () => { if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新生成报告'; } };
   if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 生成中...'; }
+  if (badge) { badge.style.display = 'inline'; badge.style.background = '#fef3cd'; badge.style.color = '#856404'; badge.textContent = '⏳ 生成中'; }
   try {
     const histRes = await api('/gold/api/report_history');
     const histData = await histRes.json();
@@ -3895,37 +3913,100 @@ async function regenerateReport() {
     if (!data.ok) {
       showToast('执行失败: ' + (data.error || ''), 'error');
       resetBtn();
+      if (badge) { badge.style.display = 'none'; }
       return;
     }
   } catch(e) {
     showToast('请求失败，请检查网络', 'error');
     resetBtn();
+    if (badge) { badge.style.display = 'none'; }
     return;
   }
   if (_regenTimer) clearInterval(_regenTimer);
   let elapsed = 0;
   _regenTimer = setInterval(async () => {
     elapsed += 5;
-    if (!isLoggedIn() || elapsed > 180) {
+    if (!isLoggedIn() || elapsed > 300) {
       clearInterval(_regenTimer); _regenTimer = null;
       if (!isLoggedIn()) return;
       showToast('生成超时，请稍后手动刷新', 'error');
       resetBtn();
+      if (badge) { badge.style.background = '#f8d7da'; badge.style.color = '#721c24'; badge.textContent = '⚠ 超时'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 5000); }
       return;
     }
     try {
-      const r = await api('/gold/api/report_history');
+      const r = await api('/gold/api/task_status');
       const d = await r.json();
-      const latestMtime = (d.mtimes && d.mtimes[0]) || 0;
-      if (latestMtime > _regenStartMtime) {
+      if (d.status === 'completed') {
         clearInterval(_regenTimer); _regenTimer = null;
         loadDashboard();
         loadReportHistory();
         showToast('报告已更新');
         resetBtn();
+        if (badge) { badge.style.background = '#d4edda'; badge.style.color = '#155724'; badge.textContent = '✓ 已完成'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 3000); }
+      } else if (d.status === 'failed') {
+        clearInterval(_regenTimer); _regenTimer = null;
+        showToast('生成失败: ' + (d.error || '未知错误'), 'error');
+        resetBtn();
+        if (badge) { badge.style.background = '#f8d7da'; badge.style.color = '#721c24'; badge.textContent = '✗ 失败'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 5000); }
+      } else if (d.status === 'interrupted') {
+        clearInterval(_regenTimer); _regenTimer = null;
+        showToast('生成被中断，可删除不完整的报告后重试', 'error');
+        resetBtn();
+        if (badge) { badge.style.background = '#f8d7da'; badge.style.color = '#721c24'; badge.textContent = '⚠ 已中断'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 8000); }
+        loadReportHistory();
       }
     } catch(e) {}
   }, 5000);
+}
+
+async function deleteReport(dataDate, genDate) {
+  if (!isLoggedIn()) return;
+  const label = genDate || dataDate;
+  if (!confirm(`确定要删除 ${label} 的报告吗？此操作不可撤销。`)) return;
+  try {
+    const res = await api('/gold/api/report_delete/' + dataDate, {method:'POST'});
+    const data = await res.json();
+    if (data.ok) {
+      showToast(data.message || '报告已删除');
+      loadReportHistory();
+    } else {
+      showToast('删除失败: ' + (data.error || ''), 'error');
+    }
+  } catch(e) {
+    showToast('删除请求失败', 'error');
+  }
+}
+
+async function checkTaskStatus() {
+  if (!isLoggedIn()) return;
+  try {
+    const res = await api('/gold/api/task_status');
+    const data = await res.json();
+    const badge = document.getElementById('taskStatusBadge');
+    const btn = document.getElementById('btnRegenerate');
+    if (!badge) return;
+    if (data.status === 'running') {
+      badge.style.display = 'inline';
+      badge.style.background = '#fef3cd'; badge.style.color = '#856404';
+      badge.textContent = '⏳ 生成中';
+      if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+    } else if (data.status === 'interrupted') {
+      badge.style.display = 'inline';
+      badge.style.background = '#f8d7da'; badge.style.color = '#721c24';
+      badge.textContent = '⚠ 已中断';
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+    } else if (data.status === 'failed') {
+      badge.style.display = 'inline';
+      badge.style.background = '#f8d7da'; badge.style.color = '#721c24';
+      badge.textContent = '✗ 失败';
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+      setTimeout(() => { if (badge) badge.style.display = 'none'; }, 8000);
+    } else {
+      badge.style.display = 'none';
+      if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+    }
+  } catch(e) {}
 }
 
 function loadAll() {

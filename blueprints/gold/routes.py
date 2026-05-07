@@ -67,6 +67,16 @@ PRICE_ALERT_COOLDOWN = 600
 
 _security_logger = get_security_logger()
 
+_task_state = {
+    "status": "idle",
+    "started_at": None,
+    "finished_at": None,
+    "error": None,
+    "report_date": None,
+    "lock": threading.Lock(),
+}
+TASK_STALE_SECONDS = 600
+
 
 def _clean_nan(obj):
     if isinstance(obj, dict):
@@ -1542,14 +1552,87 @@ def api_save_settings():
 @login_required
 @csrf_required
 def api_run_now():
+    with _task_state["lock"]:
+        if _task_state["status"] == "running":
+            elapsed = time.time() - (_task_state["started_at"] or 0)
+            if elapsed < TASK_STALE_SECONDS:
+                return jsonify({"ok": False, "error": "任务正在执行中，请稍后再试", "status": "running"})
+            else:
+                _task_state["status"] = "interrupted"
+                _task_state["error"] = "任务超时，已标记为中断"
+                _task_state["finished_at"] = time.time()
+
+    def _run_with_state():
+        with _task_state["lock"]:
+            _task_state["status"] = "running"
+            _task_state["started_at"] = time.time()
+            _task_state["finished_at"] = None
+            _task_state["error"] = None
+            _task_state["report_date"] = None
+        try:
+            from main import run_daily_task
+            result = run_daily_task()
+            with _task_state["lock"]:
+                _task_state["status"] = "completed"
+                _task_state["finished_at"] = time.time()
+                _task_state["report_date"] = datetime.now().strftime("%Y-%m-%d")
+        except Exception as e:
+            with _task_state["lock"]:
+                _task_state["status"] = "failed"
+                _task_state["finished_at"] = time.time()
+                _task_state["error"] = str(e)
+
     try:
         import threading
-        from main import run_daily_task
-        t = threading.Thread(target=run_daily_task, daemon=True)
+        t = threading.Thread(target=_run_with_state, daemon=True)
         t.start()
         return jsonify({"ok": True, "message": "任务已启动，请稍后查看报告"})
     except Exception:
         return jsonify({"ok": False, "error": "执行失败，请查看日志"}), 500
+
+
+@gold_bp.route("/api/task_status")
+@login_required
+def api_task_status():
+    with _task_state["lock"]:
+        state = dict(_task_state)
+    status = state["status"]
+    started_at = state["started_at"]
+    if status == "running" and started_at:
+        elapsed = time.time() - started_at
+        if elapsed > TASK_STALE_SECONDS:
+            with _task_state["lock"]:
+                _task_state["status"] = "interrupted"
+                _task_state["error"] = "任务超时，已标记为中断"
+                _task_state["finished_at"] = time.time()
+            status = "interrupted"
+    result = {
+        "status": status,
+        "started_at": datetime.fromtimestamp(started_at).isoformat() if started_at else None,
+        "finished_at": datetime.fromtimestamp(state["finished_at"]).isoformat() if state["finished_at"] else None,
+        "error": state["error"],
+        "report_date": state["report_date"],
+    }
+    return jsonify(result)
+
+
+@gold_bp.route("/api/report_delete/<date_str>", methods=["POST"])
+@login_required
+@csrf_required
+def api_report_delete(date_str):
+    if not DATE_PATTERN.match(date_str):
+        return jsonify({"ok": False, "error": "日期格式无效"}), 400
+    try:
+        deleted = db.delete_report(date_str)
+        report_file = os.path.join(REPORTS_DIR, f"report_{date_str}.txt")
+        file_existed = os.path.exists(report_file)
+        if file_existed:
+            os.remove(report_file)
+        if deleted or file_existed:
+            return jsonify({"ok": True, "message": f"报告 {date_str} 已删除"})
+        return jsonify({"ok": False, "error": f"报告 {date_str} 不存在"}), 404
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"删除失败: {e}"}), 500
 
 
 @gold_bp.route("/api/iteration_status")
