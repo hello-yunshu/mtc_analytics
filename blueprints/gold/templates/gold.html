@@ -354,7 +354,16 @@
 .tab-del svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2.2; fill: none; }
 .tab-wrapper:hover .tab-del { opacity: 0.45; }
 .tab-del:hover { opacity: 1 !important; background: rgba(231,76,60,0.12); color: #e74c3c; }
-.tab-wrapper { display: inline-flex; align-items: center; padding-right: 4px; }
+.tab-wrapper { display: inline-flex; align-items: center; padding-right: 4px; position: relative; }
+.tab-wrapper + .tab-wrapper::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background: var(--glass-border);
+}
 
 /* ===== Toast ===== */
 
