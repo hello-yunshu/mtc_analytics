@@ -232,9 +232,12 @@ def init_db():
                 CREATE INDEX IF NOT EXISTS idx_ta_ts ON technical_analysis(timestamp);
 
                 CREATE TABLE IF NOT EXISTS reports (
-                    date TEXT PRIMARY KEY,
-                    content TEXT, created_at TEXT
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    date TEXT NOT NULL,
+                    content TEXT,
+                    created_at TEXT
                 );
+                CREATE INDEX IF NOT EXISTS idx_reports_date ON reports(date);
 
                 CREATE TABLE IF NOT EXISTS price_events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
