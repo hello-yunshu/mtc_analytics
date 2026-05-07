@@ -480,20 +480,21 @@ def format_report(date: str, contract: str, positions: List[Dict],
     lines.append(f"整体趋势：{stats['trend']}")
     lines.append(f"加仓 {stats['increasing_count']} 家 | 减仓 {stats['decreasing_count']} 家 | 不变 {stats['unchanged_count']} 家")
 
-    lines.append("📋 机构详细（前5大净多头）")
-    for i, pos in enumerate(positions, 1):
-        change_str = f"{'+' if pos['net_change'] > 0 else ''}{pos['net_change']:,}"
-        net_str = f"{'+' if pos['net'] > 0 else ''}{pos['net']:,}"
+    if positions:
+        lines.append("📋 机构详细（前5大净多头）")
+        for i, pos in enumerate(positions, 1):
+            change_str = f"{'+' if pos['net_change'] > 0 else ''}{pos['net_change']:,}"
+            net_str = f"{'+' if pos['net'] > 0 else ''}{pos['net']:,}"
 
-        if pos['net_change'] > 0:
-            arrow = "🔴"
-        elif pos['net_change'] < 0:
-            arrow = "🟢"
-        else:
-            arrow = "⚪"
+            if pos['net_change'] > 0:
+                arrow = "🔴"
+            elif pos['net_change'] < 0:
+                arrow = "🟢"
+            else:
+                arrow = "⚪"
 
-        lines.append(f"{i}. {pos['name']}")
-        lines.append(f"   多头:{pos['long']:,}  空头:{pos['short']:,}  净多头:{net_str}  {arrow}{change_str}")
+            lines.append(f"{i}. {pos['name']}")
+            lines.append(f"   多头:{pos['long']:,}  空头:{pos['short']:,}  净多头:{net_str}  {arrow}{change_str}")
 
     # 持仓结构信号
     if "position" in dim_alerts_map:

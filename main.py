@@ -285,6 +285,7 @@ def run_daily_task(skip_telegram=False):
     sge_status = get_sge_market_status()
     comex_closed = comex_status.get("status") != "open"
     sge_closed = sge_status.get("status") != "open"
+    sge_holiday = sge_closed and sge_status.get("reason", "") != "非交易时段"
 
     print(f"\n{'='*50}")
     print(f"  AI 黄金分析 | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -363,13 +364,13 @@ def run_daily_task(skip_telegram=False):
     # 3. 获取持仓数据
     print("[3/8] 正在获取持仓数据...")
     holdings = {"long_top": [], "short_top": [], "date": "", "contract": "", "trade_date": ""}
-    if sge_closed:
+    if sge_holiday:
         print(f"  SGE休市({sge_status.get('reason', '')})，跳过持仓数据获取")
     else:
         holdings = fetch_holdings_data()
     
     has_holdings = bool(holdings.get("long_top") or holdings.get("short_top"))
-    if not has_holdings and not sge_closed:
+    if not has_holdings and not sge_holiday:
         print("[ERROR] 未能获取到持仓数据，可能非交易日或数据源异常")
     
     if has_holdings:
