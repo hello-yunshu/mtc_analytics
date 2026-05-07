@@ -33,18 +33,28 @@ const MTC = (function() {
     setTimeout(function() { t.classList.remove('show'); }, 3000);
   }
 
+  function resolveUrl(url) {
+    if (!_config.apiPrefix || /^https?:\/\//i.test(url)) return url;
+    if (url.indexOf(_config.apiPrefix + '/') === 0) return url;
+    if (url.indexOf('/api/') === 0) return _config.apiPrefix + url;
+    return url;
+  }
+
   async function api(url, opts) {
     opts = opts || {};
     const headers = {'Content-Type': 'application/json'};
     if (_csrfToken && opts.method && opts.method !== 'GET') {
       headers['X-CSRF-Token'] = _csrfToken;
     }
+    const body = opts.body === undefined
+      ? undefined
+      : (typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body));
     let res;
     try {
-      res = await fetch(_config.apiPrefix + url, {
+      res = await fetch(resolveUrl(url), {
         headers: headers,
         ...opts,
-        body: opts.body ? JSON.stringify(opts.body) : undefined,
+        body: body,
       });
     } catch(e) {
       showToast('网络连接失败', 'error');

@@ -29,7 +29,7 @@ from typing import Dict, List, Optional, Tuple
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 _DATA_DIR = os.path.join(_PROJECT_ROOT, "data")
 from .utils import load_json, save_json
-from .llm_utils import call_llm
+from .llm_utils import call_llm, get_llm_config
 
 INSTITUTION_PATTERNS = [
     {"keys": ["高盛", "Goldman Sachs", "Goldman"], "name": "高盛", "name_en": "Goldman Sachs", "tier": 1},
@@ -457,7 +457,7 @@ def fetch_institutional_consensus(news_data: Optional[Dict] = None) -> Dict:
     keyword_views = _extract_from_news(news_list)
 
     llm_views = []
-    api_key, base_url, model, llm_enabled = _get_llm_config()
+    api_key, base_url, model, llm_enabled = get_llm_config()
     if llm_enabled and len(news_list) > 0:
         try:
             llm_views = _llm_extract_views(news_list)

@@ -42,7 +42,6 @@ def _decrypt_value(ciphertext: str) -> str:
 
 
 @sector_bp.route("/")
-@login_required
 def index():
     return render_template("sector.html")
 
