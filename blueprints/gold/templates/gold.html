@@ -326,45 +326,35 @@
 .login-box { width: 360px; }
 
 /* ===== Tabs ===== */
-.tab-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+.tab-bar { display: flex; margin-bottom: 20px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 10px; overflow: hidden; backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); }
+.tab-wrapper { display: inline-flex; align-items: center; border-right: 1px solid var(--glass-border); }
+.tab-wrapper:last-child { border-right: none; }
 .tab-btn {
-  padding: 8px 16px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--text2);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
   font-family: var(--font-sans);
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  box-shadow: none;
+  white-space: nowrap;
 }
-.tab-btn:hover { border-color: var(--gold); color: var(--text); background: rgba(246,199,104,0.08); }
-.tab-btn.active { background: rgba(246,199,104,0.35); color: var(--gold); border-color: rgba(246,199,104,0.35); }
+.tab-btn:hover { color: var(--text); background: rgba(246,199,104,0.08); }
+.tab-btn.active { background: rgba(246,199,104,0.35); color: var(--gold); }
 .tab-del {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; margin-left: 6px;
+  width: 22px; height: 22px; margin-right: 6px;
   padding: 0; border: none; border-radius: 5px;
   background: transparent; color: var(--text3);
-  cursor: pointer; transition: all 0.2s ease; opacity: 0;
+  cursor: pointer; transition: all 0.2s ease;
   font-size: 0; line-height: 0; flex-shrink: 0;
+  visibility: hidden; opacity: 0;
 }
-.tab-del svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2.2; fill: none; }
-.tab-wrapper:hover .tab-del { opacity: 0.45; }
+.tab-del svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2; fill: none; }
+.tab-wrapper:hover .tab-del { visibility: visible; opacity: 0.4; }
 .tab-del:hover { opacity: 1 !important; background: rgba(231,76,60,0.12); color: #e74c3c; }
-.tab-wrapper { display: inline-flex; align-items: center; padding-right: 4px; position: relative; }
-.tab-wrapper + .tab-wrapper::before {
-  content: '';
-  position: absolute;
-  left: -5px;
-  top: 25%;
-  height: 50%;
-  width: 1px;
-  background: var(--glass-border);
-  opacity: 0.6;
-}
 
 /* ===== Toast ===== */
 
