@@ -44,12 +44,12 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
     --bg: #eef5f7;
-    --bg2: rgba(255,255,255,0.62);
-    --bg3: rgba(255,255,255,0.5);
-    --card: rgba(255,255,255,0.66);
-    --glass: rgba(255,255,255,0.54);
-    --border: rgba(15,23,42,0.11);
-    --glass-border: rgba(255,255,255,0.72);
+    --bg2: rgba(225,235,245,0.85);
+    --bg3: rgba(200,215,230,0.5);
+    --card: rgba(255,255,255,0.88);
+    --glass: rgba(255,255,255,0.72);
+    --border: rgba(15,23,42,0.16);
+    --glass-border: rgba(200,215,230,0.6);
     --text: #132033;
     --text2: #46586f;
     --text3: #7a8a9e;
@@ -70,12 +70,12 @@
 
 :root[data-theme="light"] {
   --bg: #eef5f7;
-  --bg2: rgba(255,255,255,0.62);
-  --bg3: rgba(255,255,255,0.5);
-  --card: rgba(255,255,255,0.66);
-  --glass: rgba(255,255,255,0.54);
-  --border: rgba(15,23,42,0.11);
-  --glass-border: rgba(255,255,255,0.72);
+  --bg2: rgba(225,235,245,0.85);
+  --bg3: rgba(200,215,230,0.5);
+  --card: rgba(255,255,255,0.88);
+  --glass: rgba(255,255,255,0.72);
+  --border: rgba(15,23,42,0.16);
+  --glass-border: rgba(200,215,230,0.6);
   --text: #132033;
   --text2: #46586f;
   --text3: #7a8a9e;
@@ -340,6 +340,15 @@ body::after {
 .sub-panel:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
+
+.glass-section {
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+}
+.glass-item {
+  backdrop-filter: blur(12px) saturate(1.15);
+  -webkit-backdrop-filter: blur(12px) saturate(1.15);
 }
 
 .dual-col-grid {
@@ -1415,7 +1424,7 @@ function renderDashSummary(p) {
   const netColor = p.netChange > 0 ? 'var(--bull)' : p.netChange < 0 ? 'var(--bear)' : 'var(--text2)';
   const netDir = p.netChange > 0 ? '加仓' : p.netChange < 0 ? '减仓' : '持平';
   const netBorder = p.netChange > 0 ? 'var(--bull)' : p.netChange < 0 ? 'var(--bear)' : 'var(--border)';
-  html += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${netBorder};border-radius:8px;padding:14px 16px">`;
+  html += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${netBorder};border-radius:8px;padding:14px 16px">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">📊 <span style="font-weight:600">持仓面</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${netColor}">${netDir} ${p.netChange !== 0 ? (p.netChange > 0 ? '+' : '') + p.netChange.toLocaleString() + '手' : ''}</div>`;
   html += `<div style="font-size:11px;color:var(--text3);margin-top:4px">净多头合计 ${p.totalNet ? p.totalNet.toLocaleString() + '手' : '--'}</div>`;
@@ -1423,7 +1432,7 @@ function renderDashSummary(p) {
 
   const dirColor = p._directionCss || (p.direction === '看多' ? 'var(--bull)' : p.direction === '看空' ? 'var(--bear)' : 'var(--text2)');
   const dirBorder = p._directionBorder || (p.direction === '看多' ? 'var(--bull)' : p.direction === '看空' ? 'var(--bear)' : 'var(--border)');
-  html += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${dirBorder};border-radius:8px;padding:14px 16px">`;
+  html += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${dirBorder};border-radius:8px;padding:14px 16px">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">🔮 <span style="font-weight:600">十二因子预测</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${dirColor}">${escHtml(p.direction || '--')}</div>`;
   html += `<div style="font-size:11px;color:var(--text3);margin-top:4px">置信度 ${escHtml(p.confidence || '--')}</div>`;
@@ -1431,7 +1440,7 @@ function renderDashSummary(p) {
 
   const sentColor = p._sentimentColor || (p.sentimentScore > 0.2 ? 'var(--bull)' : p.sentimentScore < -0.2 ? 'var(--bear)' : 'var(--text2)');
   const sentBorder = p._sentimentBorder || (p.sentimentScore > 0.2 ? 'var(--bull)' : p.sentimentScore < -0.2 ? 'var(--bear)' : 'var(--border)');
-  html += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${sentBorder};border-radius:8px;padding:14px 16px">`;
+  html += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${sentBorder};border-radius:8px;padding:14px 16px">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">📰 <span style="font-weight:600">新闻情绪</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${sentColor}">${escHtml(p.sentiment || '--')}</div>`;
   html += `<div style="display:flex;gap:8px;margin-top:6px;font-size:11px">`;
@@ -1443,7 +1452,7 @@ function renderDashSummary(p) {
   const alertTotal = p.alertCritical + p.alertHigh + p.alertMedium + p.alertLow;
   const alertColor = p.alertCritical > 0 ? 'var(--bull)' : p.alertHigh > 0 ? 'var(--bull)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--bear)';
   const alertBorder = p.alertCritical > 0 ? 'var(--bull)' : p.alertHigh > 0 ? 'var(--bull)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--bear)';
-  html += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${alertBorder};border-radius:8px;padding:14px 16px">`;
+  html += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${alertBorder};border-radius:8px;padding:14px 16px">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">🔔 <span style="font-weight:600">全维度警示</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${alertColor}">${alertTotal > 0 ? alertTotal + '个' : '无异常'}</div>`;
   let alertParts = [];
@@ -1462,7 +1471,7 @@ function renderDashSummary(p) {
       if (!dimGroups[a.dimension]) dimGroups[a.dimension] = [];
       dimGroups[a.dimension].push(a);
     }
-    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
+    html += `<div class="glass-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">🔔 全维度警示详情</div>`;
     html += `<div class="dual-col-grid">`;
     const dimEntries = Object.entries(dimGroups);
@@ -1471,7 +1480,7 @@ function renderDashSummary(p) {
       const hasHigh = dimAlerts.some(a => a.level === 'critical' || a.level === 'high');
       const dimColor = hasHigh ? 'var(--bull)' : dimAlerts.some(a => a.level === 'medium') ? 'var(--gold)' : 'var(--text3)';
       const isLastOdd = di === dimEntries.length - 1 && dimEntries.length % 2 === 1;
-      html += `<div ${isLastOdd ? 'class="span-full"' : ''} style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${dimColor}">`;
+      html += `<div ${isLastOdd ? 'class="span-full glass-item"' : 'class="glass-item"'} style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${dimColor}">`;
       html += `<div style="font-size:12px;font-weight:600;color:${dimColor};margin-bottom:6px">${dimName}<span style="color:var(--text3);font-weight:400;margin-left:6px">${dimAlerts.length}个</span></div>`;
       for (const a of dimAlerts) {
         const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.18);color:var(--bull);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.12);color:var(--bull);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(245,158,11,0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(100,116,139,0.1);color:var(--text3);margin-right:4px">低</span>';
@@ -1483,7 +1492,7 @@ function renderDashSummary(p) {
   }
 
   if (p.factors.macro || p.factors.meso || p.factors.micro || p.factors.calendar) {
-    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
+    html += `<div class="glass-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">📐 十二因子评分</div>`;
     const factorGroups = [
       { label: '宏观', value: p.factors.macro, icon: '🏛️' },
@@ -1508,7 +1517,7 @@ function renderDashSummary(p) {
       });
       const groupAvg = groupScores.reduce((a, b) => a + b.score, 0) / groupScores.length;
       const groupColor = predColor(groupAvg);
-      html += `<div ${isLastOdd ? 'class="span-full"' : ''} style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${groupColor}">`;
+      html += `<div ${isLastOdd ? 'class="span-full glass-item"' : 'class="glass-item"'} style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${groupColor}">`;
       html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
       html += `<span style="font-size:12px;font-weight:600;color:var(--text)">${g.icon} ${g.label}</span>`;
       html += `<span style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${groupColor}">${groupAvg >= 0 ? '+' : ''}${groupAvg.toFixed(2)}</span>`;
@@ -1532,23 +1541,23 @@ function renderDashSummary(p) {
 
   if (p.bullSignals.length || p.bearSignals.length || p.neutralSignals.length) {
     const signalCount = (p.bullSignals.length ? 1 : 0) + (p.bearSignals.length ? 1 : 0) + (p.neutralSignals.length ? 1 : 0);
-    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
+    html += `<div class="glass-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">📊 信号汇总</div>`;
     html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
     if (p.bullSignals.length) {
-      html += `<div ${signalCount === 1 ? 'class="span-full"' : ''} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bull);border-radius:8px;padding:14px 16px">`;
+      html += `<div ${signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bull);border-radius:8px;padding:14px 16px">`;
       html += `<div style="font-size:12px;color:var(--bull);margin-bottom:8px;font-weight:700">🔴 利多（${p.bullSignals.length}）</div>`;
       p.bullSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
     if (p.bearSignals.length) {
-      html += `<div ${signalCount === 1 ? 'class="span-full"' : ''} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bear);border-radius:8px;padding:14px 16px">`;
+      html += `<div ${signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bear);border-radius:8px;padding:14px 16px">`;
       html += `<div style="font-size:12px;color:var(--bear);margin-bottom:8px;font-weight:700">🟢 利空（${p.bearSignals.length}）</div>`;
       p.bearSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
     if (p.neutralSignals.length) {
-      html += `<div ${signalCount === 3 || signalCount === 1 ? 'class="span-full"' : ''} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--text3);border-radius:8px;padding:14px 16px">`;
+      html += `<div ${signalCount === 3 || signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--text3);border-radius:8px;padding:14px 16px">`;
       html += `<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:700">⚪ 中性（${p.neutralSignals.length}）</div>`;
       p.neutralSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5">• ${escHtml(s)}</div>`; });
       html += `</div>`;
@@ -1557,7 +1566,7 @@ function renderDashSummary(p) {
   }
 
   if (p.keyEvents.length) {
-    html += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px">`;
+    html += `<div class="glass-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">📰 关键事件</div>`;
     p.keyEvents.forEach((e, i) => {
       const isLast = i === p.keyEvents.length - 1;
@@ -1850,7 +1859,7 @@ async function loadTechnicalAnalysis() {
         const sigColor = sig ? taColor(sig.signal === '偏多' || sig.signal === '微多' ? 'bullish' : sig.signal === '偏空' || sig.signal === '微空' ? 'bearish' : 'neutral') : 'var(--text2)';
         const posText = sig ? sig.position : '';
         const devText = sig ? sig.deviation.toFixed(2) + '%' : '';
-        summaryHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+        summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
         summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${maColors[k] || 'var(--gold)'}"></span>${k}</div>`;
         summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${sigColor}">$${ma[k].toFixed(2)}</div>`;
         summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-top:2px">${posText} ${devText}</div>`;
@@ -1861,7 +1870,7 @@ async function loadTechnicalAnalysis() {
     if (data.rsi && data.rsi.value !== null && data.rsi.value !== undefined) {
       const rsiSig = data.rsi.signal || {};
       const rsiColor = taColor(rsiSig.color || 'neutral');
-      summaryHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">RSI(14)</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${rsiColor}">${data.rsi.value.toFixed(1)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:${rsiColor};margin-top:2px">${rsiSig.level || ''} · ${rsiSig.signal || ''}</div>`;
@@ -1871,7 +1880,7 @@ async function loadTechnicalAnalysis() {
     if (data.macd) {
       const macdSig = data.macd.signal || {};
       const macdColor = taColor(macdSig.color || 'neutral');
-      summaryHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">MACD</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${macdColor}">${data.macd.histogram > 0 ? '+' : ''}${data.macd.histogram.toFixed(2)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:${macdColor};margin-top:2px">${macdSig.type || ''} · ${macdSig.signal || ''}</div>`;
@@ -1881,7 +1890,7 @@ async function loadTechnicalAnalysis() {
     if (data.kdj) {
       const kdjSig = data.kdj.signal || {};
       const kdjColor = taColor(kdjSig.color || 'neutral');
-      summaryHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">KDJ</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${kdjColor}">K${data.kdj.K.toFixed(0)} D${data.kdj.D.toFixed(0)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:${kdjColor};margin-top:2px">${kdjSig.level || ''} · ${kdjSig.signal || ''}</div>`;
@@ -1891,7 +1900,7 @@ async function loadTechnicalAnalysis() {
     if (data.bollinger) {
       const bbSig = data.bollinger.signal || {};
       const bbColor = taColor(bbSig.color || 'neutral');
-      summaryHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">布林带</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${bbColor}">%B ${data.bollinger.pct_b.toFixed(1)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:${bbColor};margin-top:2px">${bbSig.position || ''} · ${bbSig.signal || ''}</div>`;
@@ -1899,7 +1908,7 @@ async function loadTechnicalAnalysis() {
     }
 
     if (data.atr && data.atr.value !== null) {
-      summaryHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">ATR(14)</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:var(--text)">${data.atr.pct !== null ? data.atr.pct.toFixed(2) + '%' : data.atr.value.toFixed(2)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-top:2px">${data.atr.pct > 2 ? '高波动' : data.atr.pct < 0.8 ? '低波动' : '正常波动'}</div>`;
@@ -1917,7 +1926,7 @@ async function loadTechnicalAnalysis() {
         const isBear = s.signal === '偏空' || s.signal === '微空';
         const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text3)';
         const border = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--border)';
-        maSignalsHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${border};border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">`;
+        maSignalsHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${border};border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">`;
         maSignalsHtml += `<span style="font-size:12px;color:var(--text)">${s.name} <span style="color:var(--text3)">$${s.value.toFixed(2)}</span></span>`;
         maSignalsHtml += `<span style="font-size:12px;font-weight:600;color:${color}">${s.position} ${s.signal}</span>`;
         maSignalsHtml += `</div>`;
@@ -1959,7 +1968,7 @@ async function loadTechnicalAnalysis() {
         const sig = ind.signal;
         const color = taColor(sig.color || 'neutral');
         const border = taColor(sig.color || 'neutral');
-        indHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${border};border-radius:6px;padding:10px 14px">`;
+        indHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${border};border-radius:6px;padding:10px 14px">`;
         indHtml += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">`;
         indHtml += `<span style="font-size:12px;font-weight:600;color:var(--text)">${ind.name}</span>`;
         indHtml += `<span style="font-size:12px;font-weight:700;color:${color}">${sig.signal || ''}</span>`;
@@ -2440,7 +2449,7 @@ function renderPredictionSection(text) {
         const borderColor = ptConfig.highlight ? 'var(--gold)' : 'var(--border)';
         const borderWidth = ptConfig.highlight ? '2px' : '1px';
         const badge = ptConfig.highlight ? '<div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:8px;font-weight:700;padding:1px 6px;border-radius:3px">重点</div>' : '';
-        ptHtml += `<div style="background:var(--bg2);border:${borderWidth} solid ${borderColor};border-radius:8px;padding:10px;text-align:center;position:relative">`;
+        ptHtml += `<div class="glass-item" style="background:var(--bg2);border:${borderWidth} solid ${borderColor};border-radius:8px;padding:10px;text-align:center;position:relative">`;
         ptHtml += badge;
         ptHtml += `<div style="font-size:10px;color:var(--text3)">${ptConfig.icon} ${ptConfig.label}（${ptConfig.horizon}）</div>`;
         ptHtml += `<div style="font-size:18px;font-weight:800;color:${pt.direction_color};margin:4px 0">${pt.direction}</div>`;
@@ -2481,7 +2490,7 @@ function renderPredictionSection(text) {
         const alignLabels = {aligned: '✅ 一致', divergent: '⚠️ 背离', neutral_vs_conviction: '⚡ 模型中性vs共识有方向', conviction_vs_neutral: '💡 模型有方向vs共识中性'};
         const aColor = alignColors[align.alignment] || 'var(--text3)';
         const aLabel = alignLabels[align.alignment] || align.alignment;
-        icHtml += `<div style="background:var(--bg2);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:11px">`;
+        icHtml += `<div class="glass-item" style="background:var(--bg2);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:11px">`;
         icHtml += `<span style="color:${aColor};font-weight:700">${aLabel}</span>`;
         icHtml += `<span style="color:var(--text3);margin-left:6px">${align.description || ''}</span>`;
         icHtml += `</div>`;
@@ -2761,7 +2770,8 @@ function renderAlertSection(text) {
     }
   }
 
-  for (const dim of dims) {
+  for (let di = 0; di < dims.length; di++) {
+    const dim = dims[di];
     const emoji = dimEmojiList.find(e => dim.header.startsWith(e)) || '';
     const hasCritical = dim.alerts.critical.length > 0;
     const hasHigh = dim.alerts.high.length > 0;
@@ -2784,7 +2794,7 @@ function renderAlertSection(text) {
     }
     const titleColor = hasCritical ? 'var(--bear)' : hasHigh ? '#ef4444' : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
 
-    const isFullSpan = emoji === '⚠️';
+    const isFullSpan = emoji === '⚠️' || (di === dims.length - 1 && dims.length % 2 === 1);
     html += `<div id="alert-dim-${dim.key}" class="sub-card ${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:10px;padding:12px 14px;transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease">`;
     html += `<div style="font-size:13px;font-weight:700;color:${titleColor};margin-bottom:8px;display:flex;align-items:center;gap:6px">`;
     html += `${escHtml(dim.header)}`;
