@@ -1,9 +1,9 @@
 const MTC = (function() {
   const _config = {
     apiPrefix: '',
-    loginPath: '/api/login',
-    logoutPath: '/api/logout',
-    checkAuthPath: '/api/check_auth',
+    loginPath: 'api/login',
+    logoutPath: 'api/logout',
+    checkAuthPath: 'api/check_auth',
     changePasswordPath: '/api/change_password',
     onAuthChange: null,
     onLoginSuccess: null,
@@ -34,10 +34,10 @@ const MTC = (function() {
   }
 
   function resolveUrl(url) {
-    if (!_config.apiPrefix || /^https?:\/\//i.test(url)) return url;
-    if (url.indexOf(_config.apiPrefix + '/') === 0) return url;
-    if (url.indexOf('/api/') === 0) return _config.apiPrefix + url;
-    return url;
+    if (/^https?:\/\//i.test(url)) return url;
+    if (url.charAt(0) === '/') return url;
+    if (!_config.apiPrefix) return '/' + url;
+    return _config.apiPrefix + '/' + url;
   }
 
   async function api(url, opts) {
