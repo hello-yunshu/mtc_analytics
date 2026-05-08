@@ -3211,7 +3211,7 @@ function renderNetChart(data) {
         label: '净多头',
         data: netVals,
         borderColor: cv('--ma5'),
-        backgroundColor: cv('--gold').replace(')', ',0.1)').replace('rgb', 'rgba'),
+        backgroundColor: cva('--gold', 0.08),
         fill: true,
         tension: 0.3,
         pointRadius: 2,
@@ -3221,7 +3221,7 @@ function renderNetChart(data) {
         label: '净变化',
         data: changeVals,
         borderColor: cv('--ma10'),
-        backgroundColor: 'rgba(59,130,246,0.1)',
+        backgroundColor: cva('--ma10', 0.08),
         fill: true,
         tension: 0.3,
         pointRadius: 2,
@@ -3236,8 +3236,8 @@ function renderNetChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
-        y: { min: netMin - netPad, max: netMax + netPad, ticks: { color: cv('--ma5') }, grid: { color: cv('--text') }, title: { display: true, text: '净多头', color: cv('--ma5') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
+        y: { min: netMin - netPad, max: netMax + netPad, ticks: { color: cv('--ma5') }, grid: { color: cv('--chart-grid') }, title: { display: true, text: '净多头', color: cv('--ma5') } },
         y1: { position: 'right', min: chgMin - chgPad, max: chgMax + chgPad, ticks: { color: cv('--ma10') }, grid: { display: false }, title: { display: true, text: '净变化', color: cv('--ma10') } },
       }
     }
@@ -3274,8 +3274,8 @@ function renderPriceChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
-        y: { min: priceMin - pricePad, max: priceMax + pricePad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
+        y: { min: priceMin - pricePad, max: priceMax + pricePad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--chart-grid') } },
       }
     }
   });
@@ -3308,8 +3308,8 @@ function renderSentimentChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
-        y: { min: scoreMin - scorePad, max: scoreMax + scorePad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
+        y: { min: scoreMin - scorePad, max: scoreMax + scorePad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--chart-grid') } },
       }
     }
   });
@@ -3370,8 +3370,8 @@ function renderLongShortChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
-        y: { min: yMin, max: yMax, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') }, title: { display: true, text: '持仓量', color: cv('--chart-tick') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
+        y: { min: yMin, max: yMax, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--chart-grid') }, title: { display: true, text: '持仓量', color: cv('--chart-tick') } },
         y1: { position: 'right', min: netMin - netPadding, max: netMax + netPadding, ticks: { color: cv('--ma5') }, grid: { display: false }, title: { display: true, text: '净多头', color: cv('--ma5') } },
       }
     }
@@ -3428,8 +3428,8 @@ function renderPriceRangeChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
-        y: { min: pMin - pPad, max: pMax + pPad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
+        y: { min: pMin - pPad, max: pMax + pPad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--chart-grid') } },
       }
     }
   });
@@ -3483,8 +3483,8 @@ function renderMAChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: cv('--text3'), usePointStyle: true, pointStyle: 'line' } } },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
-        y: { min: pMin - pPad, max: pMax + pPad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
+        y: { min: pMin - pPad, max: pMax + pPad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--chart-grid') } },
       }
     }
   });
@@ -3549,8 +3549,8 @@ function renderMACDChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
-        y: { min: yMin, max: yMax, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
+        y: { min: yMin, max: yMax, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--chart-grid') } },
       }
     }
   });
@@ -3588,7 +3588,7 @@ function renderRSIChart(data) {
         annotation: {},
       },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
         y: {
           min: 0, max: 100,
           ticks: { color: cv('--chart-tick'), stepSize: 10 },
@@ -3664,8 +3664,8 @@ function renderNewsDistChart(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
-        y: { max: yMax, ticks: { color: cv('--chart-tick'), stepSize: 1 }, grid: { color: cv('--text') }, title: { display: true, text: '新闻数量', color: cv('--chart-tick') } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--chart-grid') } },
+        y: { max: yMax, ticks: { color: cv('--chart-tick'), stepSize: 1 }, grid: { color: cv('--chart-grid') }, title: { display: true, text: '新闻数量', color: cv('--chart-tick') } },
         y1: { position: 'right', min: netMin - netPadding, max: netMax + netPadding, ticks: { color: cv('--ma5'), stepSize: 1 }, grid: { display: false }, title: { display: true, text: '多空差值', color: cv('--ma5') } },
       }
     }
@@ -3727,7 +3727,7 @@ function renderMacroChart(data) {
         },
         scales: {
           x: { display: false },
-          y: { min: range.min, max: range.max, ticks: { color: cv('--chart-tick'), font: { size: 10 } }, grid: { color: cv('--text') } },
+          y: { min: range.min, max: range.max, ticks: { color: cv('--chart-tick'), font: { size: 10 } }, grid: { color: cv('--chart-grid') } },
         }
       },
       plugins: [{
@@ -3747,10 +3747,10 @@ function renderMacroChart(data) {
       }]
     });
   }
-  makeMiniChart('macro10yChart', 'macro10y', '美债10Y收益率', data.map(d=>d.us_10y_yield), cv('--ma10'), 'rgba(59,130,246,0.1)');
-  makeMiniChart('macroDxyChart', 'macroDxy', '美元指数', data.map(d=>d.dxy), cv('--ma20'), 'rgba(139,92,246,0.1)');
-  makeMiniChart('macroVixChart', 'macroVix', 'VIX恐慌指数', data.map(d=>d.vix), cv('--danger'), 'rgba(var(--danger-rgb),0.1)');
-  makeMiniChart('macroOilChart', 'macroOil', 'WTI原油', data.map(d=>d.crude_oil), cv('--bear'), 'rgba(16,185,129,0.1)');
+  makeMiniChart('macro10yChart', 'macro10y', '美债10Y收益率', data.map(d=>d.us_10y_yield), cv('--ma10'), cva('--ma10', 0.08));
+  makeMiniChart('macroDxyChart', 'macroDxy', '美元指数', data.map(d=>d.dxy), cv('--ma20'), cva('--ma20', 0.08));
+  makeMiniChart('macroVixChart', 'macroVix', 'VIX恐慌指数', data.map(d=>d.vix), cv('--danger'), cva('--danger', 0.08));
+  makeMiniChart('macroOilChart', 'macroOil', 'WTI原油', data.map(d=>d.crude_oil), cv('--bear'), cva('--bear', 0.08));
 }
 
 function renderRadarChart(data) {
@@ -3794,7 +3794,7 @@ function renderRadarChart(data) {
           min: -1,
           max: 1,
           ticks: { color: cv('--chart-tick'), backdropColor: 'transparent', stepSize: 0.5 },
-          grid: { color: cv('--text') },
+          grid: { color: cv('--chart-grid') },
           angleLines: { color: cv('--text') },
           pointLabels: { color: cv('--text3'), font: { size: 11 } },
         }
