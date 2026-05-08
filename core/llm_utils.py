@@ -344,6 +344,30 @@ def get_llm_budget() -> int:
     )
 
 
+_FIRST_RUN_CHECKED = False
+_FIRST_RUN_RESULT = None
+
+
+def _is_first_run() -> bool:
+    global _FIRST_RUN_CHECKED, _FIRST_RUN_RESULT
+    if _FIRST_RUN_CHECKED:
+        return _FIRST_RUN_RESULT
+    _FIRST_RUN_CHECKED = True
+    try:
+        from .db import get_report_dates_by_gen
+        records = get_report_dates_by_gen(days=365)
+        _FIRST_RUN_RESULT = len(records) == 0
+    except Exception:
+        _FIRST_RUN_RESULT = True
+    return _FIRST_RUN_RESULT
+
+
+def mark_first_run_done():
+    global _FIRST_RUN_CHECKED, _FIRST_RUN_RESULT
+    _FIRST_RUN_CHECKED = True
+    _FIRST_RUN_RESULT = False
+
+
 # ==================== Unified LLM Call ====================
 
 def call_llm(messages: List[Dict], *, category: str,
@@ -353,8 +377,13 @@ def call_llm(messages: List[Dict], *, category: str,
     Unified LLM API call entry point.
     - Automatically gets config and checks budget
     - Automatically records token usage
+    - Skips all LLM calls on first run (no reports in DB yet)
     - Returns {"content": str, "tokens_used": int} or None
     """
+    if _is_first_run():
+        print(f"  [{log_prefix}] 首次启动，跳过 LLM 调用 ({category})")
+        return None
+
     api_key, base_url, model, enabled = get_llm_config()
     if not enabled:
         return None
