@@ -99,8 +99,8 @@
     --glass-highlight: rgba(255, 255, 255, 0.50);
     --glass-highlight-subtle: rgba(255, 255, 255, 0.15);
     --scrollbar-thumb: rgba(30, 40, 80, 0.15);
-    --chart-tick: #94a3b8;
-    --chart-grid: rgba(226, 232, 240, 0.15);
+    --chart-tick: #64748b;
+    --chart-grid: rgba(100, 116, 139, 0.24);
     --toggle-off-bg: #d1d5db;
     --toggle-knob-off: #9ca3af;
     --toggle-on-bg: #d97706;
@@ -147,8 +147,8 @@
   --glass-highlight: rgba(255, 255, 255, 0.50);
   --glass-highlight-subtle: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb: rgba(30, 40, 80, 0.15);
-  --chart-tick: #94a3b8;
-  --chart-grid: rgba(226, 232, 240, 0.15);
+  --chart-tick: #64748b;
+  --chart-grid: rgba(100, 116, 139, 0.24);
   --toggle-off-bg: #d1d5db;
   --toggle-knob-off: #9ca3af;
   --toggle-on-bg: #d97706;

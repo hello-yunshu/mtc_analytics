@@ -1721,6 +1721,10 @@ function applyTheme(theme) {
     else if (effective === 'light') label.textContent = '浅色';
     else label.textContent = '深色';
   }
+  const chartPage = document.getElementById('page-charts');
+  if (chartPage && chartPage.classList.contains('active') && isLoggedIn()) {
+    setTimeout(loadCharts, 0);
+  }
 }
 
 function toggleTheme() {
@@ -2448,6 +2452,13 @@ function renderAlertSection(text) {
     }
   }
 
+  const dimCards = [];
+  const makeDimFullSpan = (card) => {
+    if (card.isFullSpan) return;
+    card.isFullSpan = true;
+    card.html = card.html.replace('class="sub-card"', 'class="sub-card alert-dim-full"');
+  };
+
   for (let di = 0; di < dims.length; di++) {
     const dim = dims[di];
     const emoji = dimEmojiList.find(e => dim.header.startsWith(e)) || '';
@@ -2472,26 +2483,56 @@ function renderAlertSection(text) {
     }
     const titleColor = hasCritical ? 'var(--bear)' : hasHigh ? cv('--danger') : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
 
-    const isFullSpan = emoji === '⚠️' || (di === dims.length - 1 && dims.length % 2 === 1);
-    html += `<div id="alert-dim-${dim.key}" class="sub-card ${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:var(--radius-sm);transition:transform var(--transition-fast),box-shadow var(--transition-fast),border-color var(--transition-fast)">`;
-    html += `<div style="font-size:13px;font-weight:700;color:${titleColor};margin-bottom:8px;display:flex;align-items:center;gap:6px">`;
-    html += `${escHtml(dim.header)}`;
-    html += `</div>`;
+    const isFullSpan = emoji === '⚠️';
+    const cardClasses = ['sub-card'];
+    if (isFullSpan) cardClasses.push('alert-dim-full');
+    let cardHtml = `<div id="alert-dim-${dim.key}" class="${cardClasses.join(' ')}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:var(--radius-sm);transition:transform var(--transition-fast),box-shadow var(--transition-fast),border-color var(--transition-fast)">`;
+    cardHtml += `<div style="font-size:13px;font-weight:700;color:${titleColor};margin-bottom:8px;display:flex;align-items:center;gap:6px">`;
+    cardHtml += `${escHtml(dim.header)}`;
+    cardHtml += `</div>`;
 
     for (const lvl of ['critical', 'high', 'medium', 'low']) {
       const items = dim.alerts[lvl];
       if (!items.length) continue;
       const s = levelStyles[lvl];
-      html += `<div id="alert-dim-${dim.key}-${lvl}" style="background:${s.bg};border:1px solid ${s.border};border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:6px;transition:box-shadow var(--transition)">`;
-      html += `<div style="font-size:11px;font-weight:600;color:${s.color};margin-bottom:4px">${s.label}（${items.length}个）</div>`;
+      cardHtml += `<div id="alert-dim-${dim.key}-${lvl}" style="background:${s.bg};border:1px solid ${s.border};border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:6px;transition:box-shadow var(--transition)">`;
+      cardHtml += `<div style="font-size:11px;font-weight:600;color:${s.color};margin-bottom:4px">${s.label}（${items.length}个）</div>`;
       for (const item of items) {
-        html += `<div style="font-size:12px;color:var(--text2);padding:2px 0;line-height:1.5">${escHtml(item)}</div>`;
+        cardHtml += `<div style="font-size:12px;color:var(--text2);padding:2px 0;line-height:1.5">${escHtml(item)}</div>`;
       }
-      html += `</div>`;
+      cardHtml += `</div>`;
     }
 
-    html += `</div>`;
+    cardHtml += `</div>`;
+    dimCards.push({ html: cardHtml, isFullSpan });
   }
+
+  let columnsUsed = 0;
+  for (let ci = 0; ci < dimCards.length; ci++) {
+    const card = dimCards[ci];
+    if (card.isFullSpan) {
+      if (columnsUsed === 1) {
+        for (let pi = ci - 1; pi >= 0; pi--) {
+          if (!dimCards[pi].isFullSpan) {
+            makeDimFullSpan(dimCards[pi]);
+            break;
+          }
+        }
+      }
+      columnsUsed = 0;
+      continue;
+    }
+    columnsUsed = (columnsUsed + 1) % 2;
+  }
+  if (columnsUsed === 1) {
+    for (let pi = dimCards.length - 1; pi >= 0; pi--) {
+      if (!dimCards[pi].isFullSpan) {
+        makeDimFullSpan(dimCards[pi]);
+        break;
+      }
+    }
+  }
+  html += dimCards.map(card => card.html).join('');
 
   if (!dims.length) {
     html += `<div style="color:var(--text3);padding:8px;font-size:13px">暂无警示信号</div>`;
@@ -3597,7 +3638,7 @@ function renderRSIChart(data) {
             color: (ctx) => {
               const val = ctx.tick ? ctx.tick.value : 50;
               if (val === 70 || val === 30) return cva('--gold', 0.4);
-              return cv('--text');
+              return cv('--chart-grid');
             }
           },
         },
@@ -3796,7 +3837,7 @@ function renderRadarChart(data) {
           max: 1,
           ticks: { color: cv('--chart-tick'), backdropColor: 'transparent', stepSize: 0.5 },
           grid: { color: cv('--chart-grid') },
-          angleLines: { color: cv('--text') },
+          angleLines: { color: cv('--chart-grid') },
           pointLabels: { color: cv('--text3'), font: { size: 11 } },
         }
       }
