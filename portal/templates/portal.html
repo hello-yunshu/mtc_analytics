@@ -302,6 +302,12 @@ main {
   border: 1px solid var(--glass-border);
 }
 
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
 footer {
   padding: 24px 48px;
   text-align: center;
@@ -354,7 +360,7 @@ footer {
     <p>MTC Analytics - 多维度金融分析平台</p>
     <div id="loginError" class="login-error">密码错误</div>
     <input type="password" id="loginPassword" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="btn-gold" onclick="doLogin()">登 录</button>
+    <button class="btn btn-gold" style="width:100%" onclick="doLogin()">登 录</button>
   </div>
 </div>
 

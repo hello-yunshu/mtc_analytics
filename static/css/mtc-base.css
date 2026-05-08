@@ -646,12 +646,13 @@ body::after {
   font-size: 14px;
   z-index: 200;
   transform: translateX(120%);
-  transition: transform 0.3s ease;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
   backdrop-filter: var(--blur-md);
   -webkit-backdrop-filter: var(--blur-md);
   border: 1px solid var(--glass-border);
 }
-.toast.show { transform: translateX(0); }
+.toast.show { transform: translateX(0); opacity: 1; }
 .toast.success {
   background: rgba(5, 150, 105, 0.65);
   color: #fff;
