@@ -136,7 +136,7 @@
 }
 
 .card[onclick] { cursor: pointer; }
-.card[onclick]:hover { transform: translateY(-3px); border-color: rgba(var(--gold-rgb), 0.20); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 30px rgba(var(--gold-rgb), 0.10), var(--inner-highlight); }
+.card[onclick]:hover { transform: translateY(-3px); border-color: rgba(var(--gold-rgb), 0.20); box-shadow: var(--card-hover-shadow), var(--inner-highlight); }
 
 .stats-row {
   display: grid;
@@ -156,7 +156,7 @@
 }
 .sub-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), var(--glow-shadow);
+  box-shadow: var(--shadow-float), var(--inner-highlight);
 }
 
 .sub-panel {
@@ -167,7 +167,7 @@
 }
 .sub-panel:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), var(--glow-shadow);
+  box-shadow: var(--shadow-float), var(--inner-highlight);
 }
 
 .glass-section {
