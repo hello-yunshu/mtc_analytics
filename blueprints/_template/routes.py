@@ -7,7 +7,6 @@ import logging
 from flask import render_template, request, jsonify, session, current_app
 
 from core.auth import login_required, csrf_required, generate_csrf_token, api_ok, api_error
-from core.sse import SSEManager
 from core.cache import ThreadSafeCache
 from core.settings import SettingsManager
 from core.utils import load_json, save_json, encrypt_value, decrypt_value
@@ -19,7 +18,6 @@ _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__f
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "data", "sector_settings.json")
 
 _security_logger = get_security_logger()
-_sse_manager = SSEManager(max_connections=10)
 _settings_mgr = None
 
 

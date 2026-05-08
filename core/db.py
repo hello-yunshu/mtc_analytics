@@ -894,10 +894,9 @@ def get_technical_analysis_history(days: int = 30) -> List[Dict]:
             result = []
             for row in rows:
                 parsed = _safe_json_loads(row["data"])
-                if not parsed:
-                    continue
-                parsed["db_timestamp"] = row["timestamp"]
-                result.append(parsed)
+                if parsed:
+                    parsed["db_timestamp"] = row["timestamp"]
+                    result.append(parsed)
             return result
         finally:
             conn.close()

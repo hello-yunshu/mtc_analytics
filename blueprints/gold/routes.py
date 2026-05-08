@@ -6,6 +6,7 @@ All routes from the original web_app.py, adapted for Blueprint pattern.
 API routes are prefixed with /gold via Blueprint registration.
 """
 
+import json
 import re
 import os
 import time
@@ -16,7 +17,7 @@ from datetime import datetime, timezone
 
 from flask import (
     render_template, request, jsonify, session,
-    current_app
+    Response, stream_with_context, current_app
 )
 
 from core.utils import load_json, save_json, encrypt_value, decrypt_value, is_trading_hours
@@ -37,7 +38,6 @@ from core.security import (
     record_failed_login, clear_login_attempts, get_logger as get_security_logger,
     cleanup_expired_entries,
 )
-from core.sse import SSEManager
 from core import db
 
 from . import gold_bp
@@ -47,7 +47,12 @@ _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__f
 SETTINGS_FILE = os.path.join(_PROJECT_ROOT, "data", "web_settings.json")
 REPORTS_DIR = os.path.join(_PROJECT_ROOT, "data", "reports")
 
-_sse_manager = SSEManager(max_connections=10)
+_sse_connections = 0
+_sse_lock = threading.Lock()
+SSE_MAX_CONNECTIONS = 10
+
+_sse_invalidated_sessions = set()
+_sse_invalidated_lock = threading.Lock()
 
 _latest_price = {"data": None, "lock": threading.Lock()}
 _last_alert_price = {"value": None, "time": 0, "lock": threading.Lock()}
@@ -103,10 +108,22 @@ FACTOR_LABELS = {
 }
 
 
+def _get_cached_or_db(cache_dict, db_loader, *args):
+    with cache_dict["lock"]:
+        if cache_dict["data"] is not None:
+            return cache_dict["data"]
+    data = db_loader(*args)
+    if data:
+        with cache_dict["lock"]:
+            cache_dict["data"] = data
+    return data
+
+
 DEFAULT_PASSWORD_HASH = get_or_create_default_password(os.path.join(_PROJECT_ROOT, "data"))
 
 if len(DEFAULT_PASSWORD_HASH) == 64 and all(c in '0123456789abcdef' for c in DEFAULT_PASSWORD_HASH):
     _security_logger.warning("检测到旧式SHA256密码哈希，请通过Web界面重新设置密码以升级安全性")
+    print("  [安全警告] 检测到旧式SHA256密码哈希，请通过Web界面重新设置密码")
 
 
 def _check_and_notify_price_alert(price_data: dict):
@@ -906,7 +923,8 @@ def api_login():
 def api_logout():
     csrf_token = session.get("csrf_token", "")
     if csrf_token:
-        _sse_manager.invalidate_session(csrf_token)
+        with _sse_invalidated_lock:
+            _sse_invalidated_sessions.add(csrf_token)
     session.pop("logged_in", None)
     session.pop("csrf_token", None)
     session.pop("csrf_token_time", None)
@@ -1272,12 +1290,58 @@ def api_domestic_price():
 
 @gold_bp.route("/api/price_stream")
 def api_price_stream():
-    def _get_price_data():
-        with _latest_price["lock"]:
-            return _latest_price["data"]
+    if not session.get("logged_in"):
+        return jsonify({"error": "未登录"}), 401
+
+    global _sse_connections
+    with _sse_lock:
+        if _sse_connections >= SSE_MAX_CONNECTIONS:
+            return jsonify({"error": "连接数已达上限"}), 503
+        _sse_connections += 1
 
     session_id = session.get("csrf_token", "")
-    return _sse_manager.create_stream(_get_price_data, session_id=session_id)
+
+    def generate():
+        last_ts = 0
+        start_time = time.time()
+        idle_count = 0
+        try:
+            while True:
+                if time.time() - start_time > 1800:
+                    break
+                with _sse_invalidated_lock:
+                    if session_id in _sse_invalidated_sessions:
+                        _sse_invalidated_sessions.discard(session_id)
+                        yield f"data: {json.dumps({'type': 'auth_required'})}\n\n"
+                        break
+                try:
+                    with _latest_price["lock"]:
+                        data = _latest_price["data"]
+                    if data and data.get("timestamp", "") != last_ts:
+                        last_ts = data.get("timestamp", "")
+                        idle_count = 0
+                        yield f"data: {json.dumps(data)}\n\n"
+                    else:
+                        idle_count += 1
+                        if idle_count >= 600:
+                            break
+                        yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+                except Exception:
+                    yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+                time.sleep(1)
+        except GeneratorExit:
+            pass
+        except Exception:
+            pass
+        finally:
+            global _sse_connections
+            with _sse_lock:
+                _sse_connections -= 1
+
+    resp = Response(stream_with_context(generate()), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    resp.headers["Connection"] = "keep-alive"
+    return resp
 
 
 @gold_bp.route("/api/support_resistance")

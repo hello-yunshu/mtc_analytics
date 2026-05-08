@@ -46,7 +46,7 @@
   left: 0;
   height: 100vh;
   z-index: 10;
-  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.3), var(--glow-shadow);
+  box-shadow: var(--shadow-sidebar), var(--glow-shadow);
   backdrop-filter: var(--blur-lg);
   -webkit-backdrop-filter: var(--blur-lg);
   transition: var(--transition);
@@ -250,7 +250,7 @@
 .dim-item:has(input:not(:checked)) { opacity: 0.45; }
 .dim-item:has(input:not(:checked)) .dim-name { text-decoration: line-through; color: var(--text3); }
 .dim-item .dim-icon { font-size: 16px; margin-right: 10px; flex-shrink: 0; }
-.dim-item .dim-name { font-size: 13px; color: var(--text2); flex: 1; min-width: 0; transition: color 0.2s; }
+.dim-item .dim-name { font-size: 13px; color: var(--text2); flex: 1; min-width: 0; transition: color var(--transition); }
 .dim-item .dim-switch {
   position: absolute;
   right: 14px;
@@ -274,8 +274,8 @@
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   background: var(--toggle-off-bg);
-  border-radius: 13px;
-  transition: background 0.3s;
+  border-radius: var(--radius-md);
+  transition: background var(--transition);
   pointer-events: none;
   box-shadow: var(--shadow-inset);
 }
@@ -288,7 +288,7 @@
   top: 2px;
   background: var(--toggle-knob-off);
   border-radius: 50%;
-  transition: transform 0.3s, background 0.3s;
+  transition: transform var(--transition), background var(--transition);
   box-shadow: var(--shadow-float);
 }
 .dim-item .dim-switch input:checked + .slider { background: var(--toggle-on-bg); box-shadow: 0 0 0 1px rgba(var(--gold-rgb), 0.3); }
@@ -317,16 +317,16 @@
   background: var(--glass);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
-  box-shadow: 0 2px 8px var(--shadow), var(--inner-highlight);
+  box-shadow: var(--shadow-btn), var(--inner-highlight);
 }
 .btn:active { transform: scale(0.97); }
 
-.btn-gold { background: rgba(var(--gold-rgb), 0.25); color: var(--gold); border-color: rgba(var(--gold-rgb), 0.15); box-shadow: 0 2px 8px var(--shadow), 0 0 20px rgba(var(--gold-rgb), 0.06), var(--inner-highlight); }
+.btn-gold { background: rgba(var(--gold-rgb), 0.25); color: var(--gold); border-color: rgba(var(--gold-rgb), 0.15); box-shadow: var(--shadow-btn), var(--shadow-glow-gold), var(--inner-highlight); }
 .btn-gold:hover { background: rgba(var(--gold-rgb), 0.38); border-color: rgba(var(--gold-rgb), 0.30); box-shadow: 0 4px 16px var(--shadow), 0 0 30px rgba(var(--gold-rgb), 0.12), var(--inner-highlight); transform: translateY(-1px); }
 .btn-outline { background: var(--glass); border: 1px solid var(--glass-border); color: var(--text2); }
-.btn-outline:hover { border-color: rgba(var(--gold-rgb), 0.25); color: var(--text); background: rgba(var(--gold-rgb), 0.08); box-shadow: 0 0 16px rgba(var(--gold-rgb), 0.06), var(--inner-highlight); }
+.btn-outline:hover { border-color: rgba(var(--gold-rgb), 0.25); color: var(--text); background: rgba(var(--gold-rgb), 0.08); box-shadow: var(--shadow-glow-gold), var(--inner-highlight); }
 .btn-danger { background: rgba(var(--danger-rgb), 0.25); border-color: rgba(var(--danger-rgb), 0.20); color: var(--bull); }
-.btn-danger:hover { background: rgba(var(--danger-rgb), 0.38); border-color: rgba(var(--danger-rgb), 0.35); box-shadow: 0 0 16px rgba(var(--danger-rgb), 0.08), var(--inner-highlight); }
+.btn-danger:hover { background: rgba(var(--danger-rgb), 0.38); border-color: rgba(var(--danger-rgb), 0.35); box-shadow: var(--shadow-glow-danger), var(--inner-highlight); }
 
 .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: var(--radius-xs); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); }
 .btn-sm:hover { transform: translateY(-1px); }
@@ -352,8 +352,8 @@
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
 }
-.tab-item:hover { border-color: rgba(var(--gold-rgb), 0.25); color: var(--text); box-shadow: 0 0 16px rgba(var(--gold-rgb), 0.06), var(--inner-highlight); }
-.tab-item.active { background: rgba(var(--gold-rgb), 0.25); color: var(--gold); border-color: rgba(var(--gold-rgb), 0.20); box-shadow: 0 0 20px rgba(var(--gold-rgb), 0.08), var(--inner-highlight); }
+.tab-item:hover { border-color: rgba(var(--gold-rgb), 0.25); color: var(--text); box-shadow: var(--shadow-glow-gold), var(--inner-highlight); }
+.tab-item.active { background: rgba(var(--gold-rgb), 0.25); color: var(--gold); border-color: rgba(var(--gold-rgb), 0.20); box-shadow: var(--shadow-glow-gold-strong), var(--inner-highlight); }
 .tab-del {
   display: none;
   align-items: center;
@@ -363,7 +363,7 @@
   background: transparent; color: var(--text3);
   cursor: pointer;
   font-size: 0; line-height: 0;
-  transition: color 0.15s;
+  transition: color var(--transition-fast);
 }
 .tab-del svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2; fill: none; }
 .tab-group:hover .tab-del { display: inline-flex; }
@@ -438,14 +438,14 @@
       <svg class="logo-svg" style="width:30px;height:30px;flex-shrink:0" viewBox="0 0 30 30">
         <defs>
           <linearGradient id="logoGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#fcd34d"/>
-            <stop offset="100%" stop-color="#d97706"/>
+            <stop offset="0%" stop-color="var(--gold)"/>
+            <stop offset="100%" stop-color="var(--gold2)"/>
           </linearGradient>
         </defs>
         <rect width="30" height="30" rx="8" fill="var(--bg2)"/>
-        <path d="M7 21l3-10h10l3 10z" fill="url(#logoGrad)" stroke="#b45309" stroke-width="0.5"/>
-        <path d="M10 11l-1 3h12l-1-3z" fill="#fde68a" opacity="0.7"/>
-        <path d="M10 11h10" stroke="#fef3c7" stroke-width="0.8" opacity="0.5"/>
+        <path d="M7 21l3-10h10l3 10z" fill="url(#logoGrad)" stroke="var(--gold3)" stroke-width="0.5"/>
+        <path d="M10 11l-1 3h12l-1-3z" fill="var(--gold)" opacity="0.7"/>
+        <path d="M10 11h10" stroke="var(--gold)" stroke-width="0.8" opacity="0.5"/>
       </svg>
       <div>
         <h1>黄金分析</h1>
@@ -522,7 +522,7 @@
             <div id="periodShortScore" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
           </div>
           <div id="periodTrendMedium" class="sub-panel" style="background:var(--bg2);border:2px solid var(--gold);border-radius:var(--radius-sm);text-align:center;position:relative">
-            <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:9px;font-weight:700;padding:1px 8px;border-radius:var(--radius-xs)">重点</div>
+            <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--bg);font-size:9px;font-weight:700;padding:1px 8px;border-radius:var(--radius-xs)">重点</div>
             <div style="font-size:11px;color:var(--text3);margin-bottom:4px">中期（10日）</div>
             <div id="periodMediumDir" style="font-size:20px;font-weight:800;color:var(--text2)">--</div>
             <div id="periodMediumScore" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
@@ -539,7 +539,7 @@
         <div class="card" id="macroHeader" style="cursor:pointer;margin-bottom:0;border-radius:var(--radius-md)" onclick="toggleCollapse('macroDetail')">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div class="card-title" style="margin-bottom:0"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> 宏观指标</div>
-            <span id="macroDetailArrow" style="color:var(--text3);font-size:11px;transition:transform 0.2s;display:flex;align-items:center;gap:4px">展开 <span style="font-size:14px">▼</span></span>
+            <span id="macroDetailArrow" style="color:var(--text3);font-size:11px;transition:transform var(--transition);display:flex;align-items:center;gap:4px">展开 <span style="font-size:14px">▼</span></span>
           </div>
         </div>
         <div id="macroDetail" style="display:none;overflow:hidden">
@@ -575,7 +575,7 @@
         <div class="card" id="technicalHeader" style="cursor:pointer;margin-bottom:0;border-radius:var(--radius-md)" onclick="toggleCollapse('technicalDetail')">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div class="card-title" style="margin-bottom:0"><svg class="ico" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 技术分析</div>
-            <span id="technicalDetailArrow" style="color:var(--text3);font-size:11px;transition:transform 0.2s;display:flex;align-items:center;gap:4px">展开 <span style="font-size:14px">▼</span></span>
+            <span id="technicalDetailArrow" style="color:var(--text3);font-size:11px;transition:transform var(--transition);display:flex;align-items:center;gap:4px">展开 <span style="font-size:14px">▼</span></span>
           </div>
         </div>
         <div id="technicalDetail" style="display:none;overflow:hidden">
@@ -1107,7 +1107,7 @@ function renderDashSummary(p) {
     html += `<div style="display:flex;align-items:center;gap:10px">`;
     html += `<span style="font-size:11px;color:var(--bull);font-weight:600;min-width:48px">利多 ${bullW}</span>`;
     html += `<div style="flex:1;height:6px;background:var(--bear);border-radius:var(--radius-xs);overflow:hidden;position:relative">`;
-    html += `<div style="width:${bullPct}%;height:100%;background:var(--bull);border-radius:var(--radius-xs);transition:width 0.5s"></div>`;
+    html += `<div style="width:${bullPct}%;height:100%;background:var(--bull);border-radius:var(--radius-xs);transition:width var(--transition-slow)"></div>`;
     html += `</div>`;
     html += `<span style="font-size:11px;color:var(--bear);font-weight:600;min-width:48px;text-align:right">利空 ${bearW}</span>`;
     html += `</div>`;
@@ -1178,7 +1178,7 @@ function renderDashSummary(p) {
       html += `<div ${isLastOdd ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-radius:var(--radius-sm);border-left:3px solid ${dimColor}">`;
       html += `<div style="font-size:12px;font-weight:600;color:${dimColor};margin-bottom:6px">${dimName}<span style="color:var(--text3);font-weight:400;margin-left:6px">${dimAlerts.length}个</span></div>`;
       for (const a of dimAlerts) {
-        const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--danger-rgb),0.18);color:var(--bull);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--danger-rgb),0.12);color:var(--bull);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--gold-rgb),0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(100,116,139,0.1);color:var(--text3);margin-right:4px">低</span>';
+        const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--danger-rgb),0.18);color:var(--bull);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--danger-rgb),0.12);color:var(--bull);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--gold-rgb),0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--text3-rgb),0.1);color:var(--text3);margin-right:4px">低</span>';
         html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5">${levelBadge}${escHtml(a.message)}</div>`;
       }
       html += `</div>`;
@@ -1222,8 +1222,8 @@ function renderDashSummary(p) {
         const barPct = Math.min(Math.abs(sf.score) * 50, 100);
         html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">`;
         html += `<span style="font-size:11px;color:var(--text3);min-width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${sf.name}</span>`;
-        html += `<div style="flex:1;height:4px;background:var(--bg2);border-radius:2px;overflow:hidden">`;
-        html += `<div style="width:${barPct}%;height:100%;background:${sfColor};border-radius:2px;transition:width 0.5s"></div>`;
+        html += `<div style="flex:1;height:4px;background:var(--bg2);border-radius:var(--radius-2xs);overflow:hidden">`;
+        html += `<div style="width:${barPct}%;height:100%;background:${sfColor};border-radius:var(--radius-2xs);transition:width var(--transition-slow)"></div>`;
         html += `</div>`;
         html += `<span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:${sfColor};min-width:36px;text-align:right">${sf.score >= 0 ? '+' : ''}${sf.score.toFixed(1)}</span>`;
         html += `</div>`;
@@ -1242,13 +1242,13 @@ function renderDashSummary(p) {
     if (p.bullSignals.length) {
       html += `<div ${signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-left:3px solid var(--bull);border-radius:var(--radius-sm)">`;
       html += `<div style="font-size:12px;color:var(--bull);margin-bottom:8px;font-weight:700">🔴 利多（${p.bullSignals.length}）</div>`;
-      p.bullSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
+      p.bullSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid var(--border)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
     if (p.bearSignals.length) {
       html += `<div ${signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-left:3px solid var(--bear);border-radius:var(--radius-sm)">`;
       html += `<div style="font-size:12px;color:var(--bear);margin-bottom:8px;font-weight:700">🟢 利空（${p.bearSignals.length}）</div>`;
-      p.bearSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
+      p.bearSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid var(--border)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
     if (p.neutralSignals.length) {
@@ -1348,7 +1348,7 @@ async function loadDashboard() {
         const ms = rtData.market_status;
         if (ms.status === 'closed') {
           msEl.textContent = '⏸ ' + (ms.reason || '休市中') + (ms.next_open ? ' · 开盘: ' + ms.next_open : '');
-          msEl.style.color = 'var(--orange, #f59e0b)';
+          msEl.style.color = 'var(--orange)';
         } else {
           msEl.textContent = '';
         }
@@ -1692,11 +1692,11 @@ function toggleCollapse(id) {
   if (el.style.display === 'none') {
     el.style.display = 'block';
     if (arrow) arrow.innerHTML = '收起 <span style="font-size:14px">▲</span>';
-    if (header) header.style.borderRadius = '12px 12px 0 0';
+    if (header) header.style.borderRadius = 'var(--radius-md) var(--radius-md) 0 0';
   } else {
     el.style.display = 'none';
     if (arrow) arrow.innerHTML = '展开 <span style="font-size:14px">▼</span>';
-    if (header) header.style.borderRadius = '12px';
+    if (header) header.style.borderRadius = 'var(--radius-md)';
   }
 }
 
@@ -2082,7 +2082,7 @@ function renderInterpretationSection(text) {
       const level = l.includes('重】') ? 'critical' : l.includes('高】') ? 'high' : l.includes('中】') ? 'medium' : 'low';
       const levelColor = level === 'critical' ? 'var(--bear)' : level === 'high' ? cv('--danger') : level === 'medium' ? 'var(--gold)' : 'var(--text3)';
       const levelBg = level === 'critical' ? cva('--danger', 0.08) : level === 'high' ? 'rgba(var(--danger-rgb),0.05)' : level === 'medium' ? 'rgba(var(--gold-rgb),0.05)' : 'rgba(var(--danger-rgb),0.04)';
-      html += `<div style="font-size:13px;color:${levelColor};padding:6px 10px;margin:4px 0;border-radius:var(--radius-xs);background:${levelBg};cursor:pointer;border:1px solid transparent;transition:border-color 0.2s" onclick="scrollToAlertLevel('${level}')" onmouseover="this.style.borderColor='${levelColor}';this.style.opacity='0.85'" onmouseout="this.style.borderColor='transparent';this.style.opacity='1'">${escHtml(l)} <span style="font-size:11px;opacity:0.6">点击查看详情 →</span></div>`;
+      html += `<div style="font-size:13px;color:${levelColor};padding:6px 10px;margin:4px 0;border-radius:var(--radius-xs);background:${levelBg};cursor:pointer;border:1px solid transparent;transition:border-color var(--transition)" onclick="scrollToAlertLevel('${level}')" onmouseover="this.style.borderColor='${levelColor}';this.style.opacity='0.85'" onmouseout="this.style.borderColor='transparent';this.style.opacity='1'">${escHtml(l)} <span style="font-size:11px;opacity:0.6">点击查看详情 →</span></div>`;
     } else if (l.includes('⚠️')) {
       html += `<div style="font-size:${fontSize};color:var(--gold);padding:4px 0;cursor:pointer" onclick="scrollToAlertSection()" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">${escHtml(l)} <span style="font-size:11px;opacity:0.6">→</span></div>`;
     } else if (l.includes('✅')) {
@@ -2125,7 +2125,7 @@ function renderPredictionSection(text) {
         if (!pt) continue;
         const borderColor = ptConfig.highlight ? 'var(--gold)' : 'var(--glass-border)';
         const borderWidth = ptConfig.highlight ? '2px' : '1px';
-        const badge = ptConfig.highlight ? '<div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:8px;font-weight:700;padding:1px 6px;border-radius:var(--radius-xs)">重点</div>' : '';
+        const badge = ptConfig.highlight ? '<div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--bg);font-size:8px;font-weight:700;padding:1px 6px;border-radius:var(--radius-xs)">重点</div>' : '';
         ptHtml += `<div class="glass-item" style="background:var(--bg2);border:${borderWidth} solid ${borderColor};border-radius:var(--radius-sm);text-align:center;position:relative">`;
         ptHtml += badge;
         ptHtml += `<div style="font-size:10px;color:var(--text3)">${ptConfig.icon} ${ptConfig.label}（${ptConfig.horizon}）</div>`;
@@ -2214,7 +2214,7 @@ function renderPredictionSection(text) {
         const barPct = Math.min(Math.abs(f.score) * 50, 100);
         fgInner += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">`;
         fgInner += `<span style="font-size:11px;color:var(--text3);min-width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(f.label)}</span>`;
-        fgInner += `<div style="flex:1;height:4px;background:var(--card);border-radius:2px;overflow:hidden"><div style="width:${barPct}%;height:100%;background:${fColor};border-radius:2px;transition:width 0.5s"></div></div>`;
+        fgInner += `<div style="flex:1;height:4px;background:var(--card);border-radius:var(--radius-2xs);overflow:hidden"><div style="width:${barPct}%;height:100%;background:${fColor};border-radius:var(--radius-2xs);transition:width var(--transition-slow)"></div></div>`;
         fgInner += `<span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:${fColor};min-width:36px;text-align:right">${f.score >= 0 ? '+' : ''}${f.score.toFixed(1)}</span>`;
         fgInner += `</div>`;
       }
@@ -2289,7 +2289,7 @@ function renderPredictionSection(text) {
           const barPct = Math.min(Math.abs(sfScore) * 50, 100);
           fgInner += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">`;
           fgInner += `<span style="font-size:11px;color:var(--text3);min-width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(sfName)}</span>`;
-          fgInner += `<div style="flex:1;height:4px;background:var(--card);border-radius:2px;overflow:hidden"><div style="width:${barPct}%;height:100%;background:${sfColor};border-radius:2px;transition:width 0.5s"></div></div>`;
+          fgInner += `<div style="flex:1;height:4px;background:var(--card);border-radius:var(--radius-2xs);overflow:hidden"><div style="width:${barPct}%;height:100%;background:${sfColor};border-radius:var(--radius-2xs);transition:width var(--transition-slow)"></div></div>`;
           fgInner += `<span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:${sfColor};min-width:36px;text-align:right">${sfScore >= 0 ? '+' : ''}${sfScore.toFixed(1)}</span>`;
           fgInner += `</div>`;
         }
@@ -2472,7 +2472,7 @@ function renderAlertSection(text) {
     const titleColor = hasCritical ? 'var(--bear)' : hasHigh ? cv('--danger') : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
 
     const isFullSpan = emoji === '⚠️' || (di === dims.length - 1 && dims.length % 2 === 1);
-    html += `<div id="alert-dim-${dim.key}" class="sub-card ${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:var(--radius-sm);transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease">`;
+    html += `<div id="alert-dim-${dim.key}" class="sub-card ${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:var(--radius-sm);transition:transform var(--transition-fast),box-shadow var(--transition-fast),border-color var(--transition-fast)">`;
     html += `<div style="font-size:13px;font-weight:700;color:${titleColor};margin-bottom:8px;display:flex;align-items:center;gap:6px">`;
     html += `${escHtml(dim.header)}`;
     html += `</div>`;
@@ -2481,7 +2481,7 @@ function renderAlertSection(text) {
       const items = dim.alerts[lvl];
       if (!items.length) continue;
       const s = levelStyles[lvl];
-      html += `<div id="alert-dim-${dim.key}-${lvl}" style="background:${s.bg};border:1px solid ${s.border};border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:6px;transition:box-shadow 0.3s">`;
+      html += `<div id="alert-dim-${dim.key}-${lvl}" style="background:${s.bg};border:1px solid ${s.border};border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:6px;transition:box-shadow var(--transition)">`;
       html += `<div style="font-size:11px;font-weight:600;color:${s.color};margin-bottom:4px">${s.label}（${items.length}个）</div>`;
       for (const item of items) {
         html += `<div style="font-size:12px;color:var(--text2);padding:2px 0;line-height:1.5">${escHtml(item)}</div>`;
@@ -3572,7 +3572,7 @@ function renderRSIChart(data) {
         label: 'RSI(14)',
         data: rsiVals,
         borderColor: cv('--ma20'),
-        backgroundColor: 'rgba(139,92,246,0.08)',
+        backgroundColor: cva('--ma20', 0.08),
         fill: true,
         tension: 0.3,
         pointRadius: 1,
@@ -3595,7 +3595,7 @@ function renderRSIChart(data) {
           grid: {
             color: (ctx) => {
               const val = ctx.tick ? ctx.tick.value : 50;
-              if (val === 70 || val === 30) return 'rgba(var(--gold-rgb),0.4)';
+              if (val === 70 || val === 30) return cva('--gold', 0.4);
               return cv('--text');
             }
           },
@@ -3640,7 +3640,7 @@ function renderNewsDistChart(data) {
       },{
         label: '中性',
         data: neutVals,
-        backgroundColor: 'rgba(100,116,139,0.4)',
+        backgroundColor: cva('--text3', 0.4),
         borderColor: cva('--text3', 0.7),
         borderWidth: 1,
         borderRadius: 2,
@@ -3934,7 +3934,7 @@ async function regenerateReport() {
   const badge = document.getElementById('taskStatusBadge');
   const resetBtn = () => { if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新生成报告'; } };
   if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.innerHTML = '<svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px;animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 生成中...'; }
-  if (badge) { badge.style.display = 'inline'; badge.style.background = '#fef3cd'; badge.style.color = '#856404'; badge.textContent = '⏳ 生成中'; }
+  if (badge) { badge.style.display = 'inline'; badge.style.background = cv('--badge-warning-bg'); badge.style.color = cv('--badge-warning-text'); badge.textContent = '⏳ 生成中'; }
   showToast('正在重新生成报告，请稍候...');
   try {
     const res = await api('/gold/api/run_now', {method:'POST'});
@@ -3960,7 +3960,7 @@ async function regenerateReport() {
       if (!isLoggedIn()) return;
       showToast('生成超时，请稍后手动刷新', 'error');
       resetBtn();
-      if (badge) { badge.style.background = '#f8d7da'; badge.style.color = '#721c24'; badge.textContent = '⚠ 超时'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 5000); }
+      if (badge) { badge.style.background = cv('--badge-error-bg'); badge.style.color = cv('--badge-error-text'); badge.textContent = '⚠ 超时'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 5000); }
       return;
     }
     try {
@@ -3972,17 +3972,17 @@ async function regenerateReport() {
         loadReportHistory();
         showToast('报告已更新');
         resetBtn();
-        if (badge) { badge.style.background = '#d4edda'; badge.style.color = '#155724'; badge.textContent = '✓ 已完成'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 3000); }
+        if (badge) { badge.style.background = cv('--badge-success-bg'); badge.style.color = cv('--badge-success-text'); badge.textContent = '✓ 已完成'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 3000); }
       } else if (d.status === 'failed') {
         clearInterval(_regenTimer); _regenTimer = null;
         showToast('生成失败: ' + (d.error || '未知错误'), 'error');
         resetBtn();
-        if (badge) { badge.style.background = '#f8d7da'; badge.style.color = '#721c24'; badge.textContent = '✗ 失败'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 5000); }
+        if (badge) { badge.style.background = cv('--badge-error-bg'); badge.style.color = cv('--badge-error-text'); badge.textContent = '✗ 失败'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 5000); }
       } else if (d.status === 'interrupted') {
         clearInterval(_regenTimer); _regenTimer = null;
         showToast('生成被中断，可删除不完整的报告后重试', 'error');
         resetBtn();
-        if (badge) { badge.style.background = '#f8d7da'; badge.style.color = '#721c24'; badge.textContent = '⚠ 已中断'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 8000); }
+        if (badge) { badge.style.background = cv('--badge-error-bg'); badge.style.color = cv('--badge-error-text'); badge.textContent = '⚠ 已中断'; setTimeout(() => { if (badge) badge.style.display = 'none'; }, 8000); }
         loadReportHistory();
       }
     } catch(e) {}
@@ -4016,17 +4016,17 @@ async function checkTaskStatus() {
     if (!badge) return;
     if (data.status === 'running') {
       badge.style.display = 'inline';
-      badge.style.background = '#fef3cd'; badge.style.color = '#856404';
+      badge.style.background = cv('--badge-warning-bg'); badge.style.color = cv('--badge-warning-text');
       badge.textContent = '⏳ 生成中';
       if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
     } else if (data.status === 'interrupted') {
       badge.style.display = 'inline';
-      badge.style.background = '#f8d7da'; badge.style.color = '#721c24';
+      badge.style.background = cv('--badge-error-bg'); badge.style.color = cv('--badge-error-text');
       badge.textContent = '⚠ 已中断';
       if (btn) { btn.disabled = false; btn.style.opacity = ''; }
     } else if (data.status === 'failed') {
       badge.style.display = 'inline';
-      badge.style.background = '#f8d7da'; badge.style.color = '#721c24';
+      badge.style.background = cv('--badge-error-bg'); badge.style.color = cv('--badge-error-text');
       badge.textContent = '✗ 失败';
       if (btn) { btn.disabled = false; btn.style.opacity = ''; }
       setTimeout(() => { if (badge) badge.style.display = 'none'; }, 8000);
@@ -4090,7 +4090,7 @@ function connectPriceStream() {
           const ms = d.market_status;
           if (ms.status === 'closed') {
             msEl.textContent = '⏸ ' + (ms.reason || '休市中') + (ms.next_open ? ' · 开盘: ' + ms.next_open : '');
-            msEl.style.color = 'var(--orange, #f59e0b)';
+            msEl.style.color = 'var(--orange)';
           } else {
             msEl.textContent = '';
           }
