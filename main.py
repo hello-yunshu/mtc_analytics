@@ -703,11 +703,11 @@ def run_realtime():
     _logger.info("  非交易时段: 每4小时执行一次")
     _logger.info("  按 Ctrl+C 停止")
     
+    last_run = time.time()
     if _has_today_report():
-        last_run = time.time()
         _logger.info("  今日报告已存在，等待下一个周期执行")
     else:
-        last_run = 0
+        _logger.info("  今日报告尚未生成，等待下一个周期执行")
     
     while True:
         now = datetime.now()
@@ -848,7 +848,7 @@ if __name__ == "__main__":
         schedule.every().day.at(f"{sch_hour2:02d}:{sch_min2:02d}").do(lambda: run_daily_task(skip_telegram=True))
         schedule.every().day.at(f"{tg_hour:02d}:{tg_min:02d}").do(push_latest_report)
         if not _has_today_report():
-            run_daily_task(skip_telegram=True)
+            _logger.info("  今日报告尚未生成，等待定时时间执行")
         else:
             _logger.info("  今日报告已存在，跳过启动时执行")
         
