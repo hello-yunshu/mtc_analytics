@@ -8,6 +8,7 @@ AI 黄金分析主程序
 import os
 import time
 import json
+import logging
 import requests
 from datetime import datetime, timezone, timedelta
 
@@ -31,6 +32,8 @@ from core.macro_fetcher import fetch_macro_indicators
 from core.model_iteration import run_iteration
 from core.institutional_consensus import fetch_institutional_consensus, compare_with_consensus, compute_consensus_with_manual, get_manual_views
 from core.utils import load_json, is_trading_hours, decrypt_value
+
+_logger = logging.getLogger(__name__)
 
 
 _PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -114,26 +117,26 @@ def push_latest_report():
     try:
         records = db.get_report_dates_by_gen(days=30)
         if not records:
-            print("[Telegram 推送] 未找到任何报告，跳过推送")
+            _logger.info("[Telegram 推送] 未找到任何报告，跳过推送")
             return
         date_str = records[0]["data_date"]
         report = db.get_report(date_str)
         if not report:
-            print("[Telegram 推送] 报告内容为空，跳过推送")
+            _logger.info("[Telegram 推送] 报告内容为空，跳过推送")
             return
     except Exception as e:
-        print(f"[Telegram 推送] 读取报告失败: {e}")
+        _logger.error("[Telegram 推送] 读取报告失败: %s", e)
         return
-    print(f"[Telegram 推送] 推送最新报告: {date_str}")
+    _logger.info("[Telegram 推送] 推送最新报告: %s", date_str)
     tg_token, tg_chat_id = _get_telegram_settings()
     if not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
-        print("[Telegram 推送] 未配置 Bot Token，跳过")
+        _logger.info("[Telegram 推送] 未配置 Bot Token，跳过")
         return
     bot = TelegramBot(tg_token, tg_chat_id)
     if bot.send_message(report):
-        print("[Telegram 推送] 推送成功")
+        _logger.info("[Telegram 推送] 推送成功")
     else:
-        print("[Telegram 推送] 推送失败")
+        _logger.warning("[Telegram 推送] 推送失败")
 
 
 def _get_top_n():
@@ -279,16 +282,15 @@ def run_daily_task(skip_telegram=False):
     sge_closed = sge_status.get("status") != "open"
     sge_holiday = sge_closed and sge_status.get("reason", "") != "非交易时段"
 
-    print(f"\n{'='*50}")
-    print(f"  AI 黄金分析 | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    _logger.info("")
+    _logger.info("  AI 黄金分析 | %s", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     if comex_closed:
-        print(f"  COMEX: {comex_status.get('reason', '休市')}")
+        _logger.info("  COMEX: %s", comex_status.get('reason', '休市'))
     if sge_closed:
-        print(f"  SGE: {sge_status.get('reason', '休市')}")
-    print(f"{'='*50}\n")
+        _logger.info("  SGE: %s", sge_status.get('reason', '休市'))
     
     # 1. 获取实时金价并归档
-    print("[1/9] 正在获取实时金价...")
+    _logger.info("[1/9] 正在获取实时金价...")
     data_freshness = {}
     realtime = get_realtime_price()
     archive_realtime_price(realtime)
@@ -299,9 +301,9 @@ def run_daily_task(skip_telegram=False):
         market_note = ""
         if ms.get("status") == "closed":
             market_note = f" ⏸休市({ms.get('reason', '')})"
-        print(f"  现货黄金: {ps['price']:.2f} USD/oz ({ps['change_pct']:+.2f}%) 来源:{ps['source']}{market_note}")
+        _logger.info("  现货黄金: %.2f USD/oz (%+.2f%%) 来源:%s%s", ps['price'], ps['change_pct'], ps['source'], market_note)
         if ps.get("intraday_range"):
-            print(f"  日内波幅: {ps['intraday_range']:.2f} USD")
+            _logger.info("  日内波幅: %.2f USD", ps['intraday_range'])
         price_ts = ps.get("timestamp", "")
         if price_ts:
             try:
@@ -327,7 +329,7 @@ def run_daily_task(skip_telegram=False):
                 data_freshness["金价"] = ("⚪", "时间戳未知")
 
     # 2. 获取宏观指标
-    print("[2/9] 正在获取宏观指标...")
+    _logger.info("[2/9] 正在获取宏观指标...")
     macro_data = fetch_macro_indicators()
     if macro_data and macro_data.get("indicators"):
         try:
@@ -354,19 +356,19 @@ def run_daily_task(skip_telegram=False):
             data_freshness["宏观"] = ("⚪", "时间戳未知")
 
     # 3. 获取持仓数据
-    print("[3/9] 正在获取持仓数据...")
+    _logger.info("[3/9] 正在获取持仓数据...")
     holdings = {"long_top": [], "short_top": [], "date": "", "contract": "", "trade_date": ""}
     if sge_holiday:
-        print(f"  SGE休市({sge_status.get('reason', '')})，跳过持仓数据获取")
+        _logger.info("  SGE休市(%s)，跳过持仓数据获取", sge_status.get('reason', ''))
     else:
         holdings = fetch_holdings_data()
     
     has_holdings = bool(holdings.get("long_top") or holdings.get("short_top"))
     if not has_holdings and not sge_holiday:
-        print("[ERROR] 未能获取到持仓数据，可能非交易日或数据源异常")
+        _logger.error("未能获取到持仓数据，可能非交易日或数据源异常")
     
     if has_holdings:
-        print(f"  合约: {holdings['contract']}  多头: {len(holdings['long_top'])}条  空头: {len(holdings['short_top'])}条")
+        _logger.info("  合约: %s  多头: %d条  空头: %d条", holdings['contract'], len(holdings['long_top']), len(holdings['short_top']))
 
     holdings_date = holdings.get("date", "")
     if holdings_date:
@@ -387,7 +389,7 @@ def run_daily_task(skip_telegram=False):
         data_freshness["持仓"] = ("⚪", "日期未知")
     
     # 3. 计算净多头
-    print("[4/9] 正在计算净多头...")
+    _logger.info("[4/9] 正在计算净多头...")
     positions = calculate_net_positions(holdings, top_n=_get_top_n())
     
     trade_date_str = holdings.get("date") or datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
@@ -403,10 +405,10 @@ def run_daily_task(skip_telegram=False):
     
     for pos in positions:
         chg = pos['net_change']
-        print(f"  {pos['name']:<12} 净多头: {pos['net']:>8,} 手  变化: {'+' if chg>0 else ''}{chg:>6,} 手")
+        _logger.info("  %s 净多头: %d 手  变化: %s%d 手", pos['name'], pos['net'], '+' if chg > 0 else '', chg)
     
     # 4. 短期警示分析
-    print("[5/9] 正在分析短期警示...")
+    _logger.info("[5/9] 正在分析短期警示...")
     analyzer = HoldingsAnalyzer()
     if has_holdings:
         analyzer.add_today_data(today_data)
@@ -421,18 +423,18 @@ def run_daily_task(skip_telegram=False):
     alerts = analyzer.generate_alerts(today_data)
     stats = analyzer.get_summary_stats(today_data)
     if alerts:
-        print(f"  短期警示: {len(alerts)} 个")
+        _logger.info("  短期警示: %d 个", len(alerts))
     
     # 5. 长期趋势分析
-    print("[6/9] 正在分析长期趋势...")
+    _logger.info("[6/9] 正在分析长期趋势...")
     trend_data = None
     if len(analyzer.history) > 1:
         trend_analyzer = TrendAnalyzer(analyzer.history)
         trend_data = trend_analyzer.analyze_long_term(today_data)
-        print(f"  历史数据: {trend_data['history_days']} 个交易日")
+        _logger.info("  历史数据: %d 个交易日", trend_data['history_days'])
     
     # 6. 新闻情绪分析
-    print("[7/9] 正在分析新闻情绪...")
+    _logger.info("[7/9] 正在分析新闻情绪...")
     news_sentiment = None
     try:
         news_sentiment = fetch_news_sentiment()
@@ -460,11 +462,11 @@ def run_daily_task(skip_telegram=False):
             else:
                 data_freshness["新闻"] = ("⚪", "时间戳未知")
     except (requests.exceptions.RequestException, ValueError) as e:
-        print(f"  [WARN] 新闻分析失败: {e}")
+        _logger.warning("新闻分析失败: %s", e)
         data_freshness["新闻"] = ("❌", "获取失败")
 
     # 6.5 机构共识
-    print("[8/9] 正在获取机构共识...")
+    _logger.info("[8/9] 正在获取机构共识...")
     consensus_data = None
     consensus_comparison = None
     try:
@@ -485,12 +487,12 @@ def run_daily_task(skip_telegram=False):
 
         inst_count = len(consensus_data.get("institutions", []))
         cons_dir = consensus_data.get("consensus", {}).get("direction", "无数据")
-        print(f"  机构观点: {inst_count}家, 共识方向: {cons_dir}")
+        _logger.info("  机构观点: %d家, 共识方向: %s", inst_count, cons_dir)
     except Exception as e:
-        print(f"  [WARN] 机构共识获取失败: {e}")
+        _logger.warning("机构共识获取失败: %s", e)
 
     # 7. 智能预测
-    print("[9/9] 正在运行智能预测...")
+    _logger.info("[9/9] 正在运行智能预测...")
     prediction = None
     gold_prices = []
     try:
@@ -498,7 +500,7 @@ def run_daily_task(skip_telegram=False):
         if gold_prices:
             holdings_for_pred = analyzer.history if len(analyzer.history) >= 3 else []
             if not holdings_for_pred:
-                print("  持仓数据不足，将仅基于金价/宏观/新闻因子运行预测（8/12因子可用）")
+                _logger.info("  持仓数据不足，将仅基于金价/宏观/新闻因子运行预测（8/12因子可用）")
             _verify_previous_prediction(gold_prices)
             iteration_result = run_iteration()
             predictor = GoldPricePredictor(holdings_for_pred, gold_prices, news_sentiment, macro_data)
@@ -519,17 +521,17 @@ def run_daily_task(skip_telegram=False):
                 if conf_adj != 0:
                     prediction["confidence"] = max(20, min(98, prediction["confidence"] + conf_adj))
 
-            print(f"  预测: {prediction['direction']}（置信度{prediction['confidence']}%，评分{prediction['score']:+.2f}）")
+            _logger.info("  预测: %s（置信度%d%%，评分%+.2f）", prediction['direction'], prediction['confidence'], prediction['score'])
             if consensus_comparison:
-                print(f"  机构共识: {consensus_comparison.get('description', '')}")
+                _logger.info("  机构共识: %s", consensus_comparison.get('description', ''))
             _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data)
         else:
-            print("  金价数据不足，尝试自动回填历史数据...")
+            _logger.info("  金价数据不足，尝试自动回填历史数据...")
             try:
                 from core.backfill import backfill_history
                 bf_result = backfill_history(days=30, top_n=_get_top_n())
                 if bf_result.get('gold_success', 0) > 0 or bf_result.get('success', 0) > 0:
-                    print(f"  回填完成: 持仓{bf_result['success']}天 金价{bf_result.get('gold_success',0)}天，重新运行预测")
+                    _logger.info("  回填完成: 持仓%d天 金价%d天，重新运行预测", bf_result['success'], bf_result.get('gold_success', 0))
                     gold_prices = get_daily_history(days=30, prefer_international=True) or []
                     if gold_prices:
                         upsert_gold_prices(gold_prices)
@@ -545,19 +547,19 @@ def run_daily_task(skip_telegram=False):
                         if not holdings_for_pred:
                             prediction["confidence"] = max(20, prediction["confidence"] - 15)
                             prediction["partial_data"] = True
-                        print(f"  预测: {prediction['direction']}（置信度{prediction['confidence']}%，评分{prediction['score']:+.2f}）")
+                        _logger.info("  预测: %s（置信度%d%%，评分%+.2f）", prediction['direction'], prediction['confidence'], prediction['score'])
                         _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data)
                     else:
-                        print("  回填后金价数据仍不足，等待下次定时任务")
+                        _logger.info("  回填后金价数据仍不足，等待下次定时任务")
                 else:
-                    print("  回填未获取到新数据，等待下次定时任务")
+                    _logger.info("  回填未获取到新数据，等待下次定时任务")
             except Exception as bfe:
-                print(f"  自动回填失败: {bfe}")
+                _logger.error("  自动回填失败: %s", bfe)
     except Exception as e:
-        print(f"  [WARN] 预测失败: {e}")
+        _logger.warning("  预测失败: %s", e)
 
     # 8. 全维度警示引擎
-    print("\n正在运行全维度警示引擎...")
+    _logger.info("正在运行全维度警示引擎...")
     full_alerts = []
     try:
         support_resistance = None
@@ -607,13 +609,13 @@ def run_daily_task(skip_telegram=False):
                 d = a.get("dimension", "unknown")
                 dim_counts[d] = dim_counts.get(d, 0) + 1
             dim_str = " ".join(f"{k}({v})" for k, v in dim_counts.items())
-            print(f"  全维度警示: {len(full_alerts)}个 [{dim_str}]")
+            _logger.info("  全维度警示: %d个 [%s]", len(full_alerts), dim_str)
     except Exception as e:
-        print(f"  [WARN] 全维度警示引擎失败: {e}")
+        _logger.warning("  全维度警示引擎失败: %s", e)
         full_alerts = alerts
     
     # 生成并发送报告
-    print("\n正在生成报告...")
+    _logger.info("正在生成报告...")
     
     # 在报告头部添加生成时金价
     report = ""
@@ -640,11 +642,9 @@ def run_daily_task(skip_telegram=False):
     
     tg_token, tg_chat_id = _get_telegram_settings()
     if skip_telegram:
-        print("  跳过 Telegram 推送（仅生成报告）")
+        _logger.info("  跳过 Telegram 推送（仅生成报告）")
     elif not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
-        print(f"\n{'='*50}")
-        print(report)
-        print(f"{'='*50}")
+        _logger.info(report)
     else:
         bot = TelegramBot(tg_token, tg_chat_id)
         bot.send_message(report)
@@ -657,7 +657,7 @@ def run_daily_task(skip_telegram=False):
             alert_msg = format_alert_only(all_high, datetime.now().strftime("%Y-%m-%d"))
             bot.send_message(alert_msg)
         
-        print("  报告已发送到 Telegram")
+        _logger.info("  报告已发送到 Telegram")
     
     # 保存到本地
     report_date = datetime.now().strftime("%Y-%m-%d")
@@ -673,7 +673,7 @@ def run_daily_task(skip_telegram=False):
         cleanup()
     except Exception:
         pass
-    print(f"  报告已保存到: {report_file}")
+    _logger.info("  报告已保存到: %s", report_file)
     
     return True
 
@@ -684,10 +684,10 @@ def run_realtime():
     交易时段（北京时间 09:00-15:00 / 21:00-03:00）每30分钟执行一次
     非交易时段每4小时执行一次
     """
-    print(f"🚀 实时监控模式已启动 | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"  交易时段: 每30分钟执行一次")
-    print(f"  非交易时段: 每4小时执行一次")
-    print(f"  按 Ctrl+C 停止\n")
+    _logger.info("🚀 实时监控模式已启动 | %s", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    _logger.info("  交易时段: 每30分钟执行一次")
+    _logger.info("  非交易时段: 每4小时执行一次")
+    _logger.info("  按 Ctrl+C 停止")
     
     last_run = 0
     
@@ -705,10 +705,8 @@ def run_realtime():
         elapsed = time.time() - last_run
         
         if elapsed >= interval:
-            print(f"\n{'='*50}")
             mode = "交易时段" if is_trading else "非交易时段"
-            print(f"  [{mode}] {now.strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"{'='*50}")
+            _logger.info("  [%s] %s", mode, now.strftime('%Y-%m-%d %H:%M:%S'))
             
             try:
                 from core.gold_price import get_market_status
@@ -716,7 +714,7 @@ def run_realtime():
                 if ms.get("status") == "closed":
                     reason = ms.get("reason", "")
                     if "周末" in reason:
-                        print(f"  周末休市，仅更新实时金价缓存")
+                        _logger.info("  周末休市，仅更新实时金价缓存")
                         from core.gold_price import get_realtime_price
                         get_realtime_price()
                     else:
@@ -724,7 +722,7 @@ def run_realtime():
                 else:
                     run_daily_task()
             except Exception as e:
-                print(f"[ERROR] 执行失败: {e}")
+                _logger.error("执行失败: %s", e)
             
             last_run = time.time()
         
@@ -732,75 +730,67 @@ def run_realtime():
 
 
 def do_backfill(days: int = 30):
-    """回填历史数据"""
-    print(f"\n{'='*50}")
-    print(f"  历史数据回填 | 回填 {days} 天")
-    print(f"{'='*50}\n")
+    _logger.info("  历史数据回填 | 回填 %d 天", days)
     
     from core.backfill import backfill_history
     result = backfill_history(days=days, top_n=_get_top_n())
     
-    print(f"\n回填结果: 成功{result['success']} 失败{result['failed']} 跳过{result['skipped']}")
-    print(f"历史数据总计: {result['total_history']} 天")
+    _logger.info("回填结果: 成功%d 失败%d 跳过%d", result['success'], result['failed'], result['skipped'])
+    _logger.info("历史数据总计: %d 天", result['total_history'])
     
     if result['success'] > 0:
-        print("\n正在基于历史数据生成分析报告...")
+        _logger.info("正在基于历史数据生成分析报告...")
         run_daily_task()
 
 
 def test_bot():
-    """测试 Telegram Bot"""
     tg_token, tg_chat_id = _get_telegram_settings()
     if not tg_token or tg_token == "YOUR_BOT_TOKEN_HERE":
-        print("请先在系统设置中配置 Telegram Bot Token")
+        _logger.info("请先在系统设置中配置 Telegram Bot Token")
         return
     
     bot = TelegramBot(tg_token, tg_chat_id)
-    print("正在测试 Bot 连接...")
+    _logger.info("正在测试 Bot 连接...")
     if bot.test_connection():
-        print("正在发送测试消息...")
+        _logger.info("正在发送测试消息...")
         bot.send_message(
             "✅ AI 黄金分析 Bot 连接成功！\n\n"
             "五因子预测模型：持仓动量 + 价格趋势 + 背离信号 + 波动率 + 新闻情绪\n"
             "支持：每日报告 + 实时监控模式"
         )
-        print("测试完成！")
+        _logger.info("测试完成！")
     else:
-        print("Bot 连接失败，请检查 Token 和 Chat ID")
+        _logger.warning("Bot 连接失败，请检查 Token 和 Chat ID")
 
 
 def test_fetch():
-    """测试数据获取"""
-    print("正在测试数据获取...")
+    _logger.info("正在测试数据获取...")
     
-    # 测试实时金价
-    print("\n--- 实时金价 ---")
+    _logger.info("--- 实时金价 ---")
     rt = get_realtime_price()
     if rt:
-        print(f"  现货黄金: {rt['price']:.2f} USD/oz ({rt['change_pct']:+.2f}%)")
+        _logger.info("  现货黄金: %.2f USD/oz (%+.2f%%)", rt['price'], rt['change_pct'])
     
-    # 测试持仓
-    print("\n--- 持仓数据 ---")
+    _logger.info("--- 持仓数据 ---")
     holdings = fetch_holdings_data()
-    print(f"  日期: {holdings['date']}  合约: {holdings['contract']}")
+    _logger.info("  日期: %s  合约: %s", holdings['date'], holdings['contract'])
     
     if holdings.get("long_top"):
         positions = calculate_net_positions(holdings, top_n=_get_top_n())
         for pos in positions:
             chg = pos['net_change']
-            print(f"  {pos['name']:<12} 净多头: {pos['net']:>8,} 手  变化: {'+' if chg>0 else ''}{chg:>6,} 手")
+            _logger.info("  %s 净多头: %d 手  变化: %s%d 手", pos['name'], pos['net'], '+' if chg > 0 else '', chg)
     
-    # 测试新闻
-    print("\n--- 新闻情绪 ---")
+    _logger.info("--- 新闻情绪 ---")
     try:
         news = fetch_news_sentiment()
-        print(f"  情绪: {news['sentiment']} ({news['sentiment_score']:+.2f})")
-        print(f"  利多: {news['bullish_count']}  利空: {news['bearish_count']}  中性: {news['neutral_count']}")
+        _logger.info("  情绪: %s (%+.2f)", news['sentiment'], news['sentiment_score'])
+        _logger.info("  利多: %d  利空: %d  中性: %d", news['bullish_count'], news['bearish_count'], news['neutral_count'])
         if news.get("key_events"):
             for e in news["key_events"][:5]:
-                print(f"  • {e}")
+                _logger.info("  • %s", e)
     except Exception as e:
-        print(f"  新闻获取失败: {e}")
+        _logger.error("  新闻获取失败: %s", e)
 
 
 if __name__ == "__main__":
@@ -830,11 +820,11 @@ if __name__ == "__main__":
         sch_hour, sch_min = _get_schedule_time()
         sch_hour2, sch_min2 = _get_schedule_time2()
         tg_hour, tg_min = _get_telegram_push_time()
-        print(f"AI 黄金分析定时任务已启动")
-        print(f"  每天 {sch_hour:02d}:{sch_min:02d} 生成报告")
-        print(f"  每天 {sch_hour2:02d}:{sch_min2:02d} 生成报告")
-        print(f"  每天 {tg_hour:02d}:{tg_min:02d} Telegram 推送最新报告")
-        print(f"  按 Ctrl+C 停止\n")
+        _logger.info("AI 黄金分析定时任务已启动")
+        _logger.info("  每天 %02d:%02d 生成报告", sch_hour, sch_min)
+        _logger.info("  每天 %02d:%02d 生成报告", sch_hour2, sch_min2)
+        _logger.info("  每天 %02d:%02d Telegram 推送最新报告", tg_hour, tg_min)
+        _logger.info("  按 Ctrl+C 停止")
         
         schedule.every().day.at(f"{sch_hour:02d}:{sch_min:02d}").do(lambda: run_daily_task(skip_telegram=True))
         schedule.every().day.at(f"{sch_hour2:02d}:{sch_min2:02d}").do(lambda: run_daily_task(skip_telegram=True))

@@ -8,19 +8,21 @@
 <link rel="stylesheet" href="/static/css/mtc-base.css">
 <style>
 :root {
-  --sector-color: #70a7ff;
+  --sector-color: #70A7FF;
 }
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme]) { --sector-color: #2f72d8; }
+  :root:not([data-theme]) { --sector-color: #4F8FFF; }
 }
-:root[data-theme="light"] { --sector-color: #2f72d8; }
-:root[data-theme="dark"] { --sector-color: #70a7ff; }
+:root[data-theme="light"] { --sector-color: #4F8FFF; }
+:root[data-theme="dark"] { --sector-color: #70A7FF; }
 
 .sector-header {
   padding: 24px 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  z-index: 1;
 }
 .sector-header h1 {
   font-size: 24px;
@@ -30,6 +32,15 @@
 </style>
 </head>
 <body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+  <div class="orb orb-5"></div>
+  <div class="orb orb-6"></div>
+</div>
 
 <div id="toast" class="toast"></div>
 

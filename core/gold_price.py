@@ -24,12 +24,15 @@
   - 内存缓存 → 实时快照、国内金价
 """
 
+import logging
 import requests
 import threading
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Optional
 
 from . import db
+
+_logger = logging.getLogger(__name__)
 
 _realtime_cache = None
 _realtime_cache_lock = threading.Lock()
@@ -386,7 +389,7 @@ def get_realtime_price() -> Optional[Dict]:
         result["market_status"] = market_status
         return result
 
-    print(f"  [WARN] 所有实时金价源均失败，使用上次缓存")
+    _logger.warning("所有实时金价源均失败，使用上次缓存")
     with _realtime_cache_lock:
         if _realtime_cache:
             _realtime_cache["market_status"] = market_status
@@ -449,11 +452,11 @@ def _fetch_akshare_xau() -> Optional[Dict]:
 
         with _realtime_cache_lock:
             _realtime_cache = result_data
-        print(f"  AKShare 伦敦金: {result_data['price']:.2f} USD/oz ({change_pct:+.2f}%)")
+        _logger.info("AKShare 伦敦金: %.2f USD/oz (%+.2f%%)", result_data['price'], change_pct)
         return result_data
 
     except Exception as e:
-        print(f"  [WARN] AKShare 伦敦金获取失败: {e}")
+        _logger.warning("AKShare 伦敦金获取失败: %s", e)
         return None
 
 
@@ -495,11 +498,11 @@ def _fetch_akshare_comex() -> Optional[Dict]:
 
         with _realtime_cache_lock:
             _realtime_cache = result_data
-        print(f"  AKShare COMEX黄金: {result_data['price']:.2f} USD/oz ({change_pct:+.2f}%)")
+        _logger.info("AKShare COMEX黄金: %.2f USD/oz (%+.2f%%)", result_data['price'], change_pct)
         return result_data
 
     except Exception as e:
-        print(f"  [WARN] AKShare COMEX黄金获取失败: {e}")
+        _logger.warning("AKShare COMEX黄金获取失败: %s", e)
         return None
 
 
@@ -530,7 +533,7 @@ def _fetch_domestic_price():
                     import time
                     time.sleep(1)
                     continue
-                print(f"  [WARN] AKShare SGE Au99.99 获取失败: {e}")
+                _logger.warning("AKShare SGE Au99.99 获取失败: %s", e)
 
         try:
             df = ak.futures_zh_realtime(symbol="黄金")
@@ -557,7 +560,7 @@ def _fetch_domestic_price():
                             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         }
         except Exception as e:
-            print(f"  [WARN] AKShare 沪金期货获取失败: {e}")
+            _logger.warning("AKShare 沪金期货获取失败: %s", e)
 
         if domestic:
             domestic["update_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -567,7 +570,7 @@ def _fetch_domestic_price():
     except ImportError:
         pass
     except Exception as e:
-        print(f"  [WARN] 国内金价获取失败: {e}")
+        _logger.warning("国内金价获取失败: %s", e)
 
 
 def get_domestic_price() -> Optional[Dict]:
@@ -620,14 +623,14 @@ def _fetch_yahoo_realtime() -> Optional[Dict]:
 
         with _realtime_cache_lock:
             _realtime_cache = result_data
-        print(f"  Yahoo Finance 实时金价: {result_data['price']:.2f} USD/oz")
+        _logger.info("Yahoo Finance 实时金价: %.2f USD/oz", result_data['price'])
         return result_data
 
     except requests.exceptions.RequestException as e:
-        print(f"  [WARN] Yahoo Finance 实时获取失败: {e}")
+        _logger.warning("Yahoo Finance 实时获取失败: %s", e)
         return None
     except (KeyError, ValueError) as e:
-        print(f"  [WARN] Yahoo Finance 数据解析失败: {e}")
+        _logger.warning("Yahoo Finance 数据解析失败: %s", e)
         return None
 
 
@@ -665,14 +668,14 @@ def _fetch_gold_api() -> Optional[Dict]:
 
         with _realtime_cache_lock:
             _realtime_cache = result_data
-        print(f"  gold-api.com 现货金价: {result_data['price']:.2f} USD/oz")
+        _logger.info("gold-api.com 现货金价: %.2f USD/oz", result_data['price'])
         return result_data
 
     except requests.exceptions.RequestException as e:
-        print(f"  [WARN] gold-api.com 获取失败: {e}")
+        _logger.warning("gold-api.com 获取失败: %s", e)
         return None
     except (KeyError, ValueError) as e:
-        print(f"  [WARN] gold-api.com 数据解析失败: {e}")
+        _logger.warning("gold-api.com 数据解析失败: %s", e)
         return None
 
 
@@ -724,14 +727,14 @@ def _fetch_swissquote() -> Optional[Dict]:
 
         with _realtime_cache_lock:
             _realtime_cache = result_data
-        print(f"  Swissquote 金价: {result_data['price']:.2f} USD/oz (bid:{bid:.2f} ask:{ask:.2f})")
+        _logger.info("Swissquote 金价: %.2f USD/oz (bid:%.2f ask:%.2f)", result_data['price'], bid, ask)
         return result_data
 
     except requests.exceptions.RequestException as e:
-        print(f"  [WARN] Swissquote 获取失败: {e}")
+        _logger.warning("Swissquote 获取失败: %s", e)
         return None
     except (KeyError, ValueError, IndexError) as e:
-        print(f"  [WARN] Swissquote 数据解析失败: {e}")
+        _logger.warning("Swissquote 数据解析失败: %s", e)
         return None
 
 
@@ -752,7 +755,7 @@ def get_intraday_kline(interval: str = "5m", range_str: str = "1d") -> List[Dict
             price = meta.get("regularMarketPrice", 0)
             if price and price > 0:
                 dt_str = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                print(f"  [WARN] K线timestamp缺失，使用meta降级数据（休市日）")
+                _logger.warning("K线timestamp缺失，使用meta降级数据（休市日）")
                 return [{
                     "time": dt_str,
                     "open": round(meta.get("regularMarketOpen", meta.get("previousClose", price)), 2),
@@ -762,7 +765,7 @@ def get_intraday_kline(interval: str = "5m", range_str: str = "1d") -> List[Dict
                     "volume": int(meta.get("regularMarketVolume", 0)),
                     "_degraded": True,
                 }]
-            print("  [WARN] K线数据解析失败: API未返回timestamp且无meta降级数据")
+            _logger.warning("K线数据解析失败: API未返回timestamp且无meta降级数据")
             return []
         quotes = result["indicators"]["quote"][0]
 
@@ -785,10 +788,10 @@ def get_intraday_kline(interval: str = "5m", range_str: str = "1d") -> List[Dict
         return klines
 
     except requests.exceptions.RequestException as e:
-        print(f"  [WARN] K线数据获取失败: {e}")
+        _logger.warning("K线数据获取失败: %s", e)
         return []
     except (KeyError, ValueError) as e:
-        print(f"  [WARN] K线数据解析失败: {e}")
+        _logger.warning("K线数据解析失败: %s", e)
         return []
 
 
@@ -803,10 +806,10 @@ def get_daily_history(days: int = 30, prefer_international: bool = False) -> Lis
             cached = _daily_cache_prices[-days:]
             if prefer_international:
                 if cached and cached[-1].get("source") == "yahoo":
-                    print(f"  金价日线使用内存缓存（国际，{len(cached)}天）")
+                    _logger.debug("金价日线使用内存缓存（国际，%d天）", len(cached))
                     return cached
             else:
-                print(f"  金价日线使用内存缓存（{len(cached)}天）")
+                _logger.debug("金价日线使用内存缓存（%d天）", len(cached))
                 return cached
 
     try:
@@ -818,10 +821,10 @@ def get_daily_history(days: int = 30, prefer_international: bool = False) -> Lis
             cached = db_prices[-days:]
             if prefer_international:
                 if cached and cached[-1].get("source") == "yahoo":
-                    print(f"  金价日线使用数据库缓存（国际，{len(cached)}天）")
+                    _logger.debug("金价日线使用数据库缓存（国际，%d天）", len(cached))
                     return cached
             else:
-                print(f"  金价日线使用数据库缓存（{len(cached)}天）")
+                _logger.debug("金价日线使用数据库缓存（%d天）", len(cached))
                 return cached
     except Exception:
         pass
@@ -886,17 +889,17 @@ def _fetch_sge_daily_history(days: int = 30) -> Optional[List[Dict]]:
         if not prices:
             return None
 
-        print(f"  AKShare SGE 日线: 获取到 {len(prices)} 天数据 (CNY/g)")
+        _logger.info("AKShare SGE 日线: 获取到 %d 天数据 (CNY/g)", len(prices))
         return prices[-(days + 10):]
 
     except Exception as e:
-        print(f"  [WARN] AKShare SGE 日线获取失败: {e}")
+        _logger.warning("AKShare SGE 日线获取失败: %s", e)
         return None
 
 
 def _fetch_yahoo_daily_history(days: int = 30) -> Optional[List[Dict]]:
     """从 Yahoo Finance 获取每日金价历史"""
-    print(f"  正在从Yahoo Finance获取日线数据...")
+    _logger.info("正在从Yahoo Finance获取日线数据...")
     try:
         range_str = f"{days + 10}d"
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/GC=F?range={range_str}&interval=1d"
@@ -911,7 +914,7 @@ def _fetch_yahoo_daily_history(days: int = 30) -> Optional[List[Dict]]:
             price = meta.get("regularMarketPrice", 0)
             if price and price > 0:
                 dt_str = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d")
-                print(f"  [WARN] 日线timestamp缺失，使用meta降级数据（休市日）")
+                _logger.warning("日线timestamp缺失，使用meta降级数据（休市日）")
                 return [{
                     "date": dt_str,
                     "open": round(meta.get("regularMarketOpen", meta.get("previousClose", price)), 2),
@@ -923,7 +926,7 @@ def _fetch_yahoo_daily_history(days: int = 30) -> Optional[List[Dict]]:
                     "unit": "USD/oz",
                     "_degraded": True,
                 }]
-            print("  [WARN] 日线数据解析失败: API未返回timestamp且无meta降级数据")
+            _logger.warning("日线数据解析失败: API未返回timestamp且无meta降级数据")
             return None
         quotes = result["indicators"]["quote"][0]
 
@@ -945,14 +948,14 @@ def _fetch_yahoo_daily_history(days: int = 30) -> Optional[List[Dict]]:
                 "unit": "USD/oz",
             })
 
-        print(f"  获取到 {len(prices)} 天日线数据")
+        _logger.info("获取到 %d 天日线数据", len(prices))
         return prices[-(days + 10):]
 
     except requests.exceptions.RequestException as e:
-        print(f"  [WARN] 日线获取失败: {e}")
+        _logger.warning("日线获取失败: %s", e)
         return None
     except (KeyError, ValueError) as e:
-        print(f"  [WARN] 日线数据解析失败: {e}")
+        _logger.warning("日线数据解析失败: %s", e)
         return None
 
 
@@ -980,7 +983,7 @@ def archive_realtime_price(realtime: Optional[Dict] = None):
             realtime.get("source", ""),
         )
     except Exception as e:
-        print(f"  [WARN] 日内快照保存失败: {e}")
+        _logger.warning("日内快照保存失败: %s", e)
 
     from datetime import date as _date
     today_date = _date(now_et.year, now_et.month, now_et.day)
@@ -1001,7 +1004,7 @@ def archive_realtime_price(realtime: Optional[Dict] = None):
                 "source": realtime.get("source", ""),
             })
     except Exception as e:
-        print(f"  [WARN] 日线OHLC更新失败: {e}")
+        _logger.warning("日线OHLC更新失败: %s", e)
 
     return realtime
 

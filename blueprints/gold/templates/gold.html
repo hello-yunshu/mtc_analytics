@@ -16,15 +16,15 @@
 }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    --gold: #bf7f1a;
-    --gold2: #9f6410;
-    --gold3: #f2c55f;
+    --gold: #c4882a;
+    --gold2: #a06b18;
+    --gold3: #d4a04a;
   }
 }
 :root[data-theme="light"] {
-  --gold: #bf7f1a;
-  --gold2: #9f6410;
-  --gold3: #f2c55f;
+  --gold: #c4882a;
+  --gold2: #a06b18;
+  --gold3: #d4a04a;
 }
 :root[data-theme="dark"] {
   --gold: #f6c768;
@@ -33,7 +33,6 @@
 }
 
 
-/* ===== Layout ===== */
 .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
 
 .sidebar {
@@ -47,14 +46,15 @@
   left: 0;
   height: 100vh;
   z-index: 10;
-  box-shadow: 16px 0 40px rgba(0,0,0,0.3);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.3), var(--glow-shadow);
+  backdrop-filter: var(--blur-lg);
+  -webkit-backdrop-filter: var(--blur-lg);
+  transition: var(--transition);
 }
 
 .sidebar-logo {
   padding: 18px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -88,20 +88,20 @@
   cursor: pointer;
   color: var(--text2);
   font-size: 14px;
-  transition: all 0.2s;
+  transition: var(--transition);
   border-left: 3px solid transparent;
   border-radius: 0;
   position: relative;
 }
 
 .nav-item:hover { background: var(--bg3); color: var(--text); }
-.nav-item.active { color: var(--gold); background: rgba(245,158,11,0.08); border-left-color: var(--gold); }
+.nav-item.active { color: var(--gold); background: rgba(var(--gold-rgb), 0.08); border-left-color: var(--gold); box-shadow: inset 0 0 20px rgba(var(--gold-rgb), 0.04); }
 .nav-item .icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .nav-item .icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 .nav-separator {
   height: 1px;
-  background: var(--border);
+  background: var(--glass-border);
   margin: 8px 16px;
 }
 
@@ -113,17 +113,17 @@
   cursor: pointer;
   color: var(--text3);
   font-size: 14px;
-  transition: all 0.2s;
+  transition: var(--transition);
   text-decoration: none;
   border-left: 3px solid transparent;
 }
-.nav-home:hover { color: var(--gold); background: rgba(245,158,11,0.05); }
+.nav-home:hover { color: var(--gold); background: rgba(var(--gold-rgb), 0.05); }
 .nav-home .icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .nav-home .icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 .sidebar-footer {
   padding: 16px 20px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border);
   font-size: 11px;
   color: var(--text3);
 }
@@ -136,7 +136,7 @@
 }
 
 .card[onclick] { cursor: pointer; }
-.card[onclick]:hover { transform: translateY(-3px); border-color: var(--gold); box-shadow: 0 28px 70px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.18); }
+.card[onclick]:hover { transform: translateY(-3px); border-color: rgba(var(--gold-rgb), 0.20); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 30px rgba(var(--gold-rgb), 0.10), var(--inner-highlight); }
 
 .stats-row {
   display: grid;
@@ -144,42 +144,48 @@
   gap: 16px;
   margin-bottom: 24px;
 }
-.stat-card::after { background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: 0.9; }
+.stat-card::after { background: linear-gradient(90deg, transparent, var(--gold), var(--purple), transparent); opacity: 0.7; }
 .stat-value.gold { color: var(--gold); }
 
 .sub-card {
-  backdrop-filter: blur(18px) saturate(1.3);
-  -webkit-backdrop-filter: blur(18px) saturate(1.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  transition: var(--transition);
 }
 .sub-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), var(--glow-shadow);
 }
 
 .sub-panel {
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  padding: 12px 14px;
+  transition: var(--transition);
 }
 .sub-panel:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), var(--glow-shadow);
 }
 
 .glass-section {
-  backdrop-filter: blur(20px) saturate(1.3);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  backdrop-filter: var(--blur-md);
+  -webkit-backdrop-filter: var(--blur-md);
+  padding: 16px;
+  margin-bottom: 16px;
 }
 .glass-item {
-  backdrop-filter: blur(12px) saturate(1.15);
-  -webkit-backdrop-filter: blur(12px) saturate(1.15);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  padding: 12px 14px;
 }
 
 .dual-col-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 .dual-col-grid > :is(style, .alert-dim-full) {
   grid-column: 1 / -1;
@@ -223,7 +229,7 @@
 .dim-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px 16px;
+  gap: 12px;
   margin-top: 8px;
 }
 .dim-item {
@@ -231,14 +237,16 @@
   display: flex;
   align-items: center;
   padding: 10px 68px 10px 14px;
-  background: rgba(255,255,255,0.045);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 8px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+  transition: var(--transition);
   user-select: none;
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
 }
-.dim-item:hover { border-color: var(--gold); background: var(--bg3); }
+.dim-item:hover { border-color: rgba(var(--gold-rgb), 0.25); background: var(--glass-hover); box-shadow: 0 0 16px rgba(var(--gold-rgb), 0.06), var(--inner-highlight); }
 .dim-item:has(input:not(:checked)) { opacity: 0.45; }
 .dim-item:has(input:not(:checked)) .dim-name { text-decoration: line-through; color: var(--text3); }
 .dim-item .dim-icon { font-size: 16px; margin-right: 10px; flex-shrink: 0; }
@@ -265,11 +273,11 @@
 .dim-item .dim-switch .slider {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: #d1d5db;
+  background: var(--toggle-off-bg);
   border-radius: 13px;
   transition: background 0.3s;
   pointer-events: none;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-inset);
 }
 .dim-item .dim-switch .slider::before {
   content: '';
@@ -278,48 +286,49 @@
   height: 22px;
   left: 2px;
   top: 2px;
-  background: #9ca3af;
+  background: var(--toggle-knob-off);
   border-radius: 50%;
   transition: transform 0.3s, background 0.3s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-float);
 }
-.dim-item .dim-switch input:checked + .slider { background: #f59e0b; box-shadow: 0 0 0 1px rgba(245,158,11,0.3); }
-.dim-item .dim-switch input:checked + .slider::before { transform: translateX(22px); background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+.dim-item .dim-switch input:checked + .slider { background: var(--toggle-on-bg); box-shadow: 0 0 0 1px rgba(var(--gold-rgb), 0.3); }
+.dim-item .dim-switch input:checked + .slider::before { transform: translateX(22px); background: var(--toggle-knob-on); box-shadow: 0 1px 4px rgba(var(--gold-rgb), 0.15); }
 
-:root[data-theme="dark"] .dim-item .dim-switch .slider { background: #374151; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
-:root[data-theme="dark"] .dim-item .dim-switch .slider::before { background: #6b7280; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-:root[data-theme="dark"] .dim-item .dim-switch input:checked + .slider { background: #b45309; box-shadow: 0 0 0 1px rgba(180,83,9,0.4); }
-:root[data-theme="dark"] .dim-item .dim-switch input:checked + .slider::before { background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4); }
+:root[data-theme="dark"] .dim-item .dim-switch .slider { background: var(--toggle-off-bg); box-shadow: var(--shadow-inset); }
+:root[data-theme="dark"] .dim-item .dim-switch .slider::before { background: var(--toggle-knob-off); box-shadow: var(--shadow-float); }
+:root[data-theme="dark"] .dim-item .dim-switch input:checked + .slider { background: var(--toggle-on-bg); box-shadow: 0 0 0 1px rgba(var(--gold-rgb), 0.4); }
+:root[data-theme="dark"] .dim-item .dim-switch input:checked + .slider::before { background: var(--toggle-knob-on); box-shadow: 0 0 8px rgba(var(--gold-rgb), 0.4); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .dim-item .dim-switch .slider { background: #374151; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
-  :root:not([data-theme]) .dim-item .dim-switch .slider::before { background: #6b7280; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-  :root:not([data-theme]) .dim-item .dim-switch input:checked + .slider { background: #b45309; box-shadow: 0 0 0 1px rgba(180,83,9,0.4); }
-  :root:not([data-theme]) .dim-item .dim-switch input:checked + .slider::before { background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.4); }
+  :root:not([data-theme]) .dim-item .dim-switch .slider { background: var(--toggle-off-bg); box-shadow: var(--shadow-inset); }
+  :root:not([data-theme]) .dim-item .dim-switch .slider::before { background: var(--toggle-knob-off); box-shadow: var(--shadow-float); }
+  :root:not([data-theme]) .dim-item .dim-switch input:checked + .slider { background: var(--toggle-on-bg); box-shadow: 0 0 0 1px rgba(var(--gold-rgb), 0.4); }
+  :root:not([data-theme]) .dim-item .dim-switch input:checked + .slider::before { background: var(--toggle-knob-on); box-shadow: 0 0 8px rgba(var(--gold-rgb), 0.4); }
 }
 
 .btn {
   padding: 10px 24px;
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: var(--transition);
   font-family: var(--font-sans);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
-  box-shadow: 0 2px 8px var(--shadow);
+  background: var(--glass);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  box-shadow: 0 2px 8px var(--shadow), var(--inner-highlight);
 }
 .btn:active { transform: scale(0.97); }
 
-.btn-gold { background: rgba(246,199,104,0.35); color: var(--gold); border-color: rgba(246,199,104,0.35); }
-.btn-gold:hover { background: rgba(246,199,104,0.5); border-color: rgba(246,199,104,0.55); transform: translateY(-1px); }
+.btn-gold { background: rgba(var(--gold-rgb), 0.25); color: var(--gold); border-color: rgba(var(--gold-rgb), 0.15); box-shadow: 0 2px 8px var(--shadow), 0 0 20px rgba(var(--gold-rgb), 0.06), var(--inner-highlight); }
+.btn-gold:hover { background: rgba(var(--gold-rgb), 0.38); border-color: rgba(var(--gold-rgb), 0.30); box-shadow: 0 4px 16px var(--shadow), 0 0 30px rgba(var(--gold-rgb), 0.12), var(--inner-highlight); transform: translateY(-1px); }
 .btn-outline { background: var(--glass); border: 1px solid var(--glass-border); color: var(--text2); }
-.btn-outline:hover { border-color: var(--gold); color: var(--text); background: rgba(246,199,104,0.08); }
-.btn-danger { background: rgba(240,93,103,0.25); border-color: rgba(240,93,103,0.35); color: var(--bull); }
-.btn-danger:hover { background: rgba(240,93,103,0.4); border-color: rgba(240,93,103,0.55); }
+.btn-outline:hover { border-color: rgba(var(--gold-rgb), 0.25); color: var(--text); background: rgba(var(--gold-rgb), 0.08); box-shadow: 0 0 16px rgba(var(--gold-rgb), 0.06), var(--inner-highlight); }
+.btn-danger { background: rgba(var(--danger-rgb), 0.25); border-color: rgba(var(--danger-rgb), 0.20); color: var(--bull); }
+.btn-danger:hover { background: rgba(var(--danger-rgb), 0.38); border-color: rgba(var(--danger-rgb), 0.35); box-shadow: 0 0 16px rgba(var(--danger-rgb), 0.08), var(--inner-highlight); }
 
-.btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 6px; backdrop-filter: blur(12px) saturate(1.2); -webkit-backdrop-filter: blur(12px) saturate(1.2); }
+.btn-sm { padding: 5px 10px; font-size: 11px; border-radius: var(--radius-xs); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); }
 .btn-sm:hover { transform: translateY(-1px); }
 
 /* ===== Login ===== */
@@ -332,25 +341,25 @@
   padding: 6px 14px;
   background: var(--glass);
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text2);
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition);
   font-family: var(--font-sans);
   white-space: nowrap;
   user-select: none;
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
 }
-.tab-item:hover { border-color: var(--gold); color: var(--text); }
-.tab-item.active { background: rgba(246,199,104,0.35); color: var(--gold); border-color: rgba(246,199,104,0.35); }
+.tab-item:hover { border-color: rgba(var(--gold-rgb), 0.25); color: var(--text); box-shadow: 0 0 16px rgba(var(--gold-rgb), 0.06), var(--inner-highlight); }
+.tab-item.active { background: rgba(var(--gold-rgb), 0.25); color: var(--gold); border-color: rgba(var(--gold-rgb), 0.20); box-shadow: 0 0 20px rgba(var(--gold-rgb), 0.08), var(--inner-highlight); }
 .tab-del {
   display: none;
   align-items: center;
   justify-content: center;
   width: 20px; height: 20px;
-  padding: 0; border: none; border-radius: 4px;
+  padding: 0; border: none; border-radius: var(--radius-xs);
   background: transparent; color: var(--text3);
   cursor: pointer;
   font-size: 0; line-height: 0;
@@ -358,7 +367,7 @@
 }
 .tab-del svg { width: 11px; height: 11px; stroke: currentColor; stroke-width: 2; fill: none; }
 .tab-group:hover .tab-del { display: inline-flex; }
-.tab-del:hover { color: #e74c3c; }
+.tab-del:hover { color: cv('--danger'); }
 
 /* ===== Toast ===== */
 
@@ -401,6 +410,15 @@
 </style>
 </head>
 <body>
+
+<div class="bg-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="orb orb-4"></div>
+  <div class="orb orb-5"></div>
+  <div class="orb orb-6"></div>
+</div>
 
 <div id="toast" class="toast"></div>
 
@@ -498,18 +516,18 @@
       <div class="card" style="margin-bottom:20px;padding:16px 24px">
         <div class="card-title" style="margin-bottom:12px"><svg class="ico" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 多周期趋势</div>
         <div id="periodTrendsRow" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-          <div id="periodTrendShort" class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center">
+          <div id="periodTrendShort" class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);text-align:center">
             <div style="font-size:11px;color:var(--text3);margin-bottom:4px">短期（3日）</div>
             <div id="periodShortDir" style="font-size:20px;font-weight:800;color:var(--text2)">--</div>
             <div id="periodShortScore" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
           </div>
-          <div id="periodTrendMedium" class="sub-panel" style="background:var(--bg2);border:2px solid var(--gold);border-radius:8px;padding:12px 14px;text-align:center;position:relative">
-            <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:9px;font-weight:700;padding:1px 8px;border-radius:4px">重点</div>
+          <div id="periodTrendMedium" class="sub-panel" style="background:var(--bg2);border:2px solid var(--gold);border-radius:var(--radius-sm);text-align:center;position:relative">
+            <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:9px;font-weight:700;padding:1px 8px;border-radius:var(--radius-xs)">重点</div>
             <div style="font-size:11px;color:var(--text3);margin-bottom:4px">中期（10日）</div>
             <div id="periodMediumDir" style="font-size:20px;font-weight:800;color:var(--text2)">--</div>
             <div id="periodMediumScore" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
           </div>
-          <div id="periodTrendLong" class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;text-align:center">
+          <div id="periodTrendLong" class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);text-align:center">
             <div style="font-size:11px;color:var(--text3);margin-bottom:4px">长期（20日）</div>
             <div id="periodLongDir" style="font-size:20px;font-weight:800;color:var(--text2)">--</div>
             <div id="periodLongScore" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
@@ -518,31 +536,31 @@
       </div>
 
       <div style="margin-bottom:20px">
-        <div class="card" id="macroHeader" style="cursor:pointer;margin-bottom:0;border-radius:12px" onclick="toggleCollapse('macroDetail')">
+        <div class="card" id="macroHeader" style="cursor:pointer;margin-bottom:0;border-radius:var(--radius-md)" onclick="toggleCollapse('macroDetail')">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div class="card-title" style="margin-bottom:0"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> 宏观指标</div>
             <span id="macroDetailArrow" style="color:var(--text3);font-size:11px;transition:transform 0.2s;display:flex;align-items:center;gap:4px">展开 <span style="font-size:14px">▼</span></span>
           </div>
         </div>
         <div id="macroDetail" style="display:none;overflow:hidden">
-          <div style="background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:20px 24px">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
-              <div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+          <div style="background:var(--card);border:1px solid var(--glass-border);border-top:none;border-radius:0 0 var(--radius-md) var(--radius-md);padding:20px 24px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+              <div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">美债10Y收益率</div>
                 <div class="mono" id="stat10Y" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
                 <div id="stat10YSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
               </div>
-              <div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+              <div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">美元指数 DXY</div>
                 <div class="mono" id="statDXY" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
                 <div id="statDXYSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
               </div>
-              <div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+              <div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">VIX 恐慌指数</div>
                 <div class="mono" id="statVIX" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
                 <div id="statVIXSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
               </div>
-              <div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+              <div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">WTI 原油</div>
                 <div class="mono" id="statOil" style="font-size:20px;font-weight:700;color:var(--text)">--</div>
                 <div id="statOilSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
@@ -554,15 +572,15 @@
       </div>
 
       <div style="margin-bottom:20px">
-        <div class="card" id="technicalHeader" style="cursor:pointer;margin-bottom:0;border-radius:12px" onclick="toggleCollapse('technicalDetail')">
+        <div class="card" id="technicalHeader" style="cursor:pointer;margin-bottom:0;border-radius:var(--radius-md)" onclick="toggleCollapse('technicalDetail')">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div class="card-title" style="margin-bottom:0"><svg class="ico" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 技术分析</div>
             <span id="technicalDetailArrow" style="color:var(--text3);font-size:11px;transition:transform 0.2s;display:flex;align-items:center;gap:4px">展开 <span style="font-size:14px">▼</span></span>
           </div>
         </div>
         <div id="technicalDetail" style="display:none;overflow:hidden">
-          <div style="background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;padding:20px 24px">
-            <div id="technicalSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px"></div>
+          <div style="background:var(--card);border:1px solid var(--glass-border);border-top:none;border-radius:0 0 12px 12px;padding:20px 24px">
+            <div id="technicalSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px"></div>
             <div id="technicalMASignals" style="margin-bottom:12px"></div>
             <div id="technicalCrossSignals" style="margin-bottom:12px"></div>
             <div id="technicalIndicators" style="margin-bottom:12px"></div>
@@ -592,7 +610,7 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
         <h2 style="font-size:24px;font-weight:700;margin:0"><svg class="ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 报告详情</h2>
         <div style="display:flex;align-items:center;gap:8px">
-          <span id="taskStatusBadge" style="display:none;font-size:12px;padding:3px 10px;border-radius:12px;background:var(--bg2);color:var(--text3)"></span>
+          <span id="taskStatusBadge" style="display:none;font-size:12px;padding:3px 10px;border-radius:var(--radius-md);background:var(--bg2);color:var(--text3)"></span>
           <button class="btn btn-outline" id="btnRegenerate" onclick="regenerateReport()" style="font-size:13px;padding:6px 16px"><svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> 重新生成报告</button>
         </div>
       </div>
@@ -644,10 +662,10 @@
       <div class="card">
         <div class="card-title">宏观指标趋势</div>
         <div id="macroChartsGrid" class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px">美债10Y收益率(%)</div><div style="position:relative;height:180px"><canvas id="macro10yChart"></canvas></div></div>
-          <div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px">美元指数</div><div style="position:relative;height:180px"><canvas id="macroDxyChart"></canvas></div></div>
-          <div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px">VIX恐慌指数</div><div style="position:relative;height:180px"><canvas id="macroVixChart"></canvas></div></div>
-          <div><div style="font-size:12px;color:#94a3b8;margin-bottom:4px">WTI原油(USD)</div><div style="position:relative;height:180px"><canvas id="macroOilChart"></canvas></div></div>
+          <div><div style="font-size:12px;color:var(--text3);margin-bottom:4px">美债10Y收益率(%)</div><div style="position:relative;height:180px"><canvas id="macro10yChart"></canvas></div></div>
+          <div><div style="font-size:12px;color:var(--text3);margin-bottom:4px">美元指数</div><div style="position:relative;height:180px"><canvas id="macroDxyChart"></canvas></div></div>
+          <div><div style="font-size:12px;color:var(--text3);margin-bottom:4px">VIX恐慌指数</div><div style="position:relative;height:180px"><canvas id="macroVixChart"></canvas></div></div>
+          <div><div style="font-size:12px;color:var(--text3);margin-bottom:4px">WTI原油(USD)</div><div style="position:relative;height:180px"><canvas id="macroOilChart"></canvas></div></div>
         </div>
       </div>
 
@@ -671,7 +689,7 @@
     <div id="page-settings" class="page">
       <h2 style="font-size:24px;font-weight:700;margin-bottom:24px;"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> 系统设置</h2>
 
-      <div class="settings-section" style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:18px 20px;margin-bottom:20px">
+      <div class="settings-section" style="background:rgba(var(--gold-rgb),0.06);border:1px solid rgba(var(--gold-rgb),0.15);border-radius:var(--radius-sm);padding:18px 20px;margin-bottom:20px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
             <svg class="ico" viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--gold);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span style="font-size:14px;font-weight:600;color:var(--gold)">LLM 配置已迁移至主页</span>
@@ -856,11 +874,11 @@
           <div class="form-grid">
             <div class="form-group">
               <label>利多关键词（逗号分隔，格式：关键词:权重）</label>
-              <textarea id="setBullishKw" rows="4" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.055);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical" placeholder="降息:1.5,宽松:1.0,避险:1.3,..."></textarea>
+              <textarea id="setBullishKw" rows="4" style="width:100%;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical" placeholder="降息:1.5,宽松:1.0,避险:1.3,..."></textarea>
             </div>
             <div class="form-group">
               <label>利空关键词（逗号分隔，格式：关键词:权重）</label>
-              <textarea id="setBearishKw" rows="4" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.055);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical" placeholder="加息:1.5,收紧:1.2,抛售:1.3,..."></textarea>
+              <textarea id="setBearishKw" rows="4" style="width:100%;padding:10px 14px;background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm);color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical" placeholder="加息:1.5,收紧:1.2,抛售:1.3,..."></textarea>
             </div>
           </div>
           <div class="form-group">
@@ -881,6 +899,19 @@
 <script src="/static/js/mtc-base.js"></script>
 <script>
 let charts = {};
+
+function cv(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function cva(name, alpha) {
+  const v = cv(name);
+  if (v.startsWith('#')) {
+    const r = parseInt(v.slice(1,3),16), g = parseInt(v.slice(3,5),16), b = parseInt(v.slice(5,7),16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+  return v;
+}
 
 MTC.configure({
   apiPrefix: '',
@@ -1059,15 +1090,15 @@ function renderDashSummary(p) {
   const bearW = p._bearSignals !== undefined ? p._bearSignals : p.bearSignals.length;
   let judgeText = p._judge || '中性震荡';
   let judgeColor = p._judgeColor || 'var(--text2)';
-  let judgeBg = judgeColor === 'var(--bull)' ? 'rgba(220,38,38,0.1)' : judgeColor === 'var(--bear)' ? 'rgba(5,150,105,0.1)' : 'var(--bg2)';
+  let judgeBg = judgeColor === 'var(--bull)' ? 'rgba(var(--danger-rgb),0.1)' : judgeColor === 'var(--bear)' ? 'rgba(var(--danger-rgb),0.1)' : 'var(--bg2)';
 
-  html += `<div style="background:${judgeBg};border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px">`;
+  html += `<div style="background:${judgeBg};border:1px solid var(--glass-border);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:16px">`;
   html += `<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">`;
   html += `<div style="font-size:13px;color:var(--text3);white-space:nowrap">综合判断</div>`;
   html += `<div style="font-size:26px;font-weight:900;color:${judgeColor};letter-spacing:1px">${escHtml(judgeText)}</div>`;
   html += `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">`;
   if (p.predScore !== 0) {
-    html += `<div style="font-size:12px;color:var(--text3);background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-family:'JetBrains Mono',monospace">评分 ${p.predScore > 0 ? '+' : ''}${p.predScore.toFixed(2)}</div>`;
+    html += `<div style="font-size:12px;color:var(--text3);background:var(--card);border:1px solid var(--glass-border);border-radius:var(--radius-xs);padding:3px 10px;font-family:'JetBrains Mono',monospace">评分 ${p.predScore > 0 ? '+' : ''}${p.predScore.toFixed(2)}</div>`;
   }
   html += `</div></div>`;
   const totalSignals = bullW + bearW;
@@ -1075,8 +1106,8 @@ function renderDashSummary(p) {
     const bullPct = Math.round((bullW / totalSignals) * 100);
     html += `<div style="display:flex;align-items:center;gap:10px">`;
     html += `<span style="font-size:11px;color:var(--bull);font-weight:600;min-width:48px">利多 ${bullW}</span>`;
-    html += `<div style="flex:1;height:6px;background:var(--bear);border-radius:3px;overflow:hidden;position:relative">`;
-    html += `<div style="width:${bullPct}%;height:100%;background:var(--bull);border-radius:3px;transition:width 0.5s"></div>`;
+    html += `<div style="flex:1;height:6px;background:var(--bear);border-radius:var(--radius-xs);overflow:hidden;position:relative">`;
+    html += `<div style="width:${bullPct}%;height:100%;background:var(--bull);border-radius:var(--radius-xs);transition:width 0.5s"></div>`;
     html += `</div>`;
     html += `<span style="font-size:11px;color:var(--bear);font-weight:600;min-width:48px;text-align:right">利空 ${bearW}</span>`;
     html += `</div>`;
@@ -1087,24 +1118,24 @@ function renderDashSummary(p) {
 
   const netColor = p.netChange > 0 ? 'var(--bull)' : p.netChange < 0 ? 'var(--bear)' : 'var(--text2)';
   const netDir = p.netChange > 0 ? '加仓' : p.netChange < 0 ? '减仓' : '持平';
-  const netBorder = p.netChange > 0 ? 'var(--bull)' : p.netChange < 0 ? 'var(--bear)' : 'var(--border)';
-  html += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${netBorder};border-radius:8px;padding:14px 16px">`;
+  const netBorder = p.netChange > 0 ? 'var(--bull)' : p.netChange < 0 ? 'var(--bear)' : 'var(--glass-border)';
+  html += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid ${netBorder};border-radius:var(--radius-sm)">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">📊 <span style="font-weight:600">持仓面</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${netColor}">${netDir} ${p.netChange !== 0 ? (p.netChange > 0 ? '+' : '') + p.netChange.toLocaleString() + '手' : ''}</div>`;
   html += `<div style="font-size:11px;color:var(--text3);margin-top:4px">净多头合计 ${p.totalNet ? p.totalNet.toLocaleString() + '手' : '--'}</div>`;
   html += `</div>`;
 
   const dirColor = p._directionCss || (p.direction === '看多' ? 'var(--bull)' : p.direction === '看空' ? 'var(--bear)' : 'var(--text2)');
-  const dirBorder = p._directionBorder || (p.direction === '看多' ? 'var(--bull)' : p.direction === '看空' ? 'var(--bear)' : 'var(--border)');
-  html += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${dirBorder};border-radius:8px;padding:14px 16px">`;
+  const dirBorder = p._directionBorder || (p.direction === '看多' ? 'var(--bull)' : p.direction === '看空' ? 'var(--bear)' : 'var(--glass-border)');
+  html += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid ${dirBorder};border-radius:var(--radius-sm)">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">🔮 <span style="font-weight:600">十二因子预测</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${dirColor}">${escHtml(p.direction || '--')}</div>`;
   html += `<div style="font-size:11px;color:var(--text3);margin-top:4px">置信度 ${escHtml(p.confidence || '--')}</div>`;
   html += `</div>`;
 
   const sentColor = p._sentimentColor || (p.sentimentScore > 0.2 ? 'var(--bull)' : p.sentimentScore < -0.2 ? 'var(--bear)' : 'var(--text2)');
-  const sentBorder = p._sentimentBorder || (p.sentimentScore > 0.2 ? 'var(--bull)' : p.sentimentScore < -0.2 ? 'var(--bear)' : 'var(--border)');
-  html += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${sentBorder};border-radius:8px;padding:14px 16px">`;
+  const sentBorder = p._sentimentBorder || (p.sentimentScore > 0.2 ? 'var(--bull)' : p.sentimentScore < -0.2 ? 'var(--bear)' : 'var(--glass-border)');
+  html += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid ${sentBorder};border-radius:var(--radius-sm)">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">📰 <span style="font-weight:600">新闻情绪</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${sentColor}">${escHtml(p.sentiment || '--')}</div>`;
   html += `<div style="display:flex;gap:8px;margin-top:6px;font-size:11px">`;
@@ -1116,7 +1147,7 @@ function renderDashSummary(p) {
   const alertTotal = p.alertCritical + p.alertHigh + p.alertMedium + p.alertLow;
   const alertColor = p.alertCritical > 0 ? 'var(--bull)' : p.alertHigh > 0 ? 'var(--bull)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--bear)';
   const alertBorder = p.alertCritical > 0 ? 'var(--bull)' : p.alertHigh > 0 ? 'var(--bull)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--bear)';
-  html += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${alertBorder};border-radius:8px;padding:14px 16px">`;
+  html += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid ${alertBorder};border-radius:var(--radius-sm)">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">🔔 <span style="font-weight:600">全维度警示</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${alertColor}">${alertTotal > 0 ? alertTotal + '个' : '无异常'}</div>`;
   let alertParts = [];
@@ -1135,7 +1166,7 @@ function renderDashSummary(p) {
       if (!dimGroups[a.dimension]) dimGroups[a.dimension] = [];
       dimGroups[a.dimension].push(a);
     }
-    html += `<div class="glass-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
+    html += `<div class="glass-section" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">🔔 全维度警示详情</div>`;
     html += `<div class="dual-col-grid">`;
     const dimEntries = Object.entries(dimGroups);
@@ -1144,10 +1175,10 @@ function renderDashSummary(p) {
       const hasHigh = dimAlerts.some(a => a.level === 'critical' || a.level === 'high');
       const dimColor = hasHigh ? 'var(--bull)' : dimAlerts.some(a => a.level === 'medium') ? 'var(--gold)' : 'var(--text3)';
       const isLastOdd = di === dimEntries.length - 1 && dimEntries.length % 2 === 1;
-      html += `<div ${isLastOdd ? 'class="span-full glass-item"' : 'class="glass-item"'} style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${dimColor}">`;
+      html += `<div ${isLastOdd ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-radius:var(--radius-sm);border-left:3px solid ${dimColor}">`;
       html += `<div style="font-size:12px;font-weight:600;color:${dimColor};margin-bottom:6px">${dimName}<span style="color:var(--text3);font-weight:400;margin-left:6px">${dimAlerts.length}个</span></div>`;
       for (const a of dimAlerts) {
-        const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.18);color:var(--bull);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(220,38,38,0.12);color:var(--bull);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(245,158,11,0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:rgba(100,116,139,0.1);color:var(--text3);margin-right:4px">低</span>';
+        const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--danger-rgb),0.18);color:var(--bull);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--danger-rgb),0.12);color:var(--bull);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--gold-rgb),0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(100,116,139,0.1);color:var(--text3);margin-right:4px">低</span>';
         html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5">${levelBadge}${escHtml(a.message)}</div>`;
       }
       html += `</div>`;
@@ -1156,7 +1187,7 @@ function renderDashSummary(p) {
   }
 
   if (p.factors.macro || p.factors.meso || p.factors.micro || p.factors.calendar) {
-    html += `<div class="glass-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
+    html += `<div class="glass-section" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">📐 十二因子评分</div>`;
     const factorGroups = [
       { label: '宏观', value: p.factors.macro, icon: '🏛️' },
@@ -1164,7 +1195,7 @@ function renderDashSummary(p) {
       { label: '微观', value: p.factors.micro, icon: '🔍' },
       { label: '日历', value: p.factors.calendar, icon: '📅' }
     ];
-    html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">`;
+    html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
     let factorIdx = 0;
     const factorTotal = factorGroups.filter(g => g.value).length;
     for (const g of factorGroups) {
@@ -1181,7 +1212,7 @@ function renderDashSummary(p) {
       });
       const groupAvg = groupScores.reduce((a, b) => a + b.score, 0) / groupScores.length;
       const groupColor = predColor(groupAvg);
-      html += `<div ${isLastOdd ? 'class="span-full glass-item"' : 'class="glass-item"'} style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${groupColor}">`;
+      html += `<div ${isLastOdd ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-radius:var(--radius-sm);border-left:3px solid ${groupColor}">`;
       html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
       html += `<span style="font-size:12px;font-weight:600;color:var(--text)">${g.icon} ${g.label}</span>`;
       html += `<span style="font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${groupColor}">${groupAvg >= 0 ? '+' : ''}${groupAvg.toFixed(2)}</span>`;
@@ -1205,23 +1236,23 @@ function renderDashSummary(p) {
 
   if (p.bullSignals.length || p.bearSignals.length || p.neutralSignals.length) {
     const signalCount = (p.bullSignals.length ? 1 : 0) + (p.bearSignals.length ? 1 : 0) + (p.neutralSignals.length ? 1 : 0);
-    html += `<div class="glass-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">`;
+    html += `<div class="glass-section" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">📊 信号汇总</div>`;
     html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
     if (p.bullSignals.length) {
-      html += `<div ${signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bull);border-radius:8px;padding:14px 16px">`;
+      html += `<div ${signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-left:3px solid var(--bull);border-radius:var(--radius-sm)">`;
       html += `<div style="font-size:12px;color:var(--bull);margin-bottom:8px;font-weight:700">🔴 利多（${p.bullSignals.length}）</div>`;
       p.bullSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
     if (p.bearSignals.length) {
-      html += `<div ${signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--bear);border-radius:8px;padding:14px 16px">`;
+      html += `<div ${signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-left:3px solid var(--bear);border-radius:var(--radius-sm)">`;
       html += `<div style="font-size:12px;color:var(--bear);margin-bottom:8px;font-weight:700">🟢 利空（${p.bearSignals.length}）</div>`;
       p.bearSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04)">• ${escHtml(s)}</div>`; });
       html += `</div>`;
     }
     if (p.neutralSignals.length) {
-      html += `<div ${signalCount === 3 || signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--text3);border-radius:8px;padding:14px 16px">`;
+      html += `<div ${signalCount === 3 || signalCount === 1 ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-left:3px solid var(--text3);border-radius:var(--radius-sm)">`;
       html += `<div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:700">⚪ 中性（${p.neutralSignals.length}）</div>`;
       p.neutralSignals.forEach(s => { html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5">• ${escHtml(s)}</div>`; });
       html += `</div>`;
@@ -1230,16 +1261,16 @@ function renderDashSummary(p) {
   }
 
   if (p.keyEvents.length) {
-    html += `<div class="glass-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px">`;
+    html += `<div class="glass-section" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
     html += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px">📰 关键事件</div>`;
     p.keyEvents.forEach((e, i) => {
       const isLast = i === p.keyEvents.length - 1;
       if (typeof e === 'object' && e.link) {
         const safeLink = (e.link && (e.link.startsWith('http://') || e.link.startsWith('https://'))) ? escHtml(e.link) : '#';
-        html += `<div style="font-size:12px;color:var(--text2);padding:6px 0;${isLast ? '' : 'border-bottom:1px solid var(--border);'}display:flex;align-items:baseline;gap:8px"><span style="color:var(--gold);font-size:10px">●</span> <a href="${safeLink}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none;line-height:1.5">${escHtml(e.title || '')}</a></div>`;
+        html += `<div style="font-size:12px;color:var(--text2);padding:6px 0;${isLast ? '' : 'border-bottom:1px solid var(--glass-border);'}display:flex;align-items:baseline;gap:8px"><span style="color:var(--gold);font-size:10px">●</span> <a href="${safeLink}" target="_blank" rel="noopener" style="color:var(--gold);text-decoration:none;line-height:1.5">${escHtml(e.title || '')}</a></div>`;
       } else {
         const text = typeof e === 'object' ? (e.title || '') : e;
-        html += `<div style="font-size:12px;color:var(--text2);padding:6px 0;${isLast ? '' : 'border-bottom:1px solid var(--border);'}display:flex;align-items:baseline;gap:8px"><span style="color:var(--gold);font-size:10px">●</span> <span style="line-height:1.5">${escHtml(text)}</span></div>`;
+        html += `<div style="font-size:12px;color:var(--text2);padding:6px 0;${isLast ? '' : 'border-bottom:1px solid var(--glass-border);'}display:flex;align-items:baseline;gap:8px"><span style="color:var(--gold);font-size:10px">●</span> <span style="line-height:1.5">${escHtml(text)}</span></div>`;
       }
     });
     html += `</div>`;
@@ -1416,12 +1447,12 @@ async function loadMacro() {
       if (!v || v.value === null || v.value === undefined || isNaN(v.value)) continue;
       const dir = v.direction === 'inverse' ? '（与黄金负相关）' : '（与黄金正相关）';
       const color = v.change > 0 ? 'var(--bull)' : v.change < 0 ? 'var(--bear)' : 'var(--text2)';
-      detail += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">`;
+      detail += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--glass-border)">`;
       detail += `<span>${escHtml(v.name)}${dir}</span>`;
       detail += `<span style="color:${color}">${v.value.toFixed(2)}${v.unit} (${v.change_pct>0?'+':''}${v.change_pct.toFixed(2)}%)</span>`;
       detail += `</div>`;
     }
-    detail += `<div class="sub-panel" style="margin-top:12px;padding:8px;background:var(--bg2);border-radius:8px;font-size:12px">`;
+    detail += `<div class="sub-panel" style="margin-top:12px;background:var(--bg2);border-radius:var(--radius-sm);font-size:12px">`;
     detail += `综合影响：<span style="color:${data.gold_impact==='偏多'?'var(--bull)':data.gold_impact==='偏空'?'var(--bear)':'var(--text2)'}">${escHtml(data.gold_impact)}</span>`;
     detail += `</div>`;
     document.getElementById('macroDetailContent').innerHTML = detail || '暂无数据';
@@ -1452,14 +1483,14 @@ async function loadSupportResistance() {
     (data.support || []).forEach(s => {
       const dist = ((current - s.value) / current * 100).toFixed(2);
       const typeTag = s.type === 'structural' ? '<span style="color:var(--purple);font-size:10px;margin-left:4px">结构</span>' : '';
-      supHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">`;
+      supHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--glass-border)">`;
       supHtml += `<span>${escHtml(s.level)}${typeTag}</span>`;
       supHtml += `<span style="color:var(--bear)">$${s.value.toFixed(2)} <span style="font-size:11px;color:var(--text3)">${dist}%</span></span>`;
       supHtml += `</div>`;
     });
     if (data.moving_averages && Object.keys(data.moving_averages).length > 0) {
       const ma = data.moving_averages;
-      supHtml += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">`;
+      supHtml += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--glass-border)">`;
       supHtml += `<div style="color:var(--text3);font-size:11px;margin-bottom:4px">均线参考</div>`;
       for (const [k, v] of Object.entries(ma)) {
         const color = 'var(--gold)';
@@ -1474,13 +1505,13 @@ async function loadSupportResistance() {
     (data.resistance || []).forEach(r => {
       const dist = ((r.value - current) / current * 100).toFixed(2);
       const typeTag = r.type === 'structural' ? '<span style="color:var(--purple);font-size:10px;margin-left:4px">结构</span>' : '';
-      resHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">`;
+      resHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--glass-border)">`;
       resHtml += `<span>${escHtml(r.level)}${typeTag}</span>`;
       resHtml += `<span style="color:var(--bull)">$${r.value.toFixed(2)} <span style="font-size:11px;color:var(--text3)">+${dist}%</span></span>`;
       resHtml += `</div>`;
     });
     if (data.pivot) {
-      resHtml += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">`;
+      resHtml += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--glass-border)">`;
       resHtml += `<div style="color:var(--text3);font-size:11px;margin-bottom:4px">枢轴点</div>`;
       resHtml += `<div style="display:flex;justify-content:space-between;padding:2px 0">`;
       resHtml += `<span>Pivot</span><span style="color:var(--gold)">$${data.pivot.toFixed(2)}</span></div>`;
@@ -1510,20 +1541,20 @@ async function loadTechnicalAnalysis() {
     if (!summaryEl) return;
 
     const taColor = (c) => c === 'bullish' ? 'var(--bull)' : c === 'bearish' ? 'var(--bear)' : 'var(--text2)';
-    const taBg = (c) => c === 'bullish' ? 'rgba(220,38,38,0.08)' : c === 'bearish' ? 'rgba(5,150,105,0.08)' : 'var(--bg2)';
+    const taBg = (c) => c === 'bullish' ? cva('--danger', 0.08) : c === 'bearish' ? cva('--danger', 0.08) : 'var(--bg2)';
 
     let summaryHtml = '';
 
     const ma = data.moving_averages || {};
     const maKeys = ['MA5', 'MA10', 'MA20', 'MA60'];
-    const maColors = {'MA5': '#f59e0b', 'MA10': '#3b82f6', 'MA20': '#8b5cf6', 'MA60': '#06b6d4'};
+    const maColors = {'MA5': cv('--ma5'), 'MA10': cv('--ma10'), 'MA20': cv('--ma20'), 'MA60': cv('--ma60')};
     for (const k of maKeys) {
       if (ma[k] !== undefined && ma[k] !== null) {
         const sig = (data.ma_signals || []).find(s => s.name === k);
         const sigColor = sig ? taColor(sig.signal === '偏多' || sig.signal === '微多' ? 'bullish' : sig.signal === '偏空' || sig.signal === '微空' ? 'bearish' : 'neutral') : 'var(--text2)';
         const posText = sig ? sig.position : '';
         const devText = sig ? sig.deviation.toFixed(2) + '%' : '';
-        summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+        summaryHtml += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
         summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px;display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${maColors[k] || 'var(--gold)'}"></span>${k}</div>`;
         summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${sigColor}">$${ma[k].toFixed(2)}</div>`;
         summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-top:2px">${posText} ${devText}</div>`;
@@ -1534,7 +1565,7 @@ async function loadTechnicalAnalysis() {
     if (data.rsi && data.rsi.value !== null && data.rsi.value !== undefined) {
       const rsiSig = data.rsi.signal || {};
       const rsiColor = taColor(rsiSig.color || 'neutral');
-      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">RSI(14)</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${rsiColor}">${data.rsi.value.toFixed(1)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:${rsiColor};margin-top:2px">${rsiSig.level || ''} · ${rsiSig.signal || ''}</div>`;
@@ -1544,7 +1575,7 @@ async function loadTechnicalAnalysis() {
     if (data.macd) {
       const macdSig = data.macd.signal || {};
       const macdColor = taColor(macdSig.color || 'neutral');
-      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">MACD</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${macdColor}">${data.macd.histogram > 0 ? '+' : ''}${data.macd.histogram.toFixed(2)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:${macdColor};margin-top:2px">${macdSig.type || ''} · ${macdSig.signal || ''}</div>`;
@@ -1554,7 +1585,7 @@ async function loadTechnicalAnalysis() {
     if (data.kdj) {
       const kdjSig = data.kdj.signal || {};
       const kdjColor = taColor(kdjSig.color || 'neutral');
-      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">KDJ</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${kdjColor}">K${data.kdj.K.toFixed(0)} D${data.kdj.D.toFixed(0)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:${kdjColor};margin-top:2px">${kdjSig.level || ''} · ${kdjSig.signal || ''}</div>`;
@@ -1564,7 +1595,7 @@ async function loadTechnicalAnalysis() {
     if (data.bollinger) {
       const bbSig = data.bollinger.signal || {};
       const bbColor = taColor(bbSig.color || 'neutral');
-      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">布林带</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:${bbColor}">%B ${data.bollinger.pct_b.toFixed(1)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:${bbColor};margin-top:2px">${bbSig.position || ''} · ${bbSig.signal || ''}</div>`;
@@ -1572,7 +1603,7 @@ async function loadTechnicalAnalysis() {
     }
 
     if (data.atr && data.atr.value !== null) {
-      summaryHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px">`;
+      summaryHtml += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-bottom:6px">ATR(14)</div>`;
       summaryHtml += `<div class="mono" style="font-size:20px;font-weight:700;color:var(--text)">${data.atr.pct !== null ? data.atr.pct.toFixed(2) + '%' : data.atr.value.toFixed(2)}</div>`;
       summaryHtml += `<div style="font-size:11px;color:var(--text3);margin-top:2px">${data.atr.pct > 2 ? '高波动' : data.atr.pct < 0.8 ? '低波动' : '正常波动'}</div>`;
@@ -1584,13 +1615,13 @@ async function loadTechnicalAnalysis() {
     let maSignalsHtml = '';
     if (data.ma_signals && data.ma_signals.length > 0) {
       maSignalsHtml += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px">📈 均线信号</div>`;
-      maSignalsHtml += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px">`;
+      maSignalsHtml += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">`;
       for (const s of data.ma_signals) {
         const isBull = s.signal === '偏多' || s.signal === '微多';
         const isBear = s.signal === '偏空' || s.signal === '微空';
         const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text3)';
-        const border = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--border)';
-        maSignalsHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${border};border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">`;
+        const border = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--glass-border)';
+        maSignalsHtml += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid ${border};border-radius:var(--radius-xs);display:flex;justify-content:space-between;align-items:center">`;
         maSignalsHtml += `<span style="font-size:12px;color:var(--text)">${s.name} <span style="color:var(--text3)">$${s.value.toFixed(2)}</span></span>`;
         maSignalsHtml += `<span style="font-size:12px;font-weight:600;color:${color}">${s.position} ${s.signal}</span>`;
         maSignalsHtml += `</div>`;
@@ -1606,8 +1637,8 @@ async function loadTechnicalAnalysis() {
       for (const cs of data.ma_cross_signals) {
         const isGold = cs.type === '金叉';
         const color = isGold ? 'var(--bull)' : 'var(--bear)';
-        const bg = isGold ? 'rgba(220,38,38,0.1)' : 'rgba(5,150,105,0.1)';
-        crossHtml += `<div style="background:${bg};border:1px solid ${color};border-radius:8px;padding:8px 14px;display:flex;align-items:center;gap:8px">`;
+        const bg = isGold ? 'rgba(var(--danger-rgb),0.1)' : 'rgba(var(--danger-rgb),0.1)';
+        crossHtml += `<div style="background:${bg};border:1px solid ${color};border-radius:var(--radius-sm);padding:8px 14px;display:flex;align-items:center;gap:8px">`;
         crossHtml += `<span style="font-size:14px">${isGold ? '✦' : '✧'}</span>`;
         crossHtml += `<span style="font-size:12px;font-weight:700;color:${color}">${cs.type}</span>`;
         crossHtml += `<span style="font-size:12px;color:var(--text2)">${cs.pair}</span>`;
@@ -1627,12 +1658,12 @@ async function loadTechnicalAnalysis() {
 
     if (indicators.length > 0) {
       indHtml += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px">🔍 指标信号汇总</div>`;
-      indHtml += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">`;
+      indHtml += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">`;
       for (const ind of indicators) {
         const sig = ind.signal;
         const color = taColor(sig.color || 'neutral');
         const border = taColor(sig.color || 'neutral');
-        indHtml += `<div class="glass-item" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${border};border-radius:6px;padding:10px 14px">`;
+        indHtml += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid ${border};border-radius:var(--radius-xs)">`;
         indHtml += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">`;
         indHtml += `<span style="font-size:12px;font-weight:600;color:var(--text)">${ind.name}</span>`;
         indHtml += `<span style="font-size:12px;font-weight:700;color:${color}">${sig.signal || ''}</span>`;
@@ -1787,10 +1818,10 @@ function _freshnessTag(key) {
   const f = _freshnessMap[key];
   if (!f) return '';
   let label = '';
-  let color = '#94a3b8';
+  let color = cv('--text3');
   if (f.icon.includes('⏸')) {
     label = f.desc || '休市中';
-    color = '#f59e0b';
+    color = cv('--ma5');
   } else if (f.ts) {
     try {
       const dataTime = new Date(f.ts.replace(' ', 'T') + '+08:00');
@@ -1801,27 +1832,27 @@ function _freshnessTag(key) {
       const diffDay = Math.floor(diffHr / 24);
       if (diffMin < 1) {
         label = '刚刚';
-        color = '#94a3b8';
+        color = cv('--text3');
       } else if (diffMin < 60) {
         label = diffMin + '分钟前';
-        color = '#94a3b8';
+        color = cv('--text3');
       } else if (diffHr < 4) {
         label = Math.floor(diffHr) + '小时前';
-        color = '#f59e0b';
+        color = cv('--ma5');
       } else if (diffHr < 24) {
         label = Math.floor(diffHr) + '小时前';
-        color = '#dc2626';
+        color = cv('--danger');
       } else {
         label = diffDay + '天前';
-        color = '#dc2626';
+        color = cv('--danger');
       }
     } catch(e) {
       label = f.desc;
-      color = f.icon.includes('❌') ? '#dc2626' : f.icon.includes('⚠') ? '#f59e0b' : '#94a3b8';
+      color = f.icon.includes('❌') ? cv('--danger') : f.icon.includes('⚠') ? cv('--ma5') : cv('--text3');
     }
   } else {
     label = f.desc;
-    color = f.icon.includes('❌') ? '#dc2626' : f.icon.includes('⚠') ? '#f59e0b' : '#94a3b8';
+    color = f.icon.includes('❌') ? cv('--danger') : f.icon.includes('⚠') ? cv('--ma5') : cv('--text3');
   }
   return `<span style="font-size:10px;color:${color};margin-left:6px;font-weight:400">${escHtml(key + ': ' + label)}</span>`;
 }
@@ -1912,7 +1943,7 @@ function scrollToAlert(targetId) {
     return;
   }
   el.scrollIntoView({behavior:'smooth', block:'center'});
-  el.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(245,158,11,0.3)';
+  el.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(var(--gold-rgb),0.3)';
   el.style.borderColor = 'var(--gold)';
   setTimeout(() => {
     el.style.boxShadow = '';
@@ -1927,17 +1958,17 @@ function scrollToAlertLevel(level) {
   if (targets.length > 0) {
     targets[0].scrollIntoView({behavior:'smooth', block:'center'});
     for (const t of targets) {
-      t.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(245,158,11,0.3)';
+      t.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(var(--gold-rgb),0.3)';
       setTimeout(() => { t.style.boxShadow = ''; }, 2500);
     }
     const parentCard = targets[0].closest('[id^="alert-dim-"]');
     if (parentCard) {
-      parentCard.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(245,158,11,0.2)';
+      parentCard.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(var(--gold-rgb),0.2)';
       setTimeout(() => { parentCard.style.boxShadow = ''; }, 2500);
     }
   } else {
     section.scrollIntoView({behavior:'smooth', block:'start'});
-    section.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(245,158,11,0.2)';
+    section.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(var(--gold-rgb),0.2)';
     setTimeout(() => { section.style.boxShadow = ''; }, 2500);
   }
 }
@@ -1946,12 +1977,12 @@ function scrollToAlertSection() {
   const el = document.getElementById('alert-section');
   if (!el) return;
   el.scrollIntoView({behavior:'smooth', block:'start'});
-  el.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(245,158,11,0.2)';
+  el.style.boxShadow = '0 0 0 2px var(--gold), 0 0 20px rgba(var(--gold-rgb),0.2)';
   setTimeout(() => { el.style.boxShadow = ''; }, 2500);
 }
 
 function subCard(title, accentColor, innerHtml, extraClass) {
-  return `<div class="sub-card${extraClass ? ' ' + extraClass : ''}" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${accentColor};border-radius:8px;padding:12px 14px;margin-bottom:10px">` +
+  return `<div class="sub-card${extraClass ? ' ' + extraClass : ''}" style="background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid ${accentColor};border-radius:var(--radius-sm)">` +
     `<div style="font-size:13px;font-weight:700;color:${accentColor};margin-bottom:8px">${title}</div>` +
     innerHtml +
     `</div>`;
@@ -2049,9 +2080,9 @@ function renderInterpretationSection(text) {
 
     if (l.includes('⚠️') && (l.includes('重】') || l.includes('高】') || l.includes('中】') || l.includes('低】'))) {
       const level = l.includes('重】') ? 'critical' : l.includes('高】') ? 'high' : l.includes('中】') ? 'medium' : 'low';
-      const levelColor = level === 'critical' ? 'var(--bear)' : level === 'high' ? '#ef4444' : level === 'medium' ? 'var(--gold)' : 'var(--text3)';
-      const levelBg = level === 'critical' ? 'rgba(239,68,68,0.08)' : level === 'high' ? 'rgba(239,68,68,0.05)' : level === 'medium' ? 'rgba(245,158,11,0.05)' : 'rgba(34,197,94,0.04)';
-      html += `<div style="font-size:13px;color:${levelColor};padding:6px 10px;margin:4px 0;border-radius:6px;background:${levelBg};cursor:pointer;border:1px solid transparent;transition:border-color 0.2s" onclick="scrollToAlertLevel('${level}')" onmouseover="this.style.borderColor='${levelColor}';this.style.opacity='0.85'" onmouseout="this.style.borderColor='transparent';this.style.opacity='1'">${escHtml(l)} <span style="font-size:11px;opacity:0.6">点击查看详情 →</span></div>`;
+      const levelColor = level === 'critical' ? 'var(--bear)' : level === 'high' ? cv('--danger') : level === 'medium' ? 'var(--gold)' : 'var(--text3)';
+      const levelBg = level === 'critical' ? cva('--danger', 0.08) : level === 'high' ? 'rgba(var(--danger-rgb),0.05)' : level === 'medium' ? 'rgba(var(--gold-rgb),0.05)' : 'rgba(var(--danger-rgb),0.04)';
+      html += `<div style="font-size:13px;color:${levelColor};padding:6px 10px;margin:4px 0;border-radius:var(--radius-xs);background:${levelBg};cursor:pointer;border:1px solid transparent;transition:border-color 0.2s" onclick="scrollToAlertLevel('${level}')" onmouseover="this.style.borderColor='${levelColor}';this.style.opacity='0.85'" onmouseout="this.style.borderColor='transparent';this.style.opacity='1'">${escHtml(l)} <span style="font-size:11px;opacity:0.6">点击查看详情 →</span></div>`;
     } else if (l.includes('⚠️')) {
       html += `<div style="font-size:${fontSize};color:var(--gold);padding:4px 0;cursor:pointer" onclick="scrollToAlertSection()" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">${escHtml(l)} <span style="font-size:11px;opacity:0.6">→</span></div>`;
     } else if (l.includes('✅')) {
@@ -2088,14 +2119,14 @@ function renderPredictionSection(text) {
         {key: 'medium', label: '中期', horizon: '10日', icon: '📈', highlight: true},
         {key: 'long', label: '长期', horizon: '20日', icon: '🏛️', highlight: false},
       ];
-      let ptHtml = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+      let ptHtml = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">';
       for (const ptConfig of ptKeys) {
         const pt = ps.period_trends[ptConfig.key];
         if (!pt) continue;
-        const borderColor = ptConfig.highlight ? 'var(--gold)' : 'var(--border)';
+        const borderColor = ptConfig.highlight ? 'var(--gold)' : 'var(--glass-border)';
         const borderWidth = ptConfig.highlight ? '2px' : '1px';
-        const badge = ptConfig.highlight ? '<div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:8px;font-weight:700;padding:1px 6px;border-radius:3px">重点</div>' : '';
-        ptHtml += `<div class="glass-item" style="background:var(--bg2);border:${borderWidth} solid ${borderColor};border-radius:8px;padding:10px;text-align:center;position:relative">`;
+        const badge = ptConfig.highlight ? '<div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;font-size:8px;font-weight:700;padding:1px 6px;border-radius:var(--radius-xs)">重点</div>' : '';
+        ptHtml += `<div class="glass-item" style="background:var(--bg2);border:${borderWidth} solid ${borderColor};border-radius:var(--radius-sm);text-align:center;position:relative">`;
         ptHtml += badge;
         ptHtml += `<div style="font-size:10px;color:var(--text3)">${ptConfig.icon} ${ptConfig.label}（${ptConfig.horizon}）</div>`;
         ptHtml += `<div style="font-size:18px;font-weight:800;color:${pt.direction_color};margin:4px 0">${pt.direction}</div>`;
@@ -2103,7 +2134,7 @@ function renderPredictionSection(text) {
         ptHtml += `</div>`;
       }
       ptHtml += '</div>';
-      html += subCard('🔄 多周期趋势', '#f59e0b', ptHtml);
+      html += subCard('🔄 多周期趋势', cv('--ma5'), ptHtml);
     }
 
     if (ps.institutional_consensus && ps.institutional_consensus.consensus) {
@@ -2124,9 +2155,9 @@ function renderPredictionSection(text) {
 
       if (cons.bull_count + cons.bear_count + cons.neutral_count > 0) {
         icHtml += `<div style="display:flex;gap:6px;margin-bottom:8px">`;
-        icHtml += `<span style="background:rgba(34,197,94,0.15);color:var(--bull);border-radius:4px;padding:2px 8px;font-size:10px">看多 ${cons.bull_count}</span>`;
-        icHtml += `<span style="background:rgba(239,68,68,0.15);color:var(--bear);border-radius:4px;padding:2px 8px;font-size:10px">看空 ${cons.bear_count}</span>`;
-        icHtml += `<span style="background:var(--border);color:var(--text3);border-radius:4px;padding:2px 8px;font-size:10px">中性 ${cons.neutral_count}</span>`;
+        icHtml += `<span style="background:rgba(var(--danger-rgb),0.15);color:var(--bull);border-radius:var(--radius-xs);padding:2px 8px;font-size:10px">看多 ${cons.bull_count}</span>`;
+        icHtml += `<span style="background:rgba(var(--danger-rgb),0.15);color:var(--bear);border-radius:var(--radius-xs);padding:2px 8px;font-size:10px">看空 ${cons.bear_count}</span>`;
+        icHtml += `<span style="background:var(--glass-border);color:var(--text3);border-radius:var(--radius-xs);padding:2px 8px;font-size:10px">中性 ${cons.neutral_count}</span>`;
         icHtml += `<span style="font-size:10px;color:var(--text3);margin-left:4px">${cons.agreement_level}</span>`;
         icHtml += `</div>`;
       }
@@ -2136,7 +2167,7 @@ function renderPredictionSection(text) {
         const alignLabels = {aligned: '✅ 一致', divergent: '⚠️ 背离', neutral_vs_conviction: '⚡ 模型中性vs共识有方向', conviction_vs_neutral: '💡 模型有方向vs共识中性'};
         const aColor = alignColors[align.alignment] || 'var(--text3)';
         const aLabel = alignLabels[align.alignment] || align.alignment;
-        icHtml += `<div class="glass-item" style="background:var(--bg2);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:11px">`;
+        icHtml += `<div class="glass-item" style="background:var(--bg2);border-radius:var(--radius-xs);margin-bottom:8px;font-size:11px">`;
         icHtml += `<span style="color:${aColor};font-weight:700">${aLabel}</span>`;
         icHtml += `<span style="color:var(--text3);margin-left:6px">${align.description || ''}</span>`;
         icHtml += `</div>`;
@@ -2162,14 +2193,14 @@ function renderPredictionSection(text) {
         icHtml += `<div style="margin-top:6px;font-size:11px;color:var(--gold)">平均目标价: $${cons.avg_target_price.toFixed(0)}</div>`;
       }
 
-      html += subCard('🏦 机构共识', '#3b82f6', icHtml);
+      html += subCard('🏦 机构共识', cv('--ma10'), icHtml);
     }
 
     const groupConfig = {
-      macro: { label: '宏观', icon: '🏛️', color: '#f59e0b' },
-      meso: { label: '中观', icon: '📊', color: '#8b5cf6' },
-      micro: { label: '微观', icon: '🔍', color: '#06b6d4' },
-      calendar: { label: '日历', icon: '📅', color: '#6366f1' },
+      macro: { label: '宏观', icon: '🏛️', color: cv('--ma5') },
+      meso: { label: '中观', icon: '📊', color: cv('--ma20') },
+      micro: { label: '微观', icon: '🔍', color: cv('--ma60') },
+      calendar: { label: '日历', icon: '📅', color: cv('--neon-purple') },
     };
     let factorGroupItems = [];
     for (const [gk, gc] of Object.entries(groupConfig)) {
@@ -2194,11 +2225,11 @@ function renderPredictionSection(text) {
         const lastIdx = factorGroupItems.length - 1;
         factorGroupItems[lastIdx] = factorGroupItems[lastIdx].replace('class="sub-card"', 'class="sub-card span-full"');
       }
-      html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${factorGroupItems.join('')}</div>`;
+      html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${factorGroupItems.join('')}</div>`;
     }
 
     if (ps.llm_reasoning) {
-      html += subCard('🤖 AI 推理', '#8b5cf6', `<div style="font-size:13px;color:var(--text);line-height:1.7">${escHtml(ps.llm_reasoning)}</div>`);
+      html += subCard('🤖 AI 推理', cv('--ma20'), `<div style="font-size:13px;color:var(--text);line-height:1.7">${escHtml(ps.llm_reasoning)}</div>`);
     }
   } else {
     const lines = text.split('\n').slice(1);
@@ -2223,7 +2254,7 @@ function renderPredictionSection(text) {
         const scoreMatch = l.match(/([+-]?[\d.]+)/);
         if (scoreMatch) dirHtml += `<div style="font-size:13px;color:var(--text3);margin-bottom:8px">综合评分 <span style="color:var(--text);font-weight:600">${scoreMatch[0]}</span></div>`;
       } else if (l.includes('宏观') || l.includes('中观') || l.includes('微观') || l.includes('日历')) {
-        const accentColor = l.includes('宏观') ? '#f59e0b' : l.includes('中观') ? '#8b5cf6' : l.includes('微观') ? '#06b6d4' : '#6366f1';
+        const accentColor = l.includes('宏观') ? cv('--ma5') : l.includes('中观') ? cv('--ma20') : l.includes('微观') ? cv('--ma60') : cv('--neon-purple');
         factorGroups.push({text: l, color: accentColor});
       } else if (l.includes('AI 推理')) {
         const reasoningText = l.replace(/^.*?AI 推理[：:]\s*/, '');
@@ -2272,7 +2303,7 @@ function renderPredictionSection(text) {
         const lastIdx = fallbackFactorItems.length - 1;
         fallbackFactorItems[lastIdx] = fallbackFactorItems[lastIdx].replace('class="sub-card"', 'class="sub-card span-full"');
       }
-      html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${fallbackFactorItems.join('')}</div>`;
+      html += `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fallbackFactorItems.join('')}</div>`;
     }
 
   if (detailLines.length) {
@@ -2284,7 +2315,7 @@ function renderPredictionSection(text) {
   }
 
   if (llmReasoningHtml) {
-    html += subCard('🤖 AI 推理', '#6366f1', llmReasoningHtml);
+    html += subCard('🤖 AI 推理', cv('--neon-purple'), llmReasoningHtml);
   }
 
   }
@@ -2326,10 +2357,10 @@ function renderNewsSection(text) {
   }
 
   if (summaryHtml) {
-    html += subCard('📊 情绪概览', '#10b981', summaryHtml);
+    html += subCard('📊 情绪概览', cv('--bear'), summaryHtml);
   }
   if (aiSummaryHtml) {
-    html += subCard('🤖 AI 摘要', '#6366f1', aiSummaryHtml);
+    html += subCard('🤖 AI 摘要', cv('--neon-purple'), aiSummaryHtml);
   }
   if (eventLines.length) {
     let inner = '';
@@ -2343,7 +2374,7 @@ function renderNewsSection(text) {
         inner += `<div style="font-size:12px;color:var(--text2);padding:2px 0">• ${escHtml(itemText)}</div>`;
       }
     }
-    html += subCard('📌 关键事件', '#f59e0b', inner);
+    html += subCard('📌 关键事件', cv('--ma5'), inner);
   }
 
   html += `</div>`;
@@ -2365,10 +2396,10 @@ function renderAlertSection(text) {
   };
 
   const levelStyles = {
-    critical: { bg: 'rgba(239,68,68,0.14)', border: 'rgba(239,68,68,0.3)', label: '🔴 重', color: 'var(--bear)' },
-    high:     { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)', label: '🔴 高', color: '#ef4444' },
-    medium:   { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)', label: '🟡 中', color: 'var(--gold)' },
-    low:      { bg: 'rgba(34,197,94,0.06)', border: 'rgba(34,197,94,0.14)', label: '🟢 低', color: 'var(--text3)' },
+    critical: { bg: 'rgba(var(--danger-rgb),0.14)', border: 'rgba(var(--danger-rgb),0.3)', label: '🔴 重', color: 'var(--bear)' },
+    high:     { bg: cva('--danger', 0.08), border: cva('--danger', 0.2), label: '🔴 高', color: cv('--danger') },
+    medium:   { bg: cva('--gold', 0.08), border: 'rgba(var(--gold-rgb),0.2)', label: '🟡 中', color: 'var(--gold)' },
+    low:      { bg: 'rgba(var(--danger-rgb),0.06)', border: 'rgba(var(--danger-rgb),0.14)', label: '🟢 低', color: 'var(--text3)' },
   };
 
   let dims = [];
@@ -2423,25 +2454,25 @@ function renderAlertSection(text) {
     const hasHigh = dim.alerts.high.length > 0;
     let bgColor, borderColor;
     if (emoji === '⚠️') {
-      bgColor = 'rgba(239,68,68,0.08)';
-      borderColor = 'rgba(239,68,68,0.25)';
+      bgColor = cva('--danger', 0.08);
+      borderColor = cva('--danger', 0.25);
     } else if (hasCritical) {
-      bgColor = 'rgba(239,68,68,0.06)';
-      borderColor = 'rgba(239,68,68,0.2)';
+      bgColor = 'rgba(var(--danger-rgb),0.06)';
+      borderColor = cva('--danger', 0.2);
     } else if (hasHigh) {
-      bgColor = 'rgba(239,68,68,0.07)';
-      borderColor = 'rgba(239,68,68,0.18)';
+      bgColor = 'rgba(var(--danger-rgb),0.07)';
+      borderColor = cva('--danger', 0.18);
     } else if (dim.alerts.medium.length > 0) {
-      bgColor = 'rgba(245,158,11,0.07)';
-      borderColor = 'rgba(245,158,11,0.18)';
+      bgColor = 'rgba(var(--gold-rgb),0.07)';
+      borderColor = cva('--gold', 0.18);
     } else {
-      bgColor = 'rgba(34,197,94,0.05)';
-      borderColor = 'rgba(34,197,94,0.12)';
+      bgColor = 'rgba(var(--danger-rgb),0.05)';
+      borderColor = cva('--danger', 0.12);
     }
-    const titleColor = hasCritical ? 'var(--bear)' : hasHigh ? '#ef4444' : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
+    const titleColor = hasCritical ? 'var(--bear)' : hasHigh ? cv('--danger') : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
 
     const isFullSpan = emoji === '⚠️' || (di === dims.length - 1 && dims.length % 2 === 1);
-    html += `<div id="alert-dim-${dim.key}" class="sub-card ${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:10px;padding:12px 14px;transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease">`;
+    html += `<div id="alert-dim-${dim.key}" class="sub-card ${isFullSpan ? 'alert-dim-full' : ''}" style="background:${bgColor};border:1px solid ${borderColor};border-radius:var(--radius-sm);transition:transform 0.2s ease,box-shadow 0.2s ease,border-color 0.2s ease">`;
     html += `<div style="font-size:13px;font-weight:700;color:${titleColor};margin-bottom:8px;display:flex;align-items:center;gap:6px">`;
     html += `${escHtml(dim.header)}`;
     html += `</div>`;
@@ -2450,7 +2481,7 @@ function renderAlertSection(text) {
       const items = dim.alerts[lvl];
       if (!items.length) continue;
       const s = levelStyles[lvl];
-      html += `<div id="alert-dim-${dim.key}-${lvl}" style="background:${s.bg};border:1px solid ${s.border};border-radius:6px;padding:8px 10px;margin-bottom:6px;transition:box-shadow 0.3s">`;
+      html += `<div id="alert-dim-${dim.key}-${lvl}" style="background:${s.bg};border:1px solid ${s.border};border-radius:var(--radius-xs);padding:8px 10px;margin-bottom:6px;transition:box-shadow 0.3s">`;
       html += `<div style="font-size:11px;font-weight:600;color:${s.color};margin-bottom:4px">${s.label}（${items.length}个）</div>`;
       for (const item of items) {
         html += `<div style="font-size:12px;color:var(--text2);padding:2px 0;line-height:1.5">${escHtml(item)}</div>`;
@@ -2476,7 +2507,7 @@ function renderMacroSection(text) {
   const lines = text.split('\n').slice(1);
   const subHeaders = ['🔄 关联性'];
   const subColors = {
-    '🔄 关联性': '#06b6d4',
+    '🔄 关联性': cv('--ma60'),
   };
 
   let mainLines = [];
@@ -2505,7 +2536,7 @@ function renderMacroSection(text) {
   let mainInner = '';
   for (const l of mainLines) {
     if (l.startsWith('•')) {
-      mainInner += colorizeLine(l, '#f59e0b');
+      mainInner += colorizeLine(l, cv('--ma5'));
     } else if (l.includes('实际利率') || l.includes('美元因子') || l.includes('通胀预期')) {
       const isBull = l.startsWith('🔴');
       const isBear = l.startsWith('🟢');
@@ -2513,13 +2544,13 @@ function renderMacroSection(text) {
       const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
       mainInner += `<div style="font-size:13px;color:${color};font-weight:600;padding:3px 0">${escHtml(cleanL)}</div>`;
     } else if (l.includes('长期判断')) {
-      mainInner += `<div style="font-size:12px;color:var(--text3);padding:4px 0;border-top:1px solid var(--border);margin-top:4px">${escHtml(l)}</div>`;
+      mainInner += `<div style="font-size:12px;color:var(--text3);padding:4px 0;border-top:1px solid var(--glass-border);margin-top:4px">${escHtml(l)}</div>`;
     } else {
-      mainInner += colorizeLine(l, '#f59e0b');
+      mainInner += colorizeLine(l, cv('--ma5'));
     }
   }
   if (mainInner) {
-    html += subCard('📊 核心指标', '#f59e0b', mainInner);
+    html += subCard('📊 核心指标', cv('--ma5'), mainInner);
   }
 
   for (const sec of subSections) {
@@ -2542,9 +2573,9 @@ function renderTechnicalSection(text) {
   const lines = text.split('\n').slice(1);
   const subHeaders = ['关键技术信号', '波动率信号', '🔀 量价背离'];
   const subColors = {
-    '关键技术信号': '#8b5cf6',
-    '波动率信号': '#06b6d4',
-    '🔀 量价背离': '#ef4444',
+    '关键技术信号': cv('--ma20'),
+    '波动率信号': cv('--ma60'),
+    '🔀 量价背离': cv('--danger'),
   };
 
   let mainLines = [];
@@ -2579,11 +2610,11 @@ function renderTechnicalSection(text) {
       const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
       mainInner += `<div style="font-size:13px;color:${color};font-weight:600;padding:3px 0">${escHtml(cleanL)}</div>`;
     } else {
-      mainInner += colorizeLine(l, '#8b5cf6');
+      mainInner += colorizeLine(l, cv('--ma20'));
     }
   }
   if (mainInner) {
-    html += subCard('📊 趋势 & 波动率', '#8b5cf6', mainInner);
+    html += subCard('📊 趋势 & 波动率', cv('--ma20'), mainInner);
   }
 
   if (subSections.length) {
@@ -2613,8 +2644,8 @@ function renderHoldingsSection(text) {
   const subHeaders = ['📋 机构详细', '🏢 持仓结构信号', '📅 中长期持仓趋势'];
   const subColors = {
     '📋 机构详细': 'var(--gold)',
-    '🏢 持仓结构信号': '#f59e0b',
-    '📅 中长期持仓趋势': '#6366f1',
+    '🏢 持仓结构信号': cv('--ma5'),
+    '📅 中长期持仓趋势': cv('--neon-purple'),
   };
 
   let mainLines = [];
@@ -2653,10 +2684,10 @@ function renderHoldingsSection(text) {
       label = '机构分布'; value = l.replace(/.*：/, '').trim(); color = 'var(--text2)';
     }
     if (label) {
-      summaryItems.push(`<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">${label}</div><div style="font-size:15px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace">${escHtml(value)}</div></div>`);
+      summaryItems.push(`<div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xs)"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">${label}</div><div style="font-size:15px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace">${escHtml(value)}</div></div>`);
     }
   }
-  let summaryInner = `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+  let summaryInner = `<div class="mobile-stack" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
   for (let si = 0; si < summaryItems.length; si++) {
     const isOddLast = si === summaryItems.length - 1 && summaryItems.length % 2 === 1;
     if (isOddLast) {
@@ -2681,7 +2712,7 @@ function renderHoldingsSection(text) {
         const brokerMatch = l.match(/^\d+\.\s+(.+)/);
         if (brokerMatch) {
           if (inBroker) inner += `</div>`;
-          inner += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:6px">`;
+          inner += `<div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xs);margin-bottom:6px">`;
           inner += `<div style="font-size:13px;font-weight:600;color:var(--text)">${escHtml(brokerMatch[1])}</div>`;
           inBroker = true;
         } else if (l.includes('多头:') || l.includes('净多头:')) {
@@ -2705,7 +2736,7 @@ function renderHoldingsSection(text) {
             const isBull = l.includes('偏多') || l.includes('强势偏多');
             const isBear = l.includes('偏空') || l.includes('强势偏空');
             const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
-            inner += `<div class="sub-panel" style="font-size:13px;font-weight:600;color:${color};margin:6px 0 4px;padding:5px 8px;background:var(--bg2);border-radius:5px">${escHtml(l)}</div>`;
+            inner += `<div class="sub-panel" style="font-size:13px;font-weight:600;color:${color};margin:6px 0 4px;background:var(--bg2);border-radius:var(--radius-xs)">${escHtml(l)}</div>`;
           } else if (l.includes('多空比')) {
             inner += `<div style="font-size:12px;font-weight:600;color:var(--text);margin:6px 0 4px">${escHtml(l)}</div>`;
           } else if (l.includes('各机构中期变化')) {
@@ -2737,11 +2768,11 @@ function renderCbEtfSection(text) {
   const lines = text.split('\n').slice(1);
   const subHeaders = ['🏦 央行购金动态', '🏦 央行购金', '📊 ETF资金流', '🌐 通胀 & 季节性', '📅 日历事件'];
   const subColors = {
-    '🏦 央行购金动态': '#d97706',
-    '🏦 央行购金': '#d97706',
-    '📊 ETF资金流': '#0891b2',
-    '🌐 通胀 & 季节性': '#8b5cf6',
-    '📅 日历事件': '#6366f1',
+    '🏦 央行购金动态': cv('--gold2'),
+    '🏦 央行购金': cv('--gold2'),
+    '📊 ETF资金流': cv('--cyan'),
+    '🌐 通胀 & 季节性': cv('--ma20'),
+    '📅 日历事件': cv('--neon-purple'),
   };
 
   let subSections = [];
@@ -2816,10 +2847,10 @@ function renderBacktestSection(text) {
 
   function flushGrid() {
     if (!gridItems.length) return;
-    inner += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+    inner += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
     for (let gi = 0; gi < gridItems.length; gi++) {
       const isOddLast = gi === gridItems.length - 1 && gridItems.length % 2 === 1;
-      inner += `<div class="sub-panel${isOddLast ? ' span-full' : ''}" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
+      inner += `<div class="sub-panel${isOddLast ? ' span-full' : ''}" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xs)">`;
       inner += gridItems[gi];
       inner += `</div>`;
     }
@@ -2848,7 +2879,7 @@ function renderBacktestSection(text) {
     gridItems.push(itemHtml);
   }
   flushGrid();
-  html += subCard('📊 历史准确率', '#10b981', inner);
+  html += subCard('📊 历史准确率', cv('--bear'), inner);
 
   html += `<div id="iteration-status-container" style="margin-top:8px"></div>`;
   html += `<div style="font-size:11px;color:var(--text3);padding:8px 12px;margin-top:4px">💡 回测数据基于历史预测自动验证，仅供参考</div>`;
@@ -2873,7 +2904,7 @@ async function loadIterationStatus() {
     const tokenUsed = data.token_usage ? data.token_usage.used : 0;
     const tokenBudget = data.token_budget || 10000;
 
-    html += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px">`;
+    html += `<div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-sm)">`;
     html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
     html += `<span style="font-size:12px;font-weight:600;color:var(--text)">🔄 模型自迭代</span>`;
     html += `<span style="font-size:10px;color:var(--text3)">${modeLabel} | ${enabledLabel}</span>`;
@@ -2889,7 +2920,7 @@ async function loadIterationStatus() {
       const pct = Math.round(tokenUsed / tokenBudget * 100);
       html += `<div style="margin-bottom:8px">`;
       html += `<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-bottom:2px"><span>LLM Token 用量</span><span>${tokenUsed}/${tokenBudget}</span></div>`;
-      html += `<div style="background:var(--border);border-radius:3px;height:4px;overflow:hidden"><div style="background:${pct>80?'var(--bear)':'var(--bull)'};height:100%;width:${Math.min(pct,100)}%;border-radius:3px"></div></div>`;
+      html += `<div style="background:var(--glass-border);border-radius:var(--radius-xs);height:4px;overflow:hidden"><div style="background:${pct>80?'var(--bear)':'var(--bull)'};height:100%;width:${Math.min(pct,100)}%;border-radius:var(--radius-xs)"></div></div>`;
       html += `</div>`;
       if (data.token_budget_categories) {
         html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:6px">`;
@@ -2911,7 +2942,7 @@ async function loadIterationStatus() {
         const periodTag = info.period ? `<span style="font-size:8px;opacity:0.6">${info.period}</span>` : '';
         const icTag = info.ic ? `<span style="font-size:8px;opacity:0.7">IC${info.ic}</span>` : '';
         const sigTag = info.significant && info.significant !== '不显著' && info.significant !== '样本不足' ? `<span style="font-size:8px;color:var(--bull)">${info.significant}</span>` : '';
-        html += `<span style="background:var(--border);border-radius:4px;padding:2px 6px;font-size:10px;color:${color}">${name} ${info.accuracy} ${icTag} ${sigTag} ${periodTag}</span>`;
+        html += `<span style="background:var(--glass-border);border-radius:var(--radius-xs);padding:2px 6px;font-size:10px;color:${color}">${name} ${info.accuracy} ${icTag} ${sigTag} ${periodTag}</span>`;
       }
       html += `</div>`;
     }
@@ -2926,10 +2957,10 @@ async function loadIterationStatus() {
         if (!pa) continue;
         const accNum = parseFloat(pa.accuracy);
         const isMedium = pk === 'medium';
-        const borderColor = isMedium ? 'var(--gold)' : 'var(--border)';
+        const borderColor = isMedium ? 'var(--gold)' : 'var(--glass-border)';
         const borderWidth = isMedium ? '2px' : '1px';
         const color = isNaN(accNum) ? 'var(--text3)' : accNum >= 60 ? 'var(--bull)' : accNum >= 40 ? 'var(--gold)' : 'var(--bear)';
-        html += `<div class="sub-panel" style="background:var(--bg2);border:${borderWidth} solid ${borderColor};border-radius:6px;padding:6px;text-align:center">`;
+        html += `<div class="sub-panel" style="background:var(--bg2);border:${borderWidth} solid ${borderColor};border-radius:var(--radius-xs);text-align:center">`;
         html += `<div style="font-size:9px;color:var(--text3)">${periodIcons[pk] || ''} ${pa.label}</div>`;
         html += `<div style="font-size:14px;font-weight:700;color:${color}">${pa.accuracy}</div>`;
         html += `<div style="font-size:8px;color:var(--text3)">${pa.correct}/${pa.total}</div>`;
@@ -2944,7 +2975,7 @@ async function loadIterationStatus() {
       const factorLabels = {"real_rate":"实际利率","dollar":"美元","inflation":"通胀","momentum":"动量","extreme":"极值","divergence":"背离","cb_gold":"央行","etf_flow":"ETF","price_trend":"趋势","volatility":"波动","news_sentiment":"情绪","seasonality":"季节"};
       for (const [key, val] of Object.entries(data.current_weights)) {
         const label = factorLabels[key] || key;
-        html += `<span style="background:var(--border);border-radius:4px;padding:1px 5px;font-size:9px;color:var(--text2)">${label} ${val.toFixed(3)}</span>`;
+        html += `<span style="background:var(--glass-border);border-radius:var(--radius-xs);padding:1px 5px;font-size:9px;color:var(--text2)">${label} ${val.toFixed(3)}</span>`;
       }
       html += `</div>`;
     }
@@ -2962,7 +2993,7 @@ async function loadIterationStatus() {
     if (data.benchmark && data.benchmark.available) {
       const bm = data.benchmark;
       const edgeColor = parseFloat(bm.edge) > 0 ? 'var(--bull)' : parseFloat(bm.edge) < 0 ? 'var(--bear)' : 'var(--text3)';
-      html += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin-bottom:6px">`;
+      html += `<div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xs);margin-bottom:6px">`;
       html += `<div style="font-size:10px;color:var(--text3);margin-bottom:4px">📊 vs 随机游走基准</div>`;
       html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">`;
       html += `<div style="text-align:center"><div style="font-size:8px;color:var(--text3)">模型</div><div style="font-size:12px;font-weight:600;color:var(--text)">${bm.model_accuracy}</div></div>`;
@@ -2977,12 +3008,12 @@ async function loadIterationStatus() {
       const cs = data.consensus_stats;
       html += `<div style="font-size:10px;color:var(--text3);margin-bottom:4px">🏦 机构共识对比</div>`;
       html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px">`;
-      html += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center;font-size:10px">`;
+      html += `<div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xs);text-align:center;font-size:10px">`;
       html += `<div style="color:var(--text3)">一致预测</div>`;
       html += `<div style="color:var(--bull);font-weight:600">${cs.aligned_accuracy}</div>`;
       html += `<div style="color:var(--text3);font-size:8px">${cs.aligned_correct}/${cs.aligned_count}</div>`;
       html += `</div>`;
-      html += `<div class="sub-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;text-align:center;font-size:10px">`;
+      html += `<div class="sub-panel" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xs);text-align:center;font-size:10px">`;
       html += `<div style="color:var(--text3)">背离时共识胜率</div>`;
       html += `<div style="color:var(--gold);font-weight:600">${cs.consensus_win_rate}</div>`;
       html += `<div style="color:var(--text3);font-size:8px">共识${cs.divergent_consensus_correct} vs 模型${cs.divergent_model_correct}</div>`;
@@ -3088,7 +3119,7 @@ function renderIterationSection(text) {
     }
   }
 
-  let inner = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+  let inner = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
   for (let si = 0; si < statLines.length; si++) {
     const item = statLines[si];
     let valueColor = 'var(--text)';
@@ -3097,13 +3128,13 @@ function renderIterationSection(text) {
     else if (item.val.includes('待激活')) valueColor = 'var(--text3)';
 
     const isOddLast = si === statLines.length - 1 && statLines.length % 2 === 1;
-    inner += `<div class="sub-panel${isOddLast ? ' span-full' : ''}" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">`;
+    inner += `<div class="sub-panel${isOddLast ? ' span-full' : ''}" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xs)">`;
     inner += `<div style="font-size:10px;color:var(--text3);margin-bottom:3px">${escHtml(item.key)}</div>`;
     inner += `<div style="font-size:13px;font-weight:600;color:${valueColor}">${escHtml(item.val)}</div>`;
     inner += `</div>`;
   }
   inner += `</div>`;
-  html += subCard('🔄 迭代状态', '#8b5cf6', inner);
+  html += subCard('🔄 迭代状态', cv('--ma20'), inner);
 
   html += `<div id="iteration-status-container" style="margin-top:8px"></div>`;
   html += `</div>`;
@@ -3179,22 +3210,22 @@ function renderNetChart(data) {
       datasets: [{
         label: '净多头',
         data: netVals,
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.1)',
+        borderColor: cv('--ma5'),
+        backgroundColor: cv('--gold').replace(')', ',0.1)').replace('rgb', 'rgba'),
         fill: true,
         tension: 0.3,
         pointRadius: 2,
-        pointBackgroundColor: '#f59e0b',
+        pointBackgroundColor: cv('--ma5'),
         borderWidth: 2,
       },{
         label: '净变化',
         data: changeVals,
-        borderColor: '#3b82f6',
+        borderColor: cv('--ma10'),
         backgroundColor: 'rgba(59,130,246,0.1)',
         fill: true,
         tension: 0.3,
         pointRadius: 2,
-        pointBackgroundColor: '#3b82f6',
+        pointBackgroundColor: cv('--ma10'),
         borderWidth: 2,
         yAxisID: 'y1',
       }]
@@ -3203,11 +3234,11 @@ function renderNetChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { min: netMin - netPad, max: netMax + netPad, ticks: { color: '#f59e0b' }, grid: { color: '#1e2d45' }, title: { display: true, text: '净多头', color: '#f59e0b' } },
-        y1: { position: 'right', min: chgMin - chgPad, max: chgMax + chgPad, ticks: { color: '#3b82f6' }, grid: { display: false }, title: { display: true, text: '净变化', color: '#3b82f6' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        y: { min: netMin - netPad, max: netMax + netPad, ticks: { color: cv('--ma5') }, grid: { color: cv('--text') }, title: { display: true, text: '净多头', color: cv('--ma5') } },
+        y1: { position: 'right', min: chgMin - chgPad, max: chgMax + chgPad, ticks: { color: cv('--ma10') }, grid: { display: false }, title: { display: true, text: '净变化', color: cv('--ma10') } },
       }
     }
   });
@@ -3228,12 +3259,12 @@ function renderPriceChart(data) {
       datasets: [{
         label: '收盘价 (USD)',
         data: closeVals,
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.08)',
+        borderColor: cv('--ma5'),
+        backgroundColor: cva('--gold', 0.08),
         fill: true,
         tension: 0.3,
         pointRadius: 2,
-        pointBackgroundColor: '#f59e0b',
+        pointBackgroundColor: cv('--ma5'),
         borderWidth: 2,
       }]
     },
@@ -3241,10 +3272,10 @@ function renderPriceChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { min: priceMin - pricePad, max: priceMax + pricePad, ticks: { color: '#64748b' }, grid: { color: '#1e2d45' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        y: { min: priceMin - pricePad, max: priceMax + pricePad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
       }
     }
   });
@@ -3265,8 +3296,8 @@ function renderSentimentChart(data) {
       datasets: [{
         label: '情绪评分',
         data: scores,
-        backgroundColor: scores.map(s => predDir(s) === 'bullish' ? 'rgba(220,38,38,0.7)' : predDir(s) === 'bearish' ? 'rgba(5,150,105,0.7)' : 'rgba(100,116,139,0.5)'),
-        borderColor: scores.map(s => predDir(s) === 'bullish' ? 'rgba(220,38,38,0.9)' : predDir(s) === 'bearish' ? 'rgba(5,150,105,0.9)' : 'rgba(100,116,139,0.7)'),
+        backgroundColor: scores.map(s => predDir(s) === 'bullish' ? cva('--danger', 0.7) : predDir(s) === 'bearish' ? cva('--danger', 0.7) : cva('--text3', 0.5)),
+        borderColor: scores.map(s => predDir(s) === 'bullish' ? cva('--danger', 0.9) : predDir(s) === 'bearish' ? cva('--danger', 0.9) : cva('--text3', 0.7)),
         borderWidth: 1,
         borderRadius: 2,
       }]
@@ -3275,10 +3306,10 @@ function renderSentimentChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { min: scoreMin - scorePad, max: scoreMax + scorePad, ticks: { color: '#64748b' }, grid: { color: '#1e2d45' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        y: { min: scoreMin - scorePad, max: scoreMax + scorePad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
       }
     }
   });
@@ -3308,27 +3339,27 @@ function renderLongShortChart(data) {
       datasets: [{
         label: '多头持仓',
         data: longVals,
-        backgroundColor: 'rgba(239,68,68,0.6)',
-        borderColor: 'rgba(239,68,68,0.9)',
+        backgroundColor: cva('--danger', 0.6),
+        borderColor: cva('--danger', 0.9),
         borderWidth: 1,
         borderRadius: 2,
       },{
         label: '空头持仓',
         data: shortVals,
-        backgroundColor: 'rgba(5,150,105,0.6)',
-        borderColor: 'rgba(5,150,105,0.9)',
+        backgroundColor: cva('--danger', 0.6),
+        borderColor: cva('--danger', 0.9),
         borderWidth: 1,
         borderRadius: 2,
       },{
         label: '净多头',
         data: netVals,
         type: 'line',
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.1)',
+        borderColor: cv('--ma5'),
+        backgroundColor: cv('--gold').replace(')', ',0.1)').replace('rgb', 'rgba'),
         fill: false,
         tension: 0.3,
         pointRadius: 2,
-        pointBackgroundColor: '#f59e0b',
+        pointBackgroundColor: cv('--ma5'),
         borderWidth: 2,
         yAxisID: 'y1',
       }]
@@ -3337,11 +3368,11 @@ function renderLongShortChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { min: yMin, max: yMax, ticks: { color: '#64748b' }, grid: { color: '#1e2d45' }, title: { display: true, text: '持仓量', color: '#64748b' } },
-        y1: { position: 'right', min: netMin - netPadding, max: netMax + netPadding, ticks: { color: '#f59e0b' }, grid: { display: false }, title: { display: true, text: '净多头', color: '#f59e0b' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        y: { min: yMin, max: yMax, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') }, title: { display: true, text: '持仓量', color: cv('--chart-tick') } },
+        y1: { position: 'right', min: netMin - netPadding, max: netMax + netPadding, ticks: { color: cv('--ma5') }, grid: { display: false }, title: { display: true, text: '净多头', color: cv('--ma5') } },
       }
     }
   });
@@ -3364,8 +3395,8 @@ function renderPriceRangeChart(data) {
       datasets: [{
         label: '最高价',
         data: highVals,
-        borderColor: 'rgba(239,68,68,0.5)',
-        backgroundColor: 'rgba(239,68,68,0.08)',
+        borderColor: cva('--danger', 0.5),
+        backgroundColor: cva('--danger', 0.08),
         fill: '+1',
         tension: 0.3,
         pointRadius: 0,
@@ -3373,8 +3404,8 @@ function renderPriceRangeChart(data) {
       },{
         label: '最低价',
         data: lowVals,
-        borderColor: 'rgba(5,150,105,0.5)',
-        backgroundColor: 'rgba(5,150,105,0.08)',
+        borderColor: cva('--danger', 0.5),
+        backgroundColor: cva('--danger', 0.08),
         fill: false,
         tension: 0.3,
         pointRadius: 0,
@@ -3382,12 +3413,12 @@ function renderPriceRangeChart(data) {
       },{
         label: '收盘价',
         data: data.map(d=>d.close),
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.08)',
+        borderColor: cv('--ma5'),
+        backgroundColor: cva('--gold', 0.08),
         fill: false,
         tension: 0.3,
         pointRadius: 2,
-        pointBackgroundColor: '#f59e0b',
+        pointBackgroundColor: cv('--ma5'),
         borderWidth: 2,
       }]
     },
@@ -3395,10 +3426,10 @@ function renderPriceRangeChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { min: pMin - pPad, max: pMax + pPad, ticks: { color: '#64748b' }, grid: { color: '#1e2d45' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        y: { min: pMin - pPad, max: pMax + pPad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
       }
     }
   });
@@ -3416,16 +3447,16 @@ function renderMAChart(data) {
   const pMax = Math.max(...allVals);
   const pRange = pMax - pMin || Math.abs(pMax) * 0.1 || 1;
   const pPad = pRange * 0.1;
-  const maColors = {MA5: '#f59e0b', MA10: '#3b82f6', MA20: '#8b5cf6', MA60: '#06b6d4'};
+  const maColors = {MA5: cv('--ma5'), MA10: cv('--ma10'), MA20: cv('--ma20'), MA60: cv('--ma60')};
   const datasets = [{
     label: '收盘价',
     data: closeVals,
-    borderColor: 'rgba(226,232,240,0.6)',
-    backgroundColor: 'rgba(226,232,240,0.04)',
+    borderColor: cv('--chart-tick'),
+    backgroundColor: cv('--chart-grid'),
     fill: false,
     tension: 0.3,
     pointRadius: 1,
-    pointBackgroundColor: 'rgba(226,232,240,0.6)',
+    pointBackgroundColor: cv('--chart-tick'),
     borderWidth: 1.5,
   }];
   for (const [key, color] of Object.entries(maColors)) {
@@ -3450,10 +3481,10 @@ function renderMAChart(data) {
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'line' } } },
+      plugins: { legend: { labels: { color: cv('--text3'), usePointStyle: true, pointStyle: 'line' } } },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { min: pMin - pPad, max: pMax + pPad, ticks: { color: '#64748b' }, grid: { color: '#1e2d45' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        y: { min: pMin - pPad, max: pMax + pPad, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
       }
     }
   });
@@ -3485,7 +3516,7 @@ function renderMACDChart(data) {
         label: 'MACD',
         data: macdVals,
         type: 'line',
-        borderColor: '#3b82f6',
+        borderColor: cv('--ma10'),
         backgroundColor: 'transparent',
         tension: 0.3,
         pointRadius: 0,
@@ -3496,7 +3527,7 @@ function renderMACDChart(data) {
         label: 'Signal',
         data: signalVals,
         type: 'line',
-        borderColor: '#f59e0b',
+        borderColor: cv('--ma5'),
         backgroundColor: 'transparent',
         tension: 0.3,
         pointRadius: 0,
@@ -3506,8 +3537,8 @@ function renderMACDChart(data) {
       },{
         label: 'Histogram',
         data: histVals,
-        backgroundColor: histVals.map(v => v == null ? 'rgba(100,116,139,0.3)' : v >= 0 ? 'rgba(220,38,38,0.6)' : 'rgba(5,150,105,0.6)'),
-        borderColor: histVals.map(v => v == null ? 'rgba(100,116,139,0.5)' : v >= 0 ? 'rgba(220,38,38,0.9)' : 'rgba(5,150,105,0.9)'),
+        backgroundColor: histVals.map(v => v == null ? cva('--text3', 0.3) : v >= 0 ? cva('--danger', 0.6) : cva('--danger', 0.6)),
+        borderColor: histVals.map(v => v == null ? cva('--text3', 0.5) : v >= 0 ? cva('--danger', 0.9) : cva('--danger', 0.9)),
         borderWidth: 1,
         borderRadius: 1,
         order: 3,
@@ -3516,10 +3547,10 @@ function renderMACDChart(data) {
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { min: yMin, max: yMax, ticks: { color: '#64748b' }, grid: { color: '#1e2d45' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        y: { min: yMin, max: yMax, ticks: { color: cv('--chart-tick') }, grid: { color: cv('--text') } },
       }
     }
   });
@@ -3540,12 +3571,12 @@ function renderRSIChart(data) {
       datasets: [{
         label: 'RSI(14)',
         data: rsiVals,
-        borderColor: '#8b5cf6',
+        borderColor: cv('--ma20'),
         backgroundColor: 'rgba(139,92,246,0.08)',
         fill: true,
         tension: 0.3,
         pointRadius: 1,
-        pointBackgroundColor: '#8b5cf6',
+        pointBackgroundColor: cv('--ma20'),
         borderWidth: 2,
       }]
     },
@@ -3553,19 +3584,19 @@ function renderRSIChart(data) {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { color: '#94a3b8' } },
+        legend: { labels: { color: cv('--text3') } },
         annotation: {},
       },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
         y: {
           min: 0, max: 100,
-          ticks: { color: '#64748b', stepSize: 10 },
+          ticks: { color: cv('--chart-tick'), stepSize: 10 },
           grid: {
             color: (ctx) => {
               const val = ctx.tick ? ctx.tick.value : 50;
-              if (val === 70 || val === 30) return 'rgba(245,158,11,0.4)';
-              return '#1e2d45';
+              if (val === 70 || val === 30) return 'rgba(var(--gold-rgb),0.4)';
+              return cv('--text');
             }
           },
         },
@@ -3595,34 +3626,34 @@ function renderNewsDistChart(data) {
       datasets: [{
         label: '利多',
         data: bullVals,
-        backgroundColor: 'rgba(239,68,68,0.6)',
-        borderColor: 'rgba(239,68,68,0.9)',
+        backgroundColor: cva('--danger', 0.6),
+        borderColor: cva('--danger', 0.9),
         borderWidth: 1,
         borderRadius: 2,
       },{
         label: '利空',
         data: bearVals,
-        backgroundColor: 'rgba(5,150,105,0.6)',
-        borderColor: 'rgba(5,150,105,0.9)',
+        backgroundColor: cva('--danger', 0.6),
+        borderColor: cva('--danger', 0.9),
         borderWidth: 1,
         borderRadius: 2,
       },{
         label: '中性',
         data: neutVals,
         backgroundColor: 'rgba(100,116,139,0.4)',
-        borderColor: 'rgba(100,116,139,0.7)',
+        borderColor: cva('--text3', 0.7),
         borderWidth: 1,
         borderRadius: 2,
       },{
         label: '多空差值',
         data: netVals,
         type: 'line',
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.1)',
+        borderColor: cv('--ma5'),
+        backgroundColor: cv('--gold').replace(')', ',0.1)').replace('rgb', 'rgba'),
         fill: false,
         tension: 0.3,
         pointRadius: 2,
-        pointBackgroundColor: '#f59e0b',
+        pointBackgroundColor: cv('--ma5'),
         borderWidth: 2,
         yAxisID: 'y1',
       }]
@@ -3631,11 +3662,11 @@ function renderNewsDistChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      plugins: { legend: { labels: { color: cv('--text3') } } },
       scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 15 }, grid: { color: '#1e2d45' } },
-        y: { max: yMax, ticks: { color: '#64748b', stepSize: 1 }, grid: { color: '#1e2d45' }, title: { display: true, text: '新闻数量', color: '#64748b' } },
-        y1: { position: 'right', min: netMin - netPadding, max: netMax + netPadding, ticks: { color: '#f59e0b', stepSize: 1 }, grid: { display: false }, title: { display: true, text: '多空差值', color: '#f59e0b' } },
+        x: { ticks: { color: cv('--chart-tick'), maxTicksLimit: 15 }, grid: { color: cv('--text') } },
+        y: { max: yMax, ticks: { color: cv('--chart-tick'), stepSize: 1 }, grid: { color: cv('--text') }, title: { display: true, text: '新闻数量', color: cv('--chart-tick') } },
+        y1: { position: 'right', min: netMin - netPadding, max: netMax + netPadding, ticks: { color: cv('--ma5'), stepSize: 1 }, grid: { display: false }, title: { display: true, text: '多空差值', color: cv('--ma5') } },
       }
     }
   });
@@ -3664,7 +3695,7 @@ function renderMacroChart(data) {
     const prevVal = values.filter(v => v != null).slice(-2)[0];
     const change = prevVal != null ? lastVal - prevVal : 0;
     const changeStr = change >= 0 ? `+${change.toFixed(2)}` : change.toFixed(2);
-    const changeColor = change > 0 ? '#ef4444' : change < 0 ? '#10b981' : '#94a3b8';
+    const changeColor = change > 0 ? cv('--danger') : change < 0 ? cv('--bear') : cv('--text3');
     charts[chartKey] = new Chart(el.getContext('2d'), {
       type: 'line',
       data: {
@@ -3696,7 +3727,7 @@ function renderMacroChart(data) {
         },
         scales: {
           x: { display: false },
-          y: { min: range.min, max: range.max, ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1e2d45' } },
+          y: { min: range.min, max: range.max, ticks: { color: cv('--chart-tick'), font: { size: 10 } }, grid: { color: cv('--text') } },
         }
       },
       plugins: [{
@@ -3716,10 +3747,10 @@ function renderMacroChart(data) {
       }]
     });
   }
-  makeMiniChart('macro10yChart', 'macro10y', '美债10Y收益率', data.map(d=>d.us_10y_yield), '#3b82f6', 'rgba(59,130,246,0.1)');
-  makeMiniChart('macroDxyChart', 'macroDxy', '美元指数', data.map(d=>d.dxy), '#8b5cf6', 'rgba(139,92,246,0.1)');
-  makeMiniChart('macroVixChart', 'macroVix', 'VIX恐慌指数', data.map(d=>d.vix), '#ef4444', 'rgba(239,68,68,0.1)');
-  makeMiniChart('macroOilChart', 'macroOil', 'WTI原油', data.map(d=>d.crude_oil), '#10b981', 'rgba(16,185,129,0.1)');
+  makeMiniChart('macro10yChart', 'macro10y', '美债10Y收益率', data.map(d=>d.us_10y_yield), cv('--ma10'), 'rgba(59,130,246,0.1)');
+  makeMiniChart('macroDxyChart', 'macroDxy', '美元指数', data.map(d=>d.dxy), cv('--ma20'), 'rgba(139,92,246,0.1)');
+  makeMiniChart('macroVixChart', 'macroVix', 'VIX恐慌指数', data.map(d=>d.vix), cv('--danger'), 'rgba(var(--danger-rgb),0.1)');
+  makeMiniChart('macroOilChart', 'macroOil', 'WTI原油', data.map(d=>d.crude_oil), cv('--bear'), 'rgba(16,185,129,0.1)');
 }
 
 function renderRadarChart(data) {
@@ -3733,10 +3764,10 @@ function renderRadarChart(data) {
       datasets: [{
         label: '因子评分',
         data: data.map(d=>d.score),
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.15)',
+        borderColor: cv('--ma5'),
+        backgroundColor: cva('--gold', 0.15),
         borderWidth: 2,
-        pointBackgroundColor: data.map(d => predDir(d.score) === 'bullish' ? '#ef4444' : predDir(d.score) === 'bearish' ? '#10b981' : '#94a3b8'),
+        pointBackgroundColor: data.map(d => predDir(d.score) === 'bullish' ? cv('--danger') : predDir(d.score) === 'bearish' ? cv('--bear') : cv('--text3')),
         pointRadius: 4,
       }]
     },
@@ -3744,7 +3775,7 @@ function renderRadarChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#94a3b8' } },
+        legend: { labels: { color: cv('--text3') } },
         tooltip: {
           callbacks: {
             label: function(ctx) {
@@ -3762,10 +3793,10 @@ function renderRadarChart(data) {
         r: {
           min: -1,
           max: 1,
-          ticks: { color: '#64748b', backdropColor: 'transparent', stepSize: 0.5 },
-          grid: { color: '#1e2d45' },
-          angleLines: { color: '#1e2d45' },
-          pointLabels: { color: '#94a3b8', font: { size: 11 } },
+          ticks: { color: cv('--chart-tick'), backdropColor: 'transparent', stepSize: 0.5 },
+          grid: { color: cv('--text') },
+          angleLines: { color: cv('--text') },
+          pointLabels: { color: cv('--text3'), font: { size: 11 } },
         }
       }
     }

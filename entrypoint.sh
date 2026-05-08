@@ -27,17 +27,17 @@ start_web() {
 
 start_schedule() {
     echo "[Schedule] 启动定时任务模式..."
-    exec python main.py --schedule
+    exec python3 main.py --schedule
 }
 
 start_realtime() {
     echo "[Realtime] 启动实时监控..."
-    exec python main.py --realtime
+    exec python3 main.py --realtime
 }
 
 start_web_and_schedule() {
     echo "[Web+Schedule] 启动 Web + 定时任务..."
-    python main.py --schedule &
+    python3 main.py --schedule &
     exec gunicorn \
         --preload \
         --bind 0.0.0.0:8080 \
@@ -51,7 +51,7 @@ start_web_and_schedule() {
 
 start_web_and_realtime() {
     echo "[Web+Realtime] 启动 Web + 实时监控..."
-    python main.py --realtime &
+    python3 main.py --realtime &
     exec gunicorn \
         --preload \
         --bind 0.0.0.0:8080 \

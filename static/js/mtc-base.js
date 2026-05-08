@@ -128,6 +128,7 @@ const MTC = (function() {
 
   function applyTheme(manual) {
     const root = document.documentElement;
+    document.body.style.transition = 'background 0.6s ease, color 0.4s ease';
     if (manual) {
       root.setAttribute('data-theme', manual);
     } else {
