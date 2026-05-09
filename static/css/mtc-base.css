@@ -13,6 +13,20 @@
   --glass-hover: rgba(20, 30, 65, 0.55);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-glow: rgba(79, 143, 255, 0.06);
+  --button-bg: linear-gradient(135deg, rgba(18, 28, 62, 0.58), rgba(9, 14, 34, 0.46));
+  --button-hover: linear-gradient(135deg, rgba(28, 42, 86, 0.72), rgba(14, 20, 48, 0.62));
+  --button-border: rgba(255, 255, 255, 0.10);
+  --button-border-hover: rgba(var(--blue-rgb), 0.30);
+  --button-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), var(--inner-highlight);
+  --button-hover-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), var(--shadow-glow-blue), var(--inner-highlight);
+  --button-gold-bg: linear-gradient(135deg, rgba(18, 28, 62, 0.64), rgba(9, 14, 34, 0.52));
+  --button-gold-hover: linear-gradient(135deg, rgba(30, 42, 82, 0.78), rgba(var(--gold-rgb), 0.12));
+  --button-gold-border: rgba(var(--gold-rgb), 0.34);
+  --button-gold-border-hover: rgba(var(--gold-rgb), 0.52);
+  --button-gold-shadow: var(--button-shadow), 0 0 24px rgba(var(--gold-rgb), 0.12);
+  --button-gold-hover-shadow: 0 10px 28px rgba(0, 0, 0, 0.30), 0 0 32px rgba(var(--gold-rgb), 0.20), var(--inner-highlight);
+  --button-danger-bg: linear-gradient(135deg, rgba(var(--danger-rgb), 0.24), rgba(var(--danger-rgb), 0.08) 50%, rgba(var(--danger-rgb), 0.15));
+  --button-danger-hover: linear-gradient(135deg, rgba(var(--danger-rgb), 0.34), rgba(var(--danger-rgb), 0.13) 50%, rgba(var(--danger-rgb), 0.24));
   --border: rgba(255, 255, 255, 0.08);
   --text: #EEF2FF;
   --text2: #A5B4CF;
@@ -88,16 +102,30 @@
     --gold: #c4882a;
     --gold2: #a06b18;
     --gold3: #d4a04a;
-    --bg: #F8FAFF;
-    --bg2: rgba(255, 255, 255, 0.65);
-    --bg3: rgba(240, 242, 250, 0.5);
-    --card: rgba(255, 255, 255, 0.60);
-    --card-hover: rgba(255, 255, 255, 0.75);
-    --glass: rgba(255, 255, 255, 0.55);
-    --glass-hover: rgba(255, 255, 255, 0.70);
-    --glass-border: rgba(180, 190, 220, 0.20);
-    --glass-glow: rgba(168, 85, 247, 0.04);
-    --border: rgba(180, 190, 220, 0.20);
+    --bg: #EEF3FB;
+    --bg2: rgba(246, 249, 255, 0.74);
+    --bg3: rgba(224, 231, 247, 0.62);
+    --card: rgba(255, 255, 255, 0.22);
+    --card-hover: rgba(255, 255, 255, 0.34);
+    --glass: rgba(255, 255, 255, 0.16);
+    --glass-hover: rgba(255, 255, 255, 0.28);
+    --glass-border: rgba(86, 104, 148, 0.34);
+    --glass-glow: rgba(79, 143, 255, 0.10);
+    --button-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(218, 228, 250, 0.38));
+    --button-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(208, 222, 250, 0.52));
+    --button-border: rgba(82, 100, 146, 0.38);
+    --button-border-hover: rgba(var(--blue-rgb), 0.42);
+    --button-shadow: 0 10px 24px rgba(72, 86, 128, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -1px 0 rgba(73, 90, 136, 0.08);
+    --button-hover-shadow: 0 14px 34px rgba(72, 86, 128, 0.24), 0 0 28px rgba(var(--blue-rgb), 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    --button-gold-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.60), rgba(var(--gold-rgb), 0.12));
+    --button-gold-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(var(--gold-rgb), 0.20));
+    --button-gold-border: rgba(var(--gold-rgb), 0.34);
+    --button-gold-border-hover: rgba(var(--gold-rgb), 0.52);
+    --button-gold-shadow: 0 10px 26px rgba(139, 98, 32, 0.16), 0 0 24px rgba(var(--gold-rgb), 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    --button-gold-hover-shadow: 0 15px 36px rgba(139, 98, 32, 0.22), 0 0 32px rgba(var(--gold-rgb), 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+    --button-danger-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(var(--danger-rgb), 0.12));
+    --button-danger-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(var(--danger-rgb), 0.20));
+    --border: rgba(86, 104, 148, 0.30);
     --text: #1A1F36;
     --text2: #4A5578;
     --text3: #8892AE;
@@ -120,11 +148,11 @@
     --orange-rgb: 234, 88, 12;
     --danger-rgb: 220, 38, 38;
     --text3-rgb: 136, 146, 174;
-    --shadow: rgba(30, 40, 80, 0.08);
-    --panel-shadow: 0 8px 32px rgba(30, 40, 80, 0.10), 0 2px 8px rgba(30, 40, 80, 0.04);
-    --glow-shadow: 0 0 40px rgba(168, 85, 247, 0.06), 0 0 80px rgba(236, 72, 153, 0.04);
-    --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.25);
-    --card-hover-shadow: 0 12px 40px rgba(30, 40, 80, 0.12), 0 4px 12px rgba(30, 40, 80, 0.06), 0 0 30px rgba(var(--gold-rgb), 0.08);
+    --shadow: rgba(46, 60, 104, 0.14);
+    --panel-shadow: 0 16px 44px rgba(70, 84, 126, 0.18), 0 2px 12px rgba(70, 84, 126, 0.09);
+    --glow-shadow: 0 0 42px rgba(79, 143, 255, 0.11), 0 0 86px rgba(168, 85, 247, 0.07);
+    --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.72), inset 0 -1px 0 rgba(70, 84, 126, 0.06);
+    --card-hover-shadow: 0 20px 52px rgba(70, 84, 126, 0.24), 0 6px 18px rgba(70, 84, 126, 0.12), 0 0 34px rgba(var(--gold-rgb), 0.12);
     --shadow-inset: inset 0 1px 3px rgba(30, 40, 80, 0.08);
     --shadow-float: 0 4px 16px rgba(30, 40, 80, 0.08);
     --shadow-btn: 0 2px 8px var(--shadow);
@@ -135,8 +163,8 @@
     --shadow-glow-gold-strong: 0 0 28px rgba(var(--gold-rgb), 0.16);
     --shadow-glow-danger: 0 0 20px rgba(var(--danger-rgb), 0.10);
     --shadow-danger-glow: 0 0 10px rgba(var(--status-on-rgb), 0.32);
-    --glass-highlight: rgba(255, 255, 255, 0.50);
-    --glass-highlight-subtle: rgba(255, 255, 255, 0.15);
+    --glass-highlight: rgba(255, 255, 255, 0.74);
+    --glass-highlight-subtle: rgba(255, 255, 255, 0.26);
     --scrollbar-thumb: rgba(30, 40, 80, 0.15);
     --chart-tick: #64748b;
     --chart-grid: rgba(100, 116, 139, 0.24);
@@ -157,16 +185,30 @@
   --gold: #c4882a;
   --gold2: #a06b18;
   --gold3: #d4a04a;
-  --bg: #F8FAFF;
-  --bg2: rgba(255, 255, 255, 0.65);
-  --bg3: rgba(240, 242, 250, 0.5);
-  --card: rgba(255, 255, 255, 0.60);
-  --card-hover: rgba(255, 255, 255, 0.75);
-  --glass: rgba(255, 255, 255, 0.55);
-  --glass-hover: rgba(255, 255, 255, 0.70);
-  --glass-border: rgba(180, 190, 220, 0.20);
-  --glass-glow: rgba(168, 85, 247, 0.04);
-  --border: rgba(180, 190, 220, 0.20);
+  --bg: #EEF3FB;
+  --bg2: rgba(246, 249, 255, 0.74);
+  --bg3: rgba(224, 231, 247, 0.62);
+  --card: rgba(255, 255, 255, 0.22);
+  --card-hover: rgba(255, 255, 255, 0.34);
+  --glass: rgba(255, 255, 255, 0.16);
+  --glass-hover: rgba(255, 255, 255, 0.28);
+  --glass-border: rgba(86, 104, 148, 0.34);
+  --glass-glow: rgba(79, 143, 255, 0.10);
+  --button-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(218, 228, 250, 0.38));
+  --button-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(208, 222, 250, 0.52));
+  --button-border: rgba(82, 100, 146, 0.38);
+  --button-border-hover: rgba(var(--blue-rgb), 0.42);
+  --button-shadow: 0 10px 24px rgba(72, 86, 128, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -1px 0 rgba(73, 90, 136, 0.08);
+  --button-hover-shadow: 0 14px 34px rgba(72, 86, 128, 0.24), 0 0 28px rgba(var(--blue-rgb), 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --button-gold-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.60), rgba(var(--gold-rgb), 0.12));
+  --button-gold-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(var(--gold-rgb), 0.20));
+  --button-gold-border: rgba(var(--gold-rgb), 0.34);
+  --button-gold-border-hover: rgba(var(--gold-rgb), 0.52);
+  --button-gold-shadow: 0 10px 26px rgba(139, 98, 32, 0.16), 0 0 24px rgba(var(--gold-rgb), 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  --button-gold-hover-shadow: 0 15px 36px rgba(139, 98, 32, 0.22), 0 0 32px rgba(var(--gold-rgb), 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  --button-danger-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.58), rgba(var(--danger-rgb), 0.12));
+  --button-danger-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.74), rgba(var(--danger-rgb), 0.20));
+  --border: rgba(86, 104, 148, 0.30);
   --text: #1A1F36;
   --text2: #4A5578;
   --text3: #8892AE;
@@ -189,11 +231,11 @@
   --orange-rgb: 234, 88, 12;
   --danger-rgb: 220, 38, 38;
   --text3-rgb: 136, 146, 174;
-  --shadow: rgba(30, 40, 80, 0.08);
-  --panel-shadow: 0 8px 32px rgba(30, 40, 80, 0.10), 0 2px 8px rgba(30, 40, 80, 0.04);
-  --glow-shadow: 0 0 40px rgba(168, 85, 247, 0.06), 0 0 80px rgba(236, 72, 153, 0.04);
-  --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  --card-hover-shadow: 0 12px 40px rgba(30, 40, 80, 0.12), 0 4px 12px rgba(30, 40, 80, 0.06), 0 0 30px rgba(var(--gold-rgb), 0.08);
+  --shadow: rgba(46, 60, 104, 0.14);
+  --panel-shadow: 0 16px 44px rgba(70, 84, 126, 0.18), 0 2px 12px rgba(70, 84, 126, 0.09);
+  --glow-shadow: 0 0 42px rgba(79, 143, 255, 0.11), 0 0 86px rgba(168, 85, 247, 0.07);
+  --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.72), inset 0 -1px 0 rgba(70, 84, 126, 0.06);
+  --card-hover-shadow: 0 20px 52px rgba(70, 84, 126, 0.24), 0 6px 18px rgba(70, 84, 126, 0.12), 0 0 34px rgba(var(--gold-rgb), 0.12);
   --shadow-inset: inset 0 1px 3px rgba(30, 40, 80, 0.08);
   --shadow-float: 0 4px 16px rgba(30, 40, 80, 0.08);
   --shadow-btn: 0 2px 8px var(--shadow);
@@ -204,8 +246,8 @@
   --shadow-glow-gold-strong: 0 0 28px rgba(var(--gold-rgb), 0.16);
   --shadow-glow-danger: 0 0 20px rgba(var(--danger-rgb), 0.10);
   --shadow-danger-glow: 0 0 10px rgba(var(--status-on-rgb), 0.32);
-  --glass-highlight: rgba(255, 255, 255, 0.50);
-  --glass-highlight-subtle: rgba(255, 255, 255, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.74);
+  --glass-highlight-subtle: rgba(255, 255, 255, 0.26);
   --scrollbar-thumb: rgba(30, 40, 80, 0.15);
   --chart-tick: #64748b;
   --chart-grid: rgba(100, 116, 139, 0.24);
@@ -231,6 +273,20 @@
   --glass-hover: rgba(20, 30, 65, 0.55);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-glow: rgba(79, 143, 255, 0.06);
+  --button-bg: linear-gradient(135deg, rgba(18, 28, 62, 0.58), rgba(9, 14, 34, 0.46));
+  --button-hover: linear-gradient(135deg, rgba(28, 42, 86, 0.72), rgba(14, 20, 48, 0.62));
+  --button-border: rgba(255, 255, 255, 0.10);
+  --button-border-hover: rgba(var(--blue-rgb), 0.30);
+  --button-shadow: 0 6px 18px rgba(0, 0, 0, 0.22), var(--inner-highlight);
+  --button-hover-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), var(--shadow-glow-blue), var(--inner-highlight);
+  --button-gold-bg: linear-gradient(135deg, rgba(18, 28, 62, 0.64), rgba(9, 14, 34, 0.52));
+  --button-gold-hover: linear-gradient(135deg, rgba(30, 42, 82, 0.78), rgba(var(--gold-rgb), 0.12));
+  --button-gold-border: rgba(var(--gold-rgb), 0.34);
+  --button-gold-border-hover: rgba(var(--gold-rgb), 0.52);
+  --button-gold-shadow: var(--button-shadow), 0 0 24px rgba(var(--gold-rgb), 0.12);
+  --button-gold-hover-shadow: 0 10px 28px rgba(0, 0, 0, 0.30), 0 0 32px rgba(var(--gold-rgb), 0.20), var(--inner-highlight);
+  --button-danger-bg: linear-gradient(135deg, rgba(var(--danger-rgb), 0.24), rgba(var(--danger-rgb), 0.08) 50%, rgba(var(--danger-rgb), 0.15));
+  --button-danger-hover: linear-gradient(135deg, rgba(var(--danger-rgb), 0.34), rgba(var(--danger-rgb), 0.13) 50%, rgba(var(--danger-rgb), 0.24));
   --border: rgba(255, 255, 255, 0.08);
   --text: #EEF2FF;
   --text2: #A5B4CF;
@@ -329,44 +385,44 @@ body {
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) body {
-    background: linear-gradient(135deg, #F8FAFF 0%, #F0F2F8 40%, #F5F0FA 70%, #F8FAFF 100%);
+    background: linear-gradient(135deg, #EEF3FB 0%, #E6EDF8 42%, #F1EAF7 72%, #EAF2FB 100%);
   }
   :root:not([data-theme]) .bg-atmosphere {
     background:
-      linear-gradient(115deg, rgba(var(--blue-rgb), 0.08), transparent 34%, rgba(var(--purple-rgb), 0.06) 64%, transparent),
-      repeating-linear-gradient(90deg, rgba(30, 40, 80, 0.035) 0 1px, transparent 1px 72px),
-      repeating-linear-gradient(0deg, rgba(30, 40, 80, 0.025) 0 1px, transparent 1px 72px);
+      linear-gradient(115deg, rgba(var(--blue-rgb), 0.12), transparent 34%, rgba(var(--purple-rgb), 0.09) 64%, transparent),
+      repeating-linear-gradient(90deg, rgba(53, 69, 118, 0.045) 0 1px, transparent 1px 72px),
+      repeating-linear-gradient(0deg, rgba(53, 69, 118, 0.034) 0 1px, transparent 1px 72px);
   }
   :root:not([data-theme]) .bg-atmosphere::before {
     background:
-      linear-gradient(135deg, transparent 0 38%, rgba(var(--cyan-rgb), 0.05) 45%, rgba(var(--gold-rgb), 0.05) 52%, transparent 62%),
-      linear-gradient(25deg, transparent 0 48%, rgba(var(--magenta-rgb), 0.045) 52%, transparent 60%);
+      linear-gradient(135deg, transparent 0 38%, rgba(var(--cyan-rgb), 0.07) 45%, rgba(var(--gold-rgb), 0.07) 52%, transparent 62%),
+      linear-gradient(25deg, transparent 0 48%, rgba(var(--magenta-rgb), 0.06) 52%, transparent 60%);
   }
   :root:not([data-theme]) .bg-atmosphere::after {
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 42%),
-      linear-gradient(0deg, rgba(255, 255, 255, 0.28), transparent 55%);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 42%),
+      linear-gradient(0deg, rgba(224, 231, 247, 0.22), transparent 55%);
   }
 }
 
 :root[data-theme="light"] body {
-  background: linear-gradient(135deg, #F8FAFF 0%, #F0F2F8 40%, #F5F0FA 70%, #F8FAFF 100%);
+  background: linear-gradient(135deg, #EEF3FB 0%, #E6EDF8 42%, #F1EAF7 72%, #EAF2FB 100%);
 }
 :root[data-theme="light"] .bg-atmosphere {
   background:
-    linear-gradient(115deg, rgba(var(--blue-rgb), 0.08), transparent 34%, rgba(var(--purple-rgb), 0.06) 64%, transparent),
-    repeating-linear-gradient(90deg, rgba(30, 40, 80, 0.035) 0 1px, transparent 1px 72px),
-    repeating-linear-gradient(0deg, rgba(30, 40, 80, 0.025) 0 1px, transparent 1px 72px);
+    linear-gradient(115deg, rgba(var(--blue-rgb), 0.12), transparent 34%, rgba(var(--purple-rgb), 0.09) 64%, transparent),
+    repeating-linear-gradient(90deg, rgba(53, 69, 118, 0.045) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(0deg, rgba(53, 69, 118, 0.034) 0 1px, transparent 1px 72px);
 }
 :root[data-theme="light"] .bg-atmosphere::before {
   background:
-    linear-gradient(135deg, transparent 0 38%, rgba(var(--cyan-rgb), 0.05) 45%, rgba(var(--gold-rgb), 0.05) 52%, transparent 62%),
-    linear-gradient(25deg, transparent 0 48%, rgba(var(--magenta-rgb), 0.045) 52%, transparent 60%);
+    linear-gradient(135deg, transparent 0 38%, rgba(var(--cyan-rgb), 0.07) 45%, rgba(var(--gold-rgb), 0.07) 52%, transparent 62%),
+    linear-gradient(25deg, transparent 0 48%, rgba(var(--magenta-rgb), 0.06) 52%, transparent 60%);
 }
 :root[data-theme="light"] .bg-atmosphere::after {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 42%),
-    linear-gradient(0deg, rgba(255, 255, 255, 0.28), transparent 55%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 42%),
+    linear-gradient(0deg, rgba(224, 231, 247, 0.22), transparent 55%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -384,11 +440,11 @@ body::after {
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) body::after {
-    background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 30%, rgba(255, 255, 255, 0.3) 100%);
+    background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 30%, rgba(70, 86, 130, 0.10) 100%);
   }
 }
 :root[data-theme="light"] body::after {
-  background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 30%, rgba(255, 255, 255, 0.3) 100%);
+  background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 30%, rgba(70, 86, 130, 0.10) 100%);
 }
 
 .mono { font-family: var(--font-mono); }
@@ -462,40 +518,75 @@ body::after {
 
 .btn {
   padding: 10px 24px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--button-border);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   font-family: var(--font-sans);
-  background: var(--glass);
+  color: var(--text2);
+  background: var(--button-bg);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
-  box-shadow: 0 2px 8px var(--shadow), var(--inner-highlight);
+  box-shadow: var(--button-shadow);
   transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
-.btn:active { transform: scale(0.97); }
-.btn-gold {
-  background: rgba(var(--gold-rgb), 0.25);
-  color: var(--gold, #f6c768);
-  border-color: rgba(var(--gold-rgb), 0.15);
-  box-shadow: 0 2px 8px var(--shadow), 0 0 20px rgba(var(--gold-rgb), 0.06), var(--inner-highlight);
-}
-.btn-gold:hover {
-  background: rgba(var(--gold-rgb), 0.38);
-  border-color: rgba(var(--gold-rgb), 0.30);
-  box-shadow: 0 4px 16px var(--shadow), 0 0 30px rgba(var(--gold-rgb), 0.12), var(--inner-highlight);
+.btn:hover {
+  background: var(--button-hover);
+  border-color: var(--button-border-hover);
+  color: var(--text);
+  box-shadow: var(--button-hover-shadow);
   transform: translateY(-1px);
 }
+.btn:active { transform: scale(0.97); }
+.btn .ico,
+.btn .ico-fill,
+.s-btn .ico,
+.s-btn .ico-fill,
+.s-btn-outline .ico,
+.s-btn-outline .ico-fill {
+  margin-right: 0;
+}
+.btn-gold {
+  background: var(--button-gold-bg);
+  color: var(--gold, #f6c768);
+  border-color: var(--button-gold-border);
+  box-shadow: var(--button-gold-shadow);
+}
+.btn-gold:hover {
+  background: var(--button-gold-hover);
+  border-color: var(--button-gold-border-hover);
+  color: var(--gold, #f6c768);
+  box-shadow: var(--button-gold-hover-shadow);
+}
 .btn-outline {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
   color: var(--text2);
 }
 .btn-outline:hover {
-  border-color: rgba(var(--blue-rgb), 0.30);
+  background: var(--button-hover);
+  border-color: var(--button-border-hover);
   color: var(--blue);
-  box-shadow: 0 0 20px rgba(var(--blue-rgb), 0.08), var(--inner-highlight);
+  box-shadow: var(--button-hover-shadow);
+}
+.btn-danger {
+  background: var(--button-danger-bg);
+  border-color: rgba(var(--danger-rgb), 0.26);
+  color: var(--danger);
+  box-shadow: var(--button-shadow), var(--shadow-glow-danger);
+}
+.btn-danger:hover {
+  background: var(--button-danger-hover);
+  border-color: rgba(var(--danger-rgb), 0.42);
+  color: var(--danger);
+  box-shadow: var(--button-hover-shadow), var(--shadow-glow-danger);
 }
 .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: var(--radius-xs); }
 
@@ -547,44 +638,58 @@ body::after {
 .s-hint { font-size: 12px; color: var(--text3); margin-top: 4px; }
 .s-btn {
   padding: 10px 24px;
-  border: 1px solid rgba(var(--gold-rgb), 0.15);
+  border: 1px solid rgba(var(--gold-rgb), 0.24);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  background: rgba(var(--gold-rgb), 0.25);
+  background: var(--button-gold-bg);
   color: var(--gold, #f6c768);
   font-family: var(--font-sans);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
-  box-shadow: 0 2px 8px var(--shadow), 0 0 20px rgba(var(--gold-rgb), 0.06), var(--inner-highlight);
+  box-shadow: var(--button-gold-shadow);
   transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .s-btn:hover {
-  background: rgba(var(--gold-rgb), 0.38);
-  border-color: rgba(var(--gold-rgb), 0.30);
-  box-shadow: 0 4px 16px var(--shadow), 0 0 30px rgba(var(--gold-rgb), 0.12), var(--inner-highlight);
+  background: var(--button-gold-hover);
+  border-color: var(--button-gold-border-hover);
+  box-shadow: var(--button-gold-hover-shadow);
   transform: translateY(-1px);
 }
 .s-btn-outline {
   padding: 10px 24px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--button-border);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  background: var(--glass);
+  background: var(--button-bg);
   color: var(--text2);
   font-family: var(--font-sans);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
-  box-shadow: 0 2px 8px var(--shadow), var(--inner-highlight);
+  box-shadow: var(--button-shadow);
   transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .s-btn-outline:hover {
-  border-color: rgba(var(--gold-rgb), 0.30);
-  color: var(--gold, #f6c768);
-  box-shadow: 0 0 20px rgba(var(--gold-rgb), 0.08), var(--inner-highlight);
+  background: var(--button-hover);
+  border-color: var(--button-border-hover);
+  color: var(--blue);
+  box-shadow: var(--button-hover-shadow);
+  transform: translateY(-1px);
 }
 .s-status-dot {
   display: inline-block;

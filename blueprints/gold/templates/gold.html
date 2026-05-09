@@ -8,7 +8,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link rel="preload" href="/static/js/chart.umd.min.js" as="script">
 <link rel="preload" href="/static/js/mtc-base.js" as="script">
-<link rel="stylesheet" href="/static/css/mtc-base.css">
+<link rel="stylesheet" href="/static/css/mtc-base.css?v=glass-buttons-20260510-2">
 <style>
 :root {
   --gold: #f6c768;
@@ -149,6 +149,9 @@
 .stat-value.gold { color: var(--gold); }
 
 .sub-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
   padding: 12px 14px;
@@ -157,10 +160,14 @@
 }
 .sub-card:hover {
   transform: translateY(-1px);
+  background: var(--glass-hover);
   box-shadow: var(--shadow-float), var(--inner-highlight);
 }
 
 .sub-panel {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
   padding: 12px 14px;
@@ -168,16 +175,23 @@
 }
 .sub-panel:hover {
   transform: translateY(-1px);
+  background: var(--glass-hover);
   box-shadow: var(--shadow-float), var(--inner-highlight);
 }
 
 .glass-section {
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   backdrop-filter: var(--blur-md);
   -webkit-backdrop-filter: var(--blur-md);
   padding: 16px;
   margin-bottom: 16px;
 }
 .glass-item {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
   padding: 12px 14px;
@@ -308,26 +322,34 @@
 
 .btn {
   padding: 10px 24px;
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--button-border);
   border-radius: var(--radius-sm);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
   font-family: var(--font-sans);
-  background: var(--glass);
+  color: var(--text2);
+  background: var(--button-bg);
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
-  box-shadow: var(--shadow-btn), var(--inner-highlight);
+  box-shadow: var(--button-shadow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
+.btn:hover { background: var(--button-hover); border-color: var(--button-border-hover); color: var(--text); box-shadow: var(--button-hover-shadow); transform: translateY(-1px); }
 .btn:active { transform: scale(0.97); }
 
-.btn-gold { background: rgba(var(--gold-rgb), 0.25); color: var(--gold); border-color: rgba(var(--gold-rgb), 0.15); box-shadow: var(--shadow-btn), var(--shadow-glow-gold), var(--inner-highlight); }
-.btn-gold:hover { background: rgba(var(--gold-rgb), 0.38); border-color: rgba(var(--gold-rgb), 0.30); box-shadow: 0 4px 16px var(--shadow), 0 0 30px rgba(var(--gold-rgb), 0.12), var(--inner-highlight); transform: translateY(-1px); }
-.btn-outline { background: var(--glass); border: 1px solid var(--glass-border); color: var(--text2); }
-.btn-outline:hover { border-color: rgba(var(--gold-rgb), 0.25); color: var(--text); background: rgba(var(--gold-rgb), 0.08); box-shadow: var(--shadow-glow-gold), var(--inner-highlight); }
-.btn-danger { background: rgba(var(--danger-rgb), 0.25); border-color: rgba(var(--danger-rgb), 0.20); color: var(--bull); }
-.btn-danger:hover { background: rgba(var(--danger-rgb), 0.38); border-color: rgba(var(--danger-rgb), 0.35); box-shadow: var(--shadow-glow-danger), var(--inner-highlight); }
+.btn-gold { background: var(--button-gold-bg); color: var(--gold); border-color: var(--button-gold-border); box-shadow: var(--button-gold-shadow); }
+.btn-gold:hover { background: var(--button-gold-hover); color: var(--gold); border-color: var(--button-gold-border-hover); box-shadow: var(--button-gold-hover-shadow); }
+.btn-outline { background: var(--button-bg); border: 1px solid var(--button-border); color: var(--text2); }
+.btn-outline:hover { background: var(--button-hover); border-color: var(--button-border-hover); color: var(--blue); box-shadow: var(--button-hover-shadow); }
+.btn-danger { background: var(--button-danger-bg); border-color: rgba(var(--danger-rgb), 0.26); color: var(--danger); box-shadow: var(--button-shadow), var(--shadow-glow-danger); }
+.btn-danger:hover { background: var(--button-danger-hover); border-color: rgba(var(--danger-rgb), 0.42); color: var(--danger); box-shadow: var(--button-hover-shadow), var(--shadow-glow-danger); }
 
 .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: var(--radius-xs); backdrop-filter: var(--blur-sm); -webkit-backdrop-filter: var(--blur-sm); }
 .btn-sm:hover { transform: translateY(-1px); }
@@ -340,8 +362,8 @@
 .tab-group { display: inline-flex; align-items: center; gap: 3px; }
 .tab-item {
   padding: 6px 14px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
+  background: var(--button-bg);
+  border: 1px solid var(--button-border);
   border-radius: var(--radius-sm);
   color: var(--text2);
   font-size: 13px;
@@ -352,9 +374,10 @@
   user-select: none;
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
+  box-shadow: var(--button-shadow);
 }
-.tab-item:hover { border-color: rgba(var(--gold-rgb), 0.25); color: var(--text); box-shadow: var(--shadow-glow-gold), var(--inner-highlight); }
-.tab-item.active { background: rgba(var(--gold-rgb), 0.25); color: var(--gold); border-color: rgba(var(--gold-rgb), 0.20); box-shadow: var(--shadow-glow-gold-strong), var(--inner-highlight); }
+.tab-item:hover { background: var(--button-hover); border-color: var(--button-border-hover); color: var(--text); box-shadow: var(--button-hover-shadow); transform: translateY(-1px); }
+.tab-item.active { background: var(--button-gold-bg); color: var(--gold); border-color: var(--button-gold-border); box-shadow: var(--button-gold-shadow); }
 .tab-del {
   display: none;
   align-items: center;
