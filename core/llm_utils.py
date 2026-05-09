@@ -140,7 +140,7 @@ def estimate_token_count(value) -> int:
     text = str(value or "")
     if not text:
         return 0
-    cjk_tokens = len(_CJK_PATTERN.findall(text))
+    cjk_tokens = math.ceil(len(_CJK_PATTERN.findall(text)) * 1.5)
     ascii_part = _CJK_PATTERN.sub(" ", text)
     ascii_chars = len(re.sub(r"\s+", "", ascii_part))
     ascii_tokens = math.ceil(ascii_chars / 4) if ascii_chars else 0
@@ -195,9 +195,9 @@ def prepare_chat_request(model: str, messages: List[Dict], max_tokens: int, temp
 # ==================== Budget Management ====================
 
 BUDGET_CATEGORIES = {
-    "diagnose": 0.50,
-    "reasoning": 0.20,
-    "news": 0.20,
+    "diagnose": 0.20,
+    "reasoning": 0.35,
+    "news": 0.35,
     "consensus": 0.10,
 }
 

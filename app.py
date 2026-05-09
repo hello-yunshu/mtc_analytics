@@ -10,6 +10,8 @@ import os
 import secrets
 import logging
 import time
+import gzip
+import hashlib
 
 from flask import Flask, render_template, request, jsonify, session
 from werkzeug.security import generate_password_hash
@@ -101,6 +103,28 @@ def create_app():
         response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         if request.path.startswith("/gold/api/") and not response.content_type.startswith('text/event-stream'):
             response.headers['Content-Type'] = 'application/json; charset=utf-8'
+
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=86400'
+            if response.content_type and ('javascript' in response.content_type or 'css' in response.content_type):
+                response.headers['Cache-Control'] = 'public, max-age=604800'
+
+        if (request.path.startswith('/gold/api/') or request.path.startswith('/api/')) and not request.path.endswith('/price_stream'):
+            if response.status_code == 200 and response.content_type and 'json' in response.content_type:
+                response.headers['Cache-Control'] = 'private, max-age=30'
+                try:
+                    body = response.get_data()
+                    if len(body) > 500:
+                        accept_enc = request.headers.get('Accept-Encoding', '')
+                        if 'gzip' in accept_enc:
+                            compressed = gzip.compress(body, compresslevel=6)
+                            if len(compressed) < len(body):
+                                response.set_data(compressed)
+                                response.headers['Content-Encoding'] = 'gzip'
+                                response.headers['Vary'] = 'Accept-Encoding'
+                except Exception:
+                    pass
+
         return response
 
     @app.errorhandler(404)

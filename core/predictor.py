@@ -186,25 +186,13 @@ class GoldPricePredictor:
 
         reasoning = self._generate_reasoning(factors, weights, total_score, direction, period_trends, period_conflict)
 
-        llm_reasoning = None
-        try:
-            from .llm_utils import generate_llm_reasoning
-            factor_brief = []
-            for key, label in FACTOR_LABELS.items():
-                f = factors.get(key, {})
-                s = f.get("score", 0)
-                if abs(s) >= 0.05:
-                    factor_brief.append(f"{label}:{s:+.1f}")
-            factors_text = " ".join(factor_brief)
-            llm_reasoning = generate_llm_reasoning(
-                market_name="黄金",
-                direction=direction,
-                score=round(total_score, 2),
-                confidence=confidence,
-                factors_text=factors_text,
-            )
-        except Exception:
-            pass
+        factor_brief = []
+        for key, label in FACTOR_LABELS.items():
+            f = factors.get(key, {})
+            s = f.get("score", 0)
+            if abs(s) >= 0.05:
+                factor_brief.append(f"{label}:{s:+.1f}")
+        factors_text = " ".join(factor_brief)
 
         result = {
             "direction": direction,
@@ -213,11 +201,10 @@ class GoldPricePredictor:
             "factors": factors,
             "reasoning": reasoning,
             "period_trends": period_trends,
+            "_factors_text": factors_text,
         }
         if period_conflict:
             result["period_conflict"] = period_conflict
-        if llm_reasoning:
-            result["llm_reasoning"] = llm_reasoning
         return result
 
     def _detect_period_conflict(self, period_trends: Dict, overall_direction: str) -> Optional[Dict]:

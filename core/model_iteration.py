@@ -36,6 +36,8 @@ MAX_WEIGHT = 0.25
 MIN_FACTOR_OBSERVATIONS = 8
 IC_EPSILON = 1e-12
 LLM_MAX_TOKENS = 500
+CONVERGENCE_THRESHOLD = 3
+MAX_TOTAL_ADJUSTMENT = 0.06
 
 FACTOR_PERIOD_MAP = {
     "short": ["price_trend", "volatility", "news_sentiment", "etf_flow"],
@@ -143,6 +145,7 @@ def _get_iteration_data() -> Dict:
         "last_iteration_date": state.get("last_iteration_date", ""),
         "total_iterations": state.get("total_iterations", 0),
         "current_weights": state.get("current_weights", {}),
+        "consecutive_no_change": state.get("consecutive_no_change", 0),
     }
 
 
@@ -153,6 +156,7 @@ def _save_iteration_data(data: Dict):
         "last_iteration_date": data.get("last_iteration_date", ""),
         "total_iterations": data.get("total_iterations", 0),
         "current_weights": data.get("current_weights", {}),
+        "consecutive_no_change": data.get("consecutive_no_change", 0),
     }
     update_iteration_state(state)
 
@@ -312,9 +316,23 @@ def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True
             cov_xy = sum((ic_denominators_x[i] - mean_x) * (ic_denominators_y[i] - mean_y) for i in range(n))
             var_x = sum((x - mean_x) ** 2 for x in ic_denominators_x)
             var_y = sum((y - mean_y) ** 2 for y in ic_denominators_y)
+            pearson_ic = None
             if var_x > IC_EPSILON and var_y > IC_EPSILON:
-                ic = cov_xy / (var_x ** 0.5 * var_y ** 0.5)
-                ic_significant = abs(ic) > 2.0 / (n ** 0.5)
+                pearson_ic = cov_xy / (var_x ** 0.5 * var_y ** 0.5)
+
+            sorted_idx_x = sorted(range(n), key=lambda i: ic_denominators_x[i])
+            sorted_idx_y = sorted(range(n), key=lambda i: ic_denominators_y[i])
+            rank_x = [0] * n
+            rank_y = [0] * n
+            for r, idx in enumerate(sorted_idx_x):
+                rank_x[idx] = r + 1
+            for r, idx in enumerate(sorted_idx_y):
+                rank_y[idx] = r + 1
+            d_sq = sum((rank_x[i] - rank_y[i]) ** 2 for i in range(n))
+            spearman_ic = 1 - 6 * d_sq / (n * (n ** 2 - 1)) if n > 1 else 0.0
+
+            ic = spearman_ic if abs(spearman_ic) <= 1.0 else pearson_ic
+            ic_significant = abs(ic) > 2.0 / (n ** 0.5)
 
         if total > 0:
             factor_stats[factor_key] = {
@@ -484,6 +502,16 @@ def llm_diagnose(tracking: List[Dict], factor_stats: Dict, overall_acc: Dict, *,
         factor_acc_text += f"\n{_factor_labels.get(fk, fk)}: {stats['accuracy']:.0%}({stats['correct']}/{stats['total']})"
 
     valid_factors = ",".join(_weight_key_map.keys())
+
+    history_text = ""
+    try:
+        recent_history = get_iteration_history(limit=3)
+        for h in recent_history:
+            adj_count = len(h.get("adjustments", []))
+            history_text += f"\n- {h.get('date','')}: {h.get('mode','')} 调整{adj_count}项, 准确率{h.get('overall_accuracy',0):.0%}"
+    except Exception:
+        pass
+
     system_msg = {
         "role": "system",
         "content": (
@@ -498,9 +526,10 @@ def llm_diagnose(tracking: List[Dict], factor_stats: Dict, overall_acc: Dict, *,
             f"整体准确率:{overall_acc.get('accuracy',0):.0%}\n"
             f"近期错误案例:{cases_text}\n"
             f"各因子准确率:{factor_acc_text}\n"
+            f"近期迭代历史:{history_text if history_text else '无'}\n"
             f'输出JSON:{{"diagnosis":"1句诊断","suggestions":[{{"factor":"因子名","action":"up/down","reason":"原因"}}],"confidence":0.8}}\n'
             f"factor必须为: {valid_factors}\n"
-            "要求：1.diagnosis简洁精准 2.suggestions中reason需说明为何上调或下调 3.confidence为0-1的置信度"
+            "要求：1.diagnosis简洁精准 2.suggestions中reason需说明为何上调或下调 3.confidence为0-1的置信度 4.避免重复历史已尝试的调整"
         ),
     }
     messages = [system_msg, user_msg]
@@ -809,9 +838,27 @@ def run_iteration(force: bool = False) -> Dict:
     if consensus_reasons:
         all_reasons.extend(consensus_reasons)
 
+    total_adj = sum(abs(new_weights.get(k, 0) - current_weights.get(k, 0)) for k in new_weights)
+    if total_adj > MAX_TOTAL_ADJUSTMENT:
+        scale = MAX_TOTAL_ADJUSTMENT / total_adj
+        for k in new_weights:
+            delta = new_weights[k] - current_weights.get(k, 0)
+            new_weights[k] = current_weights.get(k, 0) + delta * scale
+        new_weights = _normalize_weights(new_weights)
+        all_reasons.append(f"全局调整约束：总调整{total_adj:.4f}超限，缩放至{MAX_TOTAL_ADJUSTMENT}")
+
+    effective_adj = sum(abs(new_weights.get(k, 0) - current_weights.get(k, 0)) for k in new_weights)
+    if effective_adj < 0.001:
+        all_reasons = []
+
     if not all_reasons:
         result["status"] = "no_change"
         result["reason"] = "所有因子准确率在正常范围，无需调整"
+        iter_data["consecutive_no_change"] = iter_data.get("consecutive_no_change", 0) + 1
+        if iter_data["consecutive_no_change"] >= CONVERGENCE_THRESHOLD:
+            result["status"] = "converged"
+            result["reason"] = f"连续{iter_data['consecutive_no_change']}次无调整，模型已收敛"
+        _save_iteration_data(iter_data)
         print(f"  [迭代] {result['reason']}")
         return result
 
@@ -824,6 +871,7 @@ def run_iteration(force: bool = False) -> Dict:
     iter_data["last_iteration_date"] = today
     iter_data["total_iterations"] = iter_data.get("total_iterations", 0) + 1
     iter_data["current_weights"] = new_weights
+    iter_data["consecutive_no_change"] = 0
     history_record = {
         "date": today,
         "timestamp": datetime.now().isoformat(),
@@ -884,7 +932,7 @@ def get_iteration_status() -> Dict:
                 "correct": v["correct"],
                 "total": v["total"],
                 "ic": f"{v.get('ic', 0):+.2f}",
-                "significant": _binomial_test(v["correct"], v["total"]),
+                "significant": _binomial_test(v["correct"], v["total"], bonferroni_factor=len(WEIGHT_KEY_MAP)),
                 "period": PERIOD_LABELS.get(v.get("period", ""), ""),
             }
             for k, v in factor_stats.items()
@@ -910,10 +958,49 @@ def get_iteration_status() -> Dict:
         },
         "recent_history": iter_data.get("history", [])[-5:],
         "current_weights": iter_data.get("current_weights", {}),
+        "consecutive_no_change": iter_data.get("consecutive_no_change", 0),
+        "converged": iter_data.get("consecutive_no_change", 0) >= CONVERGENCE_THRESHOLD,
         "pred_threshold": float((load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}).get("pred_threshold", 0.08)),
         "benchmark": _compute_benchmark(tracking),
+        "token_efficiency": _compute_token_efficiency(llm_budget, llm_settings),
     }
     return status
+
+
+def _compute_token_efficiency(total_budget: int, settings: Dict) -> Dict:
+    token_usage = get_token_usage()
+    month_key = datetime.now().strftime("%Y-%m")
+    total_used = 0
+    if token_usage.get("month") == month_key:
+        total_used = int(token_usage.get("used", 0))
+
+    now = datetime.now()
+    day_of_month = now.day
+    days_in_month = 30
+
+    daily_avg = total_used / max(1, day_of_month)
+    projected_monthly = daily_avg * days_in_month
+    burn_rate = projected_monthly / total_budget if total_budget > 0 else 0
+
+    category_alerts = {}
+    cat_usage = token_usage.get("categories", {})
+    for cat, ratio in get_budget_ratios(settings).items():
+        cat_budget = get_category_budget(total_budget, cat, settings)
+        cat_used = int(cat_usage.get(cat, {}).get("used", 0)) if cat_usage.get(cat, {}).get("month") == month_key else 0
+        usage_pct = cat_used / cat_budget if cat_budget > 0 else 0
+        if usage_pct > 0.8:
+            category_alerts[cat] = f"{BUDGET_CATEGORY_LABELS.get(cat, cat)}预算已用{usage_pct:.0%}"
+
+    return {
+        "total_used": total_used,
+        "total_budget": total_budget,
+        "usage_pct": round(total_used / total_budget, 3) if total_budget > 0 else 0,
+        "daily_avg": round(daily_avg, 0),
+        "projected_monthly": round(projected_monthly, 0),
+        "burn_rate": round(burn_rate, 2),
+        "burn_rate_alert": burn_rate > 1.2,
+        "category_alerts": category_alerts,
+    }
 
 
 def _compute_benchmark(tracking: List[Dict]) -> Dict:
@@ -1053,10 +1140,12 @@ def grid_search_weights(tracking: List[Dict], current_weights: Dict,
     }
 
 
-def _binomial_test(correct: int, total: int, p_null: float = 0.5) -> str:
+def _binomial_test(correct: int, total: int, p_null: float = 0.5,
+                   bonferroni_factor: int = 1) -> str:
     """
     二项检验：检验准确率是否显著偏离随机水平(p=0.5)
-    使用正态近似，返回 "p<0.05" / "p<0.10" / "不显著"
+    使用正态近似 + Bonferroni多重比较校正
+    返回 "p<0.05" / "p<0.10" / "不显著"
     """
     if total < 10:
         return "样本不足"
@@ -1066,9 +1155,11 @@ def _binomial_test(correct: int, total: int, p_null: float = 0.5) -> str:
     if se == 0:
         return "不显著"
     z = abs(p_hat - p_null) / se
-    if z > 1.96:
+    alpha_005 = 2.63 if bonferroni_factor >= 5 else (2.24 if bonferroni_factor >= 2 else 1.96)
+    alpha_010 = 2.33 if bonferroni_factor >= 5 else (1.96 if bonferroni_factor >= 2 else 1.645)
+    if z > alpha_005:
         return "p<0.05"
-    elif z > 1.645:
+    elif z > alpha_010:
         return "p<0.10"
     else:
         return "不显著"

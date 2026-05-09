@@ -286,6 +286,20 @@ def format_report(date: str, contract: str, positions: List[Dict],
                 lines.append(f"   {name}：{signal}")
 
         llm_reasoning = prediction.get("llm_reasoning", "")
+        if not llm_reasoning:
+            try:
+                from .llm_utils import generate_llm_reasoning
+                factors_text = prediction.get("_factors_text", "")
+                if factors_text:
+                    llm_reasoning = generate_llm_reasoning(
+                        market_name="黄金",
+                        direction=prediction.get("direction", "中性"),
+                        score=prediction.get("score", 0),
+                        confidence=prediction.get("confidence", 50),
+                        factors_text=factors_text,
+                    ) or ""
+            except Exception:
+                pass
         if llm_reasoning:
             lines.append(f"🤖 AI 推理：{llm_reasoning}")
 

@@ -12,6 +12,9 @@ const MTC = (function() {
   let _isLoggedIn = false;
   let _csrfToken = '';
 
+  const _apiCache = {};
+  const _inflightRequests = {};
+
   function configure(opts) {
     Object.assign(_config, opts);
   }
@@ -68,6 +71,52 @@ const MTC = (function() {
     return res;
   }
 
+  async function apiCached(url, ttl) {
+    ttl = ttl || 60000;
+    const cacheKey = resolveUrl(url);
+    const now = Date.now();
+    if (_apiCache[cacheKey] && now - _apiCache[cacheKey].ts < ttl) {
+      return _apiCache[cacheKey].res.clone();
+    }
+    if (_inflightRequests[cacheKey]) {
+      return _inflightRequests[cacheKey].then(function(r) { return r.clone(); });
+    }
+    const promise = api(url).then(function(res) {
+      delete _inflightRequests[cacheKey];
+      if (res.ok) {
+        _apiCache[cacheKey] = { res: res.clone(), ts: Date.now() };
+      }
+      return res;
+    }).catch(function(e) {
+      delete _inflightRequests[cacheKey];
+      throw e;
+    });
+    _inflightRequests[cacheKey] = promise;
+    return promise;
+  }
+
+  function invalidateCache(urlPattern) {
+    if (!urlPattern) {
+      Object.keys(_apiCache).forEach(function(k) { delete _apiCache[k]; });
+      return;
+    }
+    Object.keys(_apiCache).forEach(function(k) {
+      if (k.indexOf(urlPattern) !== -1) delete _apiCache[k];
+    });
+  }
+
+  function setCacheEntry(url, data, ttl) {
+    ttl = ttl || 60000;
+    const cacheKey = resolveUrl(url);
+    _apiCache[cacheKey] = {
+      res: new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      ts: Date.now()
+    };
+  }
+
   async function checkAuth() {
     try {
       const res = await api(_config.checkAuthPath);
@@ -116,10 +165,11 @@ const MTC = (function() {
     return data;
   }
 
+  var _escDiv = null;
   function escHtml(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
+    if (!_escDiv) _escDiv = document.createElement('div');
+    _escDiv.textContent = str;
+    return _escDiv.innerHTML;
   }
 
   function getTheme() {
@@ -171,6 +221,9 @@ const MTC = (function() {
     getCsrfToken: getCsrfToken,
     showToast: showToast,
     api: api,
+    apiCached: apiCached,
+    invalidateCache: invalidateCache,
+    setCacheEntry: setCacheEntry,
     checkAuth: checkAuth,
     doLogin: doLogin,
     doLogout: doLogout,

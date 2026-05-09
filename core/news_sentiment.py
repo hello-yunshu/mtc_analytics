@@ -165,14 +165,14 @@ def fetch_news_sentiment() -> Dict:
     with _news_cache_lock:
         if _news_cache:
             cache_time = datetime.fromisoformat(_news_cache.get("timestamp", "2000-01-01"))
-            if datetime.now() - cache_time < timedelta(hours=1):
+            if datetime.now() - cache_time < timedelta(hours=2):
                 print(f"  新闻情绪使用缓存（{cache_time.strftime('%H:%M')}）")
                 return _news_cache
 
     print(f"  正在抓取新闻...")
 
     try:
-        db.cleanup_news_llm_cache(30)
+        db.cleanup_news_llm_cache(7)
     except Exception:
         pass
 
@@ -672,7 +672,7 @@ def _analyze_with_llm(kw_analyzed: List[Dict]) -> Optional[Dict]:
             cached_items[title] = {"sentiment": sentiment, "reason": ""}
 
     need_llm = [n for n in uncertain if n["title"] not in cached_items]
-    need_llm = need_llm[:10]
+    need_llm = need_llm[:5]
 
     if not need_llm and not cached_items:
         return None

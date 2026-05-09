@@ -13,6 +13,7 @@ import time
 import math
 import threading
 import logging
+import hashlib
 from datetime import datetime, timezone
 
 from flask import (
@@ -62,6 +63,9 @@ _cached_news = {"data": None, "lock": threading.Lock()}
 _cached_holdings = {"data": None, "lock": threading.Lock()}
 _cached_gold_prices = {"data": None, "lock": threading.Lock()}
 _cached_technical = {"data": None, "lock": threading.Lock()}
+_cached_sentiment_chart = {"data": None, "ts": 0, "lock": threading.Lock()}
+_cached_macro_history_chart = {"data": None, "ts": 0, "lock": threading.Lock()}
+_cached_enriched_reports = {}
 
 PRICE_ALERT_THRESHOLD_PCT = 1.5
 PRICE_ALERT_COOLDOWN = 600
@@ -414,6 +418,18 @@ def _invalidate_settings_cache():
 
 
 def _enrich_report_alerts(content):
+    content_hash = hashlib.md5(content.encode()).hexdigest() if content else ""
+    if content_hash and content_hash in _cached_enriched_reports:
+        return _cached_enriched_reports[content_hash]
+    result = _enrich_report_alerts_impl(content)
+    if content_hash and result:
+        if len(_cached_enriched_reports) > 20:
+            _cached_enriched_reports.clear()
+        _cached_enriched_reports[content_hash] = result
+    return result
+
+
+def _enrich_report_alerts_impl(content):
     has_alerts = "🔔 全维度警示信号" in content
     has_new_format = "📊 期货多空持仓" in content
     if has_alerts and has_new_format:
@@ -1044,13 +1060,22 @@ def api_gold_price_chart():
 @gold_bp.route("/api/sentiment_chart")
 @login_required
 def api_sentiment_chart():
+    with _cached_sentiment_chart["lock"]:
+        if _cached_sentiment_chart["data"] is not None and time.time() - _cached_sentiment_chart["ts"] < 300:
+            return jsonify(_cached_sentiment_chart["data"])
     archive = db.get_news_sentiment_history(90)
+    with _cached_sentiment_chart["lock"]:
+        _cached_sentiment_chart["data"] = archive
+        _cached_sentiment_chart["ts"] = time.time()
     return jsonify(archive)
 
 
 @gold_bp.route("/api/macro_history_chart")
 @login_required
 def api_macro_history_chart():
+    with _cached_macro_history_chart["lock"]:
+        if _cached_macro_history_chart["data"] is not None and time.time() - _cached_macro_history_chart["ts"] < 300:
+            return jsonify(_cached_macro_history_chart["data"])
     try:
         history = db.get_macro_history(60)
     except Exception:
@@ -1088,7 +1113,11 @@ def api_macro_history_chart():
             else:
                 row[key] = None
         chart_data.append(row)
-    return jsonify(_clean_nan(chart_data))
+    result = _clean_nan(chart_data)
+    with _cached_macro_history_chart["lock"]:
+        _cached_macro_history_chart["data"] = result
+        _cached_macro_history_chart["ts"] = time.time()
+    return jsonify(result)
 
 
 @gold_bp.route("/api/prediction_factors_chart")
