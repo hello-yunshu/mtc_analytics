@@ -276,7 +276,9 @@ def _fetch_and_cache_news():
                         if is_us_workday(prev):
                             trade_date = prev.isoformat()
                             break
-                db.upsert_news_sentiment(trade_date, data)
+                latest_report_date = db.get_latest_report_date()
+                if not latest_report_date or trade_date <= latest_report_date:
+                    db.upsert_news_sentiment(trade_date, data)
             except Exception:
                 pass
     except Exception:
@@ -1017,8 +1019,11 @@ def api_holdings_chart():
         if history:
             with _cached_holdings["lock"]:
                 _cached_holdings["data"] = history
+    latest_report_date = db.get_latest_report_date()
     chart_data = []
     for record in history:
+        if latest_report_date and record["date"] > latest_report_date:
+            continue
         total_long = sum(p.get("long_total", 0) or p.get("long", 0) for p in record.get("positions", []))
         total_short = sum(p.get("short_total", 0) or p.get("short", 0) for p in record.get("positions", []))
         total_net = sum(p.get("net", 0) for p in record.get("positions", []))
@@ -1040,6 +1045,7 @@ def api_gold_price_chart():
         if prices:
             with _cached_gold_prices["lock"]:
                 _cached_gold_prices["data"] = prices
+    latest_report_date = db.get_latest_report_date()
     chart_data = []
     for p in prices[-60:]:
         d = p.get("date", "")
@@ -1050,6 +1056,8 @@ def api_gold_price_chart():
                     continue
             except ValueError:
                 pass
+        if latest_report_date and d > latest_report_date:
+            continue
         chart_data.append({
             "date": d, "close": p.get("close", 0),
             "high": p.get("high", 0), "low": p.get("low", 0),
@@ -1087,9 +1095,12 @@ def api_macro_history_chart():
     import statistics
     _CHART_KEYS = ["us_10y_yield", "dxy", "vix", "crude_oil"]
     by_date = {}
+    latest_report_date = db.get_latest_report_date()
     for snapshot in history:
         date_key = snapshot.get("date", "")
         if not date_key:
+            continue
+        if latest_report_date and date_key > latest_report_date:
             continue
         if date_key not in by_date:
             by_date[date_key] = {k: [] for k in _CHART_KEYS}
