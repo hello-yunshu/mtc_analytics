@@ -1618,7 +1618,7 @@ async function loadTechnicalAnalysis() {
     if (!summaryEl) return;
 
     const taColor = (c) => c === 'bullish' ? 'var(--bull)' : c === 'bearish' ? 'var(--bear)' : 'var(--text2)';
-    const taBg = (c) => c === 'bullish' ? cva('--danger', 0.08) : c === 'bearish' ? cva('--danger', 0.08) : 'var(--bg2)';
+    const taBg = (c) => c === 'bullish' ? cva('--bull', 0.08) : c === 'bearish' ? cva('--bear', 0.08) : 'var(--bg2)';
 
     let summaryHtml = '';
 
@@ -2693,7 +2693,7 @@ function renderTechnicalSection(text) {
   const subColors = {
     '关键技术信号': cv('--ma20'),
     '波动率信号': cv('--ma60'),
-    '🔀 量价背离': cv('--danger'),
+    '🔀 量价背离': cv('--ma5'),
   };
 
   let mainLines = [];
