@@ -402,7 +402,6 @@ def run_daily_task(skip_telegram=False):
     positions = calculate_net_positions(holdings, top_n=_get_top_n())
     
     trade_date_str = holdings.get("date") or datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
-    report_date_str = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
     today_data = {
         "date": trade_date_str,
         "holdings_date": holdings["date"],
@@ -450,7 +449,7 @@ def run_daily_task(skip_telegram=False):
         news_sentiment = fetch_news_sentiment()
         if news_sentiment:
             try:
-                upsert_news_sentiment(report_date_str, news_sentiment)
+                upsert_news_sentiment(trade_date_str, news_sentiment)
             except Exception:
                 pass
             news_ts = news_sentiment.get("timestamp", "")
@@ -642,7 +641,7 @@ def run_daily_task(skip_telegram=False):
         report += f"\n   来源: {ps.get('source', 'N/A')} | {ps.get('timestamp', '')}\n\n"
     
     report += format_report(
-        report_date_str, holdings["contract"],
+        datetime.now().strftime("%Y-%m-%d"), holdings["contract"],
         positions, stats, alerts, trend_data, prediction,
         news_sentiment=news_sentiment,
         full_alerts=full_alerts,
@@ -670,12 +669,13 @@ def run_daily_task(skip_telegram=False):
         _logger.info("  报告已发送到 Telegram")
     
     # 保存到本地
-    report_file = _data_path("reports", f"report_{report_date_str}.txt")
+    report_date = datetime.now().strftime("%Y-%m-%d")
+    report_file = _data_path("reports", f"report_{report_date}.txt")
     os.makedirs(os.path.dirname(report_file), exist_ok=True)
     with open(report_file, "w", encoding="utf-8") as f:
         f.write(report)
     try:
-        insert_report(report_date_str, report)
+        insert_report(report_date, report)
     except Exception:
         pass
     try:
