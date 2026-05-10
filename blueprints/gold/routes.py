@@ -267,15 +267,19 @@ def _fetch_and_cache_news():
             with _cached_news["lock"]:
                 _cached_news["data"] = data
             try:
-                from datetime import date as _date, timedelta as _td
-                today = _date.today()
-                trade_date = today.isoformat()
-                if not is_us_workday(today):
-                    for offset in range(1, 8):
-                        prev = today - _td(days=offset)
-                        if is_us_workday(prev):
-                            trade_date = prev.isoformat()
-                            break
+                news_ts = data.get("timestamp", "")
+                if news_ts and len(news_ts) >= 10:
+                    trade_date = news_ts[:10]
+                else:
+                    from datetime import date as _date, timedelta as _td
+                    today = _date.today()
+                    trade_date = today.isoformat()
+                    if not is_us_workday(today):
+                        for offset in range(1, 8):
+                            prev = today - _td(days=offset)
+                            if is_us_workday(prev):
+                                trade_date = prev.isoformat()
+                                break
                 db.upsert_news_sentiment(trade_date, data)
             except Exception:
                 pass

@@ -449,7 +449,8 @@ def run_daily_task(skip_telegram=False):
         news_sentiment = fetch_news_sentiment()
         if news_sentiment:
             try:
-                upsert_news_sentiment(trade_date_str, news_sentiment)
+                news_date = news_sentiment.get("timestamp", "")[:10] or trade_date_str
+                upsert_news_sentiment(news_date, news_sentiment)
             except Exception:
                 pass
             news_ts = news_sentiment.get("timestamp", "")
