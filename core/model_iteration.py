@@ -905,12 +905,7 @@ def get_iteration_status() -> Dict:
     iter_data = _get_iteration_data()
     tracking = get_all_prediction_tracking(days=365)
 
-    verified = [
-        r for r in tracking
-        if r.get("verified")
-        and r.get("prediction") not in ("中性",)
-        and _is_directional_actual(r.get("actual_direction", ""))
-    ]
+    verified = [r for r in tracking if _is_iteration_sample(r)]
 
     overall_acc = compute_overall_accuracy(tracking)
     factor_stats = analyze_factor_accuracy(tracking)

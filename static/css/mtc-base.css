@@ -780,6 +780,14 @@ body::after {
   justify-content: center;
   z-index: 100;
 }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .login-overlay {
+    background: rgba(218, 228, 250, 0.55);
+  }
+}
+:root[data-theme="light"] .login-overlay {
+  background: rgba(218, 228, 250, 0.55);
+}
 .login-box {
   background: var(--card);
   border: 1px solid var(--glass-border);

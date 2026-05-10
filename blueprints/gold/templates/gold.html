@@ -3410,8 +3410,8 @@ function renderSentimentChart(data) {
       datasets: [{
         label: '情绪评分',
         data: scores,
-        backgroundColor: scores.map(s => predDir(s) === 'bullish' ? cva('--danger', 0.7) : predDir(s) === 'bearish' ? cva('--danger', 0.7) : cva('--text3', 0.5)),
-        borderColor: scores.map(s => predDir(s) === 'bullish' ? cva('--danger', 0.9) : predDir(s) === 'bearish' ? cva('--danger', 0.9) : cva('--text3', 0.7)),
+        backgroundColor: scores.map(s => predDir(s) === 'bullish' ? cva('--bull', 0.7) : predDir(s) === 'bearish' ? cva('--bear', 0.7) : cva('--text3', 0.5)),
+        borderColor: scores.map(s => predDir(s) === 'bullish' ? cva('--bull', 0.9) : predDir(s) === 'bearish' ? cva('--bear', 0.9) : cva('--text3', 0.7)),
         borderWidth: 1,
         borderRadius: 2,
       }]
@@ -3453,15 +3453,15 @@ function renderLongShortChart(data) {
       datasets: [{
         label: '多头持仓',
         data: longVals,
-        backgroundColor: cva('--danger', 0.6),
-        borderColor: cva('--danger', 0.9),
+        backgroundColor: cva('--bull', 0.6),
+        borderColor: cva('--bull', 0.9),
         borderWidth: 1,
         borderRadius: 2,
       },{
         label: '空头持仓',
         data: shortVals,
-        backgroundColor: cva('--danger', 0.6),
-        borderColor: cva('--danger', 0.9),
+        backgroundColor: cva('--bear', 0.6),
+        borderColor: cva('--bear', 0.9),
         borderWidth: 1,
         borderRadius: 2,
       },{
@@ -3651,8 +3651,8 @@ function renderMACDChart(data) {
       },{
         label: 'Histogram',
         data: histVals,
-        backgroundColor: histVals.map(v => v == null ? cva('--text3', 0.3) : v >= 0 ? cva('--danger', 0.6) : cva('--danger', 0.6)),
-        borderColor: histVals.map(v => v == null ? cva('--text3', 0.5) : v >= 0 ? cva('--danger', 0.9) : cva('--danger', 0.9)),
+        backgroundColor: histVals.map(v => v == null ? cva('--text3', 0.3) : v >= 0 ? cva('--bull', 0.6) : cva('--bear', 0.6)),
+        borderColor: histVals.map(v => v == null ? cva('--text3', 0.5) : v >= 0 ? cva('--bull', 0.9) : cva('--bear', 0.9)),
         borderWidth: 1,
         borderRadius: 1,
         order: 3,
@@ -3740,15 +3740,15 @@ function renderNewsDistChart(data) {
       datasets: [{
         label: '利多',
         data: bullVals,
-        backgroundColor: cva('--danger', 0.6),
-        borderColor: cva('--danger', 0.9),
+        backgroundColor: cva('--bull', 0.6),
+        borderColor: cva('--bull', 0.9),
         borderWidth: 1,
         borderRadius: 2,
       },{
         label: '利空',
         data: bearVals,
-        backgroundColor: cva('--danger', 0.6),
-        borderColor: cva('--danger', 0.9),
+        backgroundColor: cva('--bear', 0.6),
+        borderColor: cva('--bear', 0.9),
         borderWidth: 1,
         borderRadius: 2,
       },{
@@ -3809,7 +3809,7 @@ function renderMacroChart(data) {
     const prevVal = values.filter(v => v != null).slice(-2)[0];
     const change = prevVal != null ? lastVal - prevVal : 0;
     const changeStr = change >= 0 ? `+${change.toFixed(2)}` : change.toFixed(2);
-    const changeColor = change > 0 ? cv('--danger') : change < 0 ? cv('--bear') : cv('--text3');
+    const changeColor = change > 0 ? cv('--bull') : change < 0 ? cv('--bear') : cv('--text3');
     charts[chartKey] = new Chart(el.getContext('2d'), {
       type: 'line',
       data: {
@@ -3881,7 +3881,7 @@ function renderRadarChart(data) {
         borderColor: cv('--ma5'),
         backgroundColor: cva('--gold', 0.15),
         borderWidth: 2,
-        pointBackgroundColor: data.map(d => predDir(d.score) === 'bullish' ? cv('--danger') : predDir(d.score) === 'bearish' ? cv('--bear') : cv('--text3')),
+        pointBackgroundColor: data.map(d => predDir(d.score) === 'bullish' ? cv('--bull') : predDir(d.score) === 'bearish' ? cv('--bear') : cv('--text3')),
         pointRadius: 4,
       }]
     },

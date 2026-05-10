@@ -18,3 +18,4 @@ dogfood-output/
 dist/
 build/
 .DS_Store
+trash_rm_scripts/

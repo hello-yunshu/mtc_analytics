@@ -1013,9 +1013,7 @@ def upsert_prediction_tracking(date: str, data: Dict):
                 cons_align = data.get("consensus_alignment", {})
                 if not isinstance(cons_align, str):
                     cons_align = json.dumps(cons_align, ensure_ascii=False)
-                verified_val = 1 if data.get("verified") else 0
-                if existing and not existing["verified"] and data.get("verified"):
-                    verified_val = 1
+                verified_val = 1 if (data.get("verified") or (existing and existing["verified"])) else 0
                 conn.execute(
                     "INSERT OR REPLACE INTO prediction_tracking (date, prediction, confidence, score, price_at_prediction, factors_summary, llm_reasoning, period_trends, institutional_consensus, consensus_alignment, verified, actual_direction, actual_change_pct, verified_date, actual_direction_5d, actual_change_pct_5d, actual_direction_10d, actual_change_pct_10d, actual_direction_20d, actual_change_pct_20d, verified_periods, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (date, data.get("prediction", ""), data.get("confidence", 0), data.get("score", 0),

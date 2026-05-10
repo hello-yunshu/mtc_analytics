@@ -227,7 +227,7 @@ def _verify_previous_prediction(gold_prices):
             price_change_pct = (current_price - pred_price) / pred_price * 100 if pred_price > 0 else 0
             latest_verified_date = gold_prices[-1].get("date", "")
 
-        if abs(price_change_pct) > 0.3:
+        if abs(price_change_pct) > 0.15:
             actual_dir = "看多" if price_change_pct > 0 else "看空"
             verified_data["actual_direction"] = actual_dir
             verified_data["actual_change_pct"] = round(price_change_pct, 2)
@@ -252,7 +252,7 @@ def _verify_previous_prediction(gold_prices):
                 target_price = prices_by_date[target_date]
                 change_pct = (target_price - pred_price) / pred_price * 100 if pred_price > 0 else 0
                 latest_verified_date = target_date
-                if abs(change_pct) > 0.3:
+                if abs(change_pct) > 0.15:
                     period_dir = "看多" if change_pct > 0 else "看空"
                     verified_data[dir_col] = period_dir
                     verified_data[pct_col] = round(change_pct, 2)
@@ -505,7 +505,7 @@ def run_daily_task(skip_telegram=False):
     prediction = None
     gold_prices = []
     try:
-        gold_prices = get_daily_history(days=30, prefer_international=True) or []
+        gold_prices = get_daily_history(days=60, prefer_international=True) or []
         if gold_prices:
             holdings_for_pred = analyzer.history if len(analyzer.history) >= 3 else []
             if not holdings_for_pred:
@@ -538,10 +538,10 @@ def run_daily_task(skip_telegram=False):
             _logger.info("  金价数据不足，尝试自动回填历史数据...")
             try:
                 from core.backfill import backfill_history
-                bf_result = backfill_history(days=30, top_n=_get_top_n())
+                bf_result = backfill_history(days=60, top_n=_get_top_n())
                 if bf_result.get('gold_success', 0) > 0 or bf_result.get('success', 0) > 0:
                     _logger.info("  回填完成: 持仓%d天 金价%d天，重新运行预测", bf_result['success'], bf_result.get('gold_success', 0))
-                    gold_prices = get_daily_history(days=30, prefer_international=True) or []
+                    gold_prices = get_daily_history(days=60, prefer_international=True) or []
                     if gold_prices:
                         upsert_gold_prices(gold_prices)
                     holdings = fetch_holdings_data(top_n=_get_top_n())
