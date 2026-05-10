@@ -1064,6 +1064,9 @@ def api_sentiment_chart():
         if _cached_sentiment_chart["data"] is not None and time.time() - _cached_sentiment_chart["ts"] < 300:
             return jsonify(_cached_sentiment_chart["data"])
     archive = db.get_news_sentiment_history(90)
+    latest_report_date = db.get_latest_report_date()
+    if latest_report_date:
+        archive = [d for d in archive if d["date"] <= latest_report_date]
     with _cached_sentiment_chart["lock"]:
         _cached_sentiment_chart["data"] = archive
         _cached_sentiment_chart["ts"] = time.time()

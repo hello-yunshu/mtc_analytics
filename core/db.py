@@ -980,6 +980,15 @@ def get_report_dates_by_gen(days: int = 30) -> List[Dict]:
             conn.close()
 
 
+def get_latest_report_date() -> Optional[str]:
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            row = conn.execute("SELECT MAX(date) AS max_date FROM reports").fetchone()
+            return row["max_date"] if row and row["max_date"] else None
+        finally:
+            conn.close()
+
 
 
 def upsert_prediction_tracking(date: str, data: Dict):
