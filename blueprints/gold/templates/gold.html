@@ -3509,8 +3509,8 @@ function renderPriceRangeChart(data) {
       datasets: [{
         label: '最高价',
         data: highVals,
-        borderColor: cva('--danger', 0.5),
-        backgroundColor: cva('--danger', 0.08),
+        borderColor: cva('--bull', 0.6),
+        backgroundColor: cva('--bull', 0.08),
         fill: '+1',
         tension: 0.3,
         pointRadius: 0,
@@ -3518,8 +3518,8 @@ function renderPriceRangeChart(data) {
       },{
         label: '最低价',
         data: lowVals,
-        borderColor: cva('--danger', 0.5),
-        backgroundColor: cva('--danger', 0.08),
+        borderColor: cva('--bear', 0.6),
+        backgroundColor: cva('--bear', 0.08),
         fill: false,
         tension: 0.3,
         pointRadius: 0,
