@@ -739,12 +739,29 @@ def format_report(date: str, contract: str, positions: List[Dict],
         lines.append("")
         lines.append("━━━━━━━━━━━━━━━━━━━━━━")
         lines.append("🔄 模型自迭代")
-        mode_label = "LLM+规则" if iter_status.get("llm_available") else "纯规则"
-        lines.append(f"  迭代模式：{mode_label}")
-        if iter_status.get("enabled"):
-            lines.append(f"  状态：已启用（已验证{iter_status.get('verified_samples',0)}个样本）")
+        phase = iter_status.get("iteration_phase", "")
+        if phase == "light":
+            mode_label = "轻量规则"
         else:
-            lines.append(f"  状态：待激活（需{iter_status.get('min_samples_required',20)}个验证样本，当前{iter_status.get('verified_samples',0)}个）")
+            mode_label = "LLM+规则" if iter_status.get("llm_available") else "纯规则"
+        lines.append(f"  迭代模式：{mode_label}")
+        if iter_status.get("formal_enabled"):
+            lines.append(f"  状态：正式迭代（已验证{iter_status.get('verified_samples',0)}个样本）")
+        elif iter_status.get("enabled"):
+            lines.append(
+                f"  状态：轻量迭代（已验证{iter_status.get('verified_samples',0)}个样本，"
+                f"正式迭代需{iter_status.get('min_samples_required',20)}个）"
+            )
+        elif phase == "observation":
+            lines.append(
+                f"  状态：观察期（已验证{iter_status.get('verified_samples',0)}个样本，"
+                f"轻量迭代需{iter_status.get('light_min_samples',8)}个）"
+            )
+        else:
+            lines.append(
+                f"  状态：样本收集中（轻量迭代需{iter_status.get('light_min_samples',8)}个验证样本，"
+                f"当前{iter_status.get('verified_samples',0)}个）"
+            )
         if iter_status.get("total_iterations", 0) > 0:
             lines.append(f"  累计迭代：{iter_status['total_iterations']}次")
             lines.append(f"  上次迭代：{iter_status.get('last_iteration', '未知')}")

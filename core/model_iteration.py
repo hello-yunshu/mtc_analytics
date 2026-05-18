@@ -29,11 +29,16 @@ from .db import (
     update_iteration_state, insert_iteration_history,
     get_iteration_history, delete_latest_iteration_history,
     insert_weight_snapshot, get_weight_snapshot, get_latest_weight_snapshot,
+    get_report_stats,
 )
 
 MIN_WEIGHT = 0.01
 MAX_WEIGHT = 0.25
 MIN_FACTOR_OBSERVATIONS = 8
+EARLY_OBSERVATION_SAMPLES = 5
+LIGHT_ITERATION_SAMPLES = 8
+LIGHT_FACTOR_OBSERVATIONS = 5
+LIGHT_ADJUSTMENT_SCALE = 0.5
 IC_EPSILON = 1e-12
 LLM_MAX_TOKENS = 500
 CONVERGENCE_THRESHOLD = 3
@@ -134,6 +139,15 @@ FACTOR_LABELS = {
     "news_sentiment": "新闻情绪",
     "seasonality": "季节性",
 }
+
+
+def _format_ic_value(value) -> str:
+    if value is None:
+        return "N/A"
+    try:
+        return f"{float(value):+.2f}"
+    except (TypeError, ValueError):
+        return "N/A"
 
 
 def _get_iteration_data() -> Dict:
@@ -259,7 +273,8 @@ def _normalize_weights(weights: Dict) -> Dict:
     return raw
 
 
-def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True) -> Dict:
+def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True,
+                            min_samples: Optional[int] = None) -> Dict:
     """
     分析每个因子的预测贡献准确率 + 信息系数(IC)
     当 use_period_verify=True 时，使用对应周期的验证字段：
@@ -270,7 +285,8 @@ def analyze_factor_accuracy(tracking: List[Dict], use_period_verify: bool = True
     """
     cfg = _get_config()
     verified = [r for r in tracking if _is_iteration_sample(r)]
-    if len(verified) < cfg["min_samples"]:
+    required_samples = cfg["min_samples"] if min_samples is None else min_samples
+    if len(verified) < required_samples:
         return {}
 
     factor_stats = {}
@@ -420,7 +436,9 @@ def compute_overall_accuracy(tracking: List[Dict]) -> Dict:
     }
 
 
-def rule_based_adjust(factor_stats: Dict, current_weights: Dict) -> Tuple[Dict, List[str]]:
+def rule_based_adjust(factor_stats: Dict, current_weights: Dict, *,
+                      adjustment_scale: float = 1.0,
+                      min_factor_observations: int = MIN_FACTOR_OBSERVATIONS) -> Tuple[Dict, List[str]]:
     """
     基于规则微调权重（准确率 + IC 双指标）
     - 准确率 > 60% 且 IC > 0 的因子微增权重
@@ -437,7 +455,7 @@ def rule_based_adjust(factor_stats: Dict, current_weights: Dict) -> Tuple[Dict, 
         if factor not in new_weights:
             continue
         acc = stats["accuracy"]
-        if stats.get("total", 0) < MIN_FACTOR_OBSERVATIONS:
+        if stats.get("total", 0) < min_factor_observations:
             continue
         ic_raw = stats.get("ic")
         try:
@@ -462,11 +480,11 @@ def rule_based_adjust(factor_stats: Dict, current_weights: Dict) -> Tuple[Dict, 
         combined_signal *= sample_weight
 
         if combined_signal > 0.01:
-            delta = min(cfg["max_adjustment"] * period_mult, combined_signal * 0.06 * period_mult)
+            delta = min(cfg["max_adjustment"] * period_mult, combined_signal * 0.06 * period_mult) * adjustment_scale
             adjustments[factor] = delta
             reasons.append(f"{period_label}{FACTOR_LABELS.get(factor, factor)}准确率{acc:.0%}/IC={ic:+.2f}，权重+{delta:.3f}")
         elif combined_signal < -0.01:
-            delta = -min(cfg["max_adjustment"] * period_mult, abs(combined_signal) * 0.06 * period_mult)
+            delta = -min(cfg["max_adjustment"] * period_mult, abs(combined_signal) * 0.06 * period_mult) * adjustment_scale
             adjustments[factor] = delta
             reasons.append(f"{period_label}{FACTOR_LABELS.get(factor, factor)}准确率{acc:.0%}/IC={ic:+.2f}，权重{delta:.3f}")
 
@@ -781,11 +799,26 @@ def run_iteration(force: bool = False) -> Dict:
     }
 
     verified = [r for r in tracking if _is_iteration_sample(r)]
+    verified_count = len(verified)
+    formal_min_samples = cfg["min_samples"]
+    light_min_samples = min(LIGHT_ITERATION_SAMPLES, formal_min_samples)
+    observation_min_samples = min(EARLY_OBSERVATION_SAMPLES, light_min_samples)
 
-    if len(verified) < cfg["min_samples"] and not force:
-        result["reason"] = f"已验证非中性样本不足（{len(verified)}/{cfg['min_samples']}），暂不启动自迭代"
+    if verified_count < light_min_samples and not force:
+        if verified_count >= observation_min_samples:
+            result["reason"] = (
+                f"已进入早期观察期（{verified_count}/{light_min_samples}），"
+                f"达到{light_min_samples}条后启动轻量自迭代，{formal_min_samples}条后进入正式迭代"
+            )
+        else:
+            result["reason"] = (
+                f"已验证非中性样本不足（{verified_count}/{light_min_samples}），"
+                f"{observation_min_samples}条进入观察，{light_min_samples}条启动轻量自迭代"
+            )
         print(f"  [迭代] {result['reason']}")
         return result
+
+    light_iteration = verified_count < formal_min_samples
 
     iter_data = _get_iteration_data()
     today = datetime.now().strftime("%Y-%m-%d")
@@ -808,10 +841,14 @@ def run_iteration(force: bool = False) -> Dict:
             pass
 
     overall_acc = compute_overall_accuracy(tracking)
-    factor_stats = analyze_factor_accuracy(tracking)
+    analysis_min_samples = 1 if force else (light_min_samples if light_iteration else formal_min_samples)
+    factor_stats = analyze_factor_accuracy(tracking, min_samples=analysis_min_samples)
 
     if not factor_stats:
-        result["reason"] = "因子统计数据不足"
+        if light_iteration:
+            result["reason"] = f"轻量迭代样本已达标，但分周期因子统计仍不足（{verified_count}/{formal_min_samples}）"
+        else:
+            result["reason"] = "因子统计数据不足"
         return result
 
     settings = load_json(os.path.join(_DATA_DIR, "web_settings.json")) or {}
@@ -826,17 +863,36 @@ def run_iteration(force: bool = False) -> Dict:
                 "cb_gold": 0.07, "etf_flow": 0.06, "price_trend": 0.10,
                 "volatility": 0.06, "news_sentiment": 0.09, "seasonality": 0.05,
             }.get(factor_key, 0.05)
+    raw_weight_total = sum(current_weights.values())
+    normalized_current_weights = _normalize_weights(current_weights)
+    normalized_drift = sum(
+        abs(normalized_current_weights.get(k, 0) - current_weights.get(k, 0))
+        for k in normalized_current_weights
+    )
+    normalization_needed = normalized_drift > 0.001
+    current_weights = normalized_current_weights
 
     snapshot_name = _save_weight_snapshot(current_weights, "自迭代前快照")
 
-    new_weights, rule_reasons = rule_based_adjust(factor_stats, current_weights)
+    if light_iteration:
+        new_weights, rule_reasons = rule_based_adjust(
+            factor_stats, current_weights,
+            adjustment_scale=LIGHT_ADJUSTMENT_SCALE,
+            min_factor_observations=LIGHT_FACTOR_OBSERVATIONS,
+        )
+        if rule_reasons:
+            rule_reasons.insert(0, f"早期轻量迭代：有效样本{verified_count}/{formal_min_samples}，规则调整幅度减半")
+    else:
+        new_weights, rule_reasons = rule_based_adjust(factor_stats, current_weights)
 
     api_key, base_url, model, llm_enabled = get_llm_config()
     llm_budget = get_llm_budget()
     llm_result = None
     llm_reasons = []
 
-    if llm_enabled and llm_budget > 0:
+    if light_iteration:
+        result["mode"] = "light_rule"
+    elif llm_enabled and llm_budget > 0:
         llm_result = llm_diagnose(tracking, factor_stats, overall_acc)
         if llm_result:
             new_weights, llm_reasons = apply_llm_suggestions(llm_result, new_weights)
@@ -848,10 +904,13 @@ def run_iteration(force: bool = False) -> Dict:
         result["mode"] = "rule"
 
     all_reasons = rule_reasons + llm_reasons
+    if normalization_needed:
+        all_reasons.insert(0, f"配置权重归一化：原始权重合计{raw_weight_total:.2f}，已校正为1.00")
 
-    consensus_reasons = _consensus_based_adjust(tracking, current_weights, new_weights)
-    if consensus_reasons:
-        all_reasons.extend(consensus_reasons)
+    if not light_iteration:
+        consensus_reasons = _consensus_based_adjust(tracking, current_weights, new_weights)
+        if consensus_reasons:
+            all_reasons.extend(consensus_reasons)
 
     total_adj = sum(abs(new_weights.get(k, 0) - current_weights.get(k, 0)) for k in new_weights)
     if total_adj > MAX_TOTAL_ADJUSTMENT:
@@ -863,7 +922,7 @@ def run_iteration(force: bool = False) -> Dict:
         all_reasons.append(f"全局调整约束：总调整{total_adj:.4f}超限，缩放至{MAX_TOTAL_ADJUSTMENT}")
 
     effective_adj = sum(abs(new_weights.get(k, 0) - current_weights.get(k, 0)) for k in new_weights)
-    if effective_adj < 0.001:
+    if effective_adj < 0.001 and not normalization_needed:
         all_reasons = []
 
     if not all_reasons:
@@ -921,9 +980,26 @@ def get_iteration_status() -> Dict:
     tracking = get_all_prediction_tracking(days=365)
 
     verified = [r for r in tracking if _is_iteration_sample(r)]
+    verified_count = len(verified)
+    formal_min_samples = cfg["min_samples"]
+    light_min_samples = min(LIGHT_ITERATION_SAMPLES, formal_min_samples)
+    observation_min_samples = min(EARLY_OBSERVATION_SAMPLES, light_min_samples)
+    if verified_count >= formal_min_samples:
+        iteration_phase = "formal"
+        phase_label = "正式迭代"
+    elif verified_count >= light_min_samples:
+        iteration_phase = "light"
+        phase_label = "轻量迭代"
+    elif verified_count >= observation_min_samples:
+        iteration_phase = "observation"
+        phase_label = "观察期"
+    else:
+        iteration_phase = "collecting"
+        phase_label = "样本收集中"
 
     overall_acc = compute_overall_accuracy(tracking)
-    factor_stats = analyze_factor_accuracy(tracking)
+    factor_stats_min_samples = light_min_samples if verified_count >= light_min_samples else formal_min_samples
+    factor_stats = analyze_factor_accuracy(tracking, min_samples=factor_stats_min_samples)
 
     api_key, _, model, llm_enabled = get_llm_config()
     llm_budget = get_llm_budget()
@@ -936,6 +1012,7 @@ def get_iteration_status() -> Dict:
     neutral_pred = sum(1 for r in tracking if r.get("prediction") in ("中性",))
     directional_actual = sum(1 for r in tracking if _is_directional_actual(r.get("actual_direction", "")))
     has_period = sum(1 for r in tracking if _has_period_verification(r))
+    report_stats = get_report_stats(days=365)
     failure_details = []
     for r in tracking:
         reason = _diagnose_sample_failure(r)
@@ -943,18 +1020,30 @@ def get_iteration_status() -> Dict:
             failure_details.append({"date": r.get("date", ""), "prediction": r.get("prediction", ""), "reason": reason})
 
     status = {
-        "enabled": len(verified) >= cfg["min_samples"],
-        "verified_samples": len(verified),
-        "min_samples_required": cfg["min_samples"],
+        "enabled": verified_count >= light_min_samples,
+        "formal_enabled": verified_count >= formal_min_samples,
+        "iteration_phase": iteration_phase,
+        "phase_label": phase_label,
+        "verified_samples": verified_count,
+        "min_samples_required": formal_min_samples,
+        "light_min_samples": light_min_samples,
+        "observation_min_samples": observation_min_samples,
         "total_predictions": total,
         "sample_breakdown": {
+            "reports_total": int(report_stats.get("total_reports") or 0),
+            "report_days": int(report_stats.get("report_days") or 0),
             "total": total,
             "verified": verified_count,
             "neutral_prediction": neutral_pred,
             "directional_actual": directional_actual,
             "has_period_verification": has_period,
-            "pass_all": len(verified),
+            "pass_all": verified_count,
             "fail_details": failure_details[-10:],
+            "note": (
+                "自迭代按已验证非中性预测日计数；同一天多份报告只形成一个预测追踪样本。"
+                f"{observation_min_samples}条进入观察，{light_min_samples}条轻量迭代，"
+                f"{formal_min_samples}条正式迭代。"
+            ),
         },
         "overall_accuracy": overall_acc,
         "factor_accuracy": {
@@ -962,7 +1051,7 @@ def get_iteration_status() -> Dict:
                 "accuracy": f"{v['accuracy']:.0%}",
                 "correct": v["correct"],
                 "total": v["total"],
-                "ic": f"{v.get('ic', 0):+.2f}",
+                "ic": _format_ic_value(v.get("ic")),
                 "significant": _binomial_test(v["correct"], v["total"], bonferroni_factor=len(WEIGHT_KEY_MAP)),
                 "period": PERIOD_LABELS.get(v.get("period", ""), ""),
             }

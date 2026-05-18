@@ -3017,9 +3017,20 @@ async function loadIterationStatus() {
     if (!res.ok) return;
     const data = await res.json();
     let html = '';
-    const modeLabel = data.llm_available ? '🤖 LLM+规则' : '📐 纯规则';
-    const enabledLabel = data.enabled ? '✅ 已启用' : `⏳ 样本不足(${data.verified_samples}/${data.min_samples_required})`;
+    const modeLabel = data.iteration_phase === 'light' ? '📐 轻量规则' : (data.llm_available ? '🤖 LLM+规则' : '📐 纯规则');
+    let enabledLabel = '';
+    if (data.formal_enabled) {
+      enabledLabel = `✅ 正式迭代(${data.verified_samples}/${data.min_samples_required})`;
+    } else if (data.enabled) {
+      enabledLabel = `🧪 轻量迭代(${data.verified_samples}/${data.min_samples_required})`;
+    } else if (data.iteration_phase === 'observation') {
+      enabledLabel = `👀 观察期(${data.verified_samples}/${data.light_min_samples || 8})`;
+    } else {
+      enabledLabel = `⏳ 有效样本不足(${data.verified_samples}/${data.light_min_samples || data.min_samples_required})`;
+    }
     const breakdown = data.sample_breakdown || {};
+    const bdReports = breakdown.reports_total || 0;
+    const bdReportDays = breakdown.report_days || 0;
     const bdTotal = breakdown.total || 0;
     const bdVerified = breakdown.verified || 0;
     const bdNeutral = breakdown.neutral_prediction || 0;
@@ -3042,9 +3053,18 @@ async function loadIterationStatus() {
     html += `<div style="text-align:center"><div style="font-size:9px;color:var(--text3)">迭代次数</div><div style="font-size:13px;font-weight:700;color:var(--text)">${data.total_iterations||0}</div></div>`;
     html += `</div>`;
 
-    if (!data.enabled && bdTotal > 0) {
+    if (!data.formal_enabled && (bdTotal > 0 || bdReports > 0)) {
       html += `<div style="font-size:9px;color:var(--text3);margin-bottom:8px;line-height:1.6;background:var(--glass);padding:6px 8px;border-radius:var(--radius-sm)">`;
-      html += `样本诊断：共${bdTotal}条 → 已验证${bdVerified} → 非中性预测${bdTotal - bdNeutral} → 方向性实际${bdDirActual} → 达标${bdPass}`;
+      if (bdReports > 0) {
+        html += `报告${bdReports}份/${bdReportDays}日 → `;
+      }
+      html += `预测追踪${bdTotal}日 → 已验证${bdVerified} → 非中性预测${bdTotal - bdNeutral} → 方向性实际${bdDirActual} → 达标${bdPass}`;
+      if (breakdown.note) {
+        html += `<div style="margin-top:4px">${escHtml(breakdown.note)}</div>`;
+      }
+      if (data.phase_label) {
+        html += `<div style="margin-top:4px">当前阶段：${escHtml(data.phase_label)}</div>`;
+      }
       const fails = breakdown.fail_details || [];
       if (fails.length > 0) {
         html += `<div style="margin-top:4px">最近失败：`;
@@ -3078,7 +3098,7 @@ async function loadIterationStatus() {
         const accNum = parseFloat(info.accuracy);
         const color = accNum >= 60 ? 'var(--bull)' : accNum >= 40 ? 'var(--gold)' : 'var(--bear)';
         const periodTag = info.period ? `<span style="font-size:8px;opacity:0.6">${info.period}</span>` : '';
-        const icTag = info.ic ? `<span style="font-size:8px;opacity:0.7">IC${info.ic}</span>` : '';
+        const icTag = info.ic && info.ic !== 'N/A' ? `<span style="font-size:8px;opacity:0.7">IC${info.ic}</span>` : '';
         const sigTag = info.significant && info.significant !== '不显著' && info.significant !== '样本不足' ? `<span style="font-size:8px;color:var(--bull)">${info.significant}</span>` : '';
         html += `<span style="background:var(--glass-border);border-radius:var(--radius-xs);padding:2px 6px;font-size:10px;color:${color}">${name} ${info.accuracy} ${icTag} ${sigTag} ${periodTag}</span>`;
       }
@@ -3262,8 +3282,9 @@ function renderIterationSection(text) {
     const item = statLines[si];
     let valueColor = 'var(--text)';
     if (item.val.includes('LLM')) valueColor = 'var(--gold)';
-    else if (item.val.includes('已启用') || item.val.includes('纯规则')) valueColor = 'var(--bull)';
-    else if (item.val.includes('待激活')) valueColor = 'var(--text3)';
+    else if (item.val.includes('正式迭代') || item.val.includes('轻量迭代') || item.val.includes('纯规则')) valueColor = 'var(--bull)';
+    else if (item.val.includes('观察期')) valueColor = 'var(--gold)';
+    else if (item.val.includes('待激活') || item.val.includes('样本收集中')) valueColor = 'var(--text3)';
 
     const isOddLast = si === statLines.length - 1 && statLines.length % 2 === 1;
     inner += `<div class="sub-panel${isOddLast ? ' span-full' : ''}" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--radius-xs)">`;

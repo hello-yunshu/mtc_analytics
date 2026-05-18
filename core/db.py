@@ -942,6 +942,32 @@ def get_report(date: str) -> Optional[str]:
             conn.close()
 
 
+def get_report_stats(days: int = 365) -> Dict:
+    with _db_lock:
+        conn = _get_conn()
+        try:
+            cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+            row = conn.execute(
+                """
+                SELECT COUNT(*) AS total_reports,
+                       COUNT(DISTINCT date) AS report_days,
+                       MIN(date) AS first_report_date,
+                       MAX(date) AS latest_report_date
+                FROM reports
+                WHERE date >= ?
+                """,
+                (cutoff,)
+            ).fetchone()
+            return dict(row) if row else {
+                "total_reports": 0,
+                "report_days": 0,
+                "first_report_date": "",
+                "latest_report_date": "",
+            }
+        finally:
+            conn.close()
+
+
 def get_report_by_id(report_id: int) -> Optional[Dict]:
     with _db_lock:
         conn = _get_conn()
@@ -955,14 +981,12 @@ def get_report_by_id(report_id: int) -> Optional[Dict]:
             conn.close()
 
 
-def get_report_dates_by_gen(days: int = 30) -> List[Dict]:
+def get_report_dates_by_gen(limit: int = 30) -> List[Dict]:
     with _db_lock:
         conn = _get_conn()
         try:
-            cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             rows = conn.execute(
-                "SELECT id, date, created_at FROM reports WHERE date >= ? ORDER BY created_at DESC",
-                (cutoff,)
+                "SELECT id, date, created_at FROM reports ORDER BY created_at DESC"
             ).fetchall()
             seen = set()
             result = []
@@ -975,6 +999,8 @@ def get_report_dates_by_gen(days: int = 30) -> List[Dict]:
                         "data_date": r["date"],
                         "gen_time": r["created_at"][:19].replace("T", " "),
                     })
+                if len(result) >= limit:
+                    break
             return result
         finally:
             conn.close()
