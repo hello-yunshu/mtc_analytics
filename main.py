@@ -159,9 +159,9 @@ from core.db import (
 )
 
 
-def _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data=None):
+def _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data=None, report_date=None):
     current_price = gold_prices[-1]["close"] if gold_prices else 0
-    date_str = today_data.get("date", "")
+    date_str = report_date or today_data.get("date", "")
     record = {
         "date": date_str,
         "prediction": prediction.get("direction", ""),
@@ -199,14 +199,20 @@ def _verify_previous_prediction(gold_prices):
             prices_by_date[d] = p.get("close", 0)
     sorted_dates = sorted(prices_by_date.keys())
 
+    verified_count = 0
+    skipped_count = 0
     for record in tracking:
         pred_dir = record.get("prediction", "")
-        if pred_dir == "中性":
-            continue
         pred_date = record.get("date", "")
         pred_price = record.get("price_at_prediction", 0)
         if not pred_price or not pred_date:
+            skipped_count += 1
             continue
+
+        if pred_date in prices_by_date and prices_by_date[pred_date] > 0:
+            base_price = prices_by_date[pred_date]
+        else:
+            base_price = pred_price
 
         verified_data = {}
         verified_periods = []
@@ -220,11 +226,11 @@ def _verify_previous_prediction(gold_prices):
 
         if next_date and next_date in prices_by_date:
             next_price = prices_by_date[next_date]
-            price_change_pct = (next_price - pred_price) / pred_price * 100 if pred_price > 0 else 0
+            price_change_pct = (next_price - base_price) / base_price * 100 if base_price > 0 else 0
             latest_verified_date = next_date
         else:
             current_price = gold_prices[-1]["close"]
-            price_change_pct = (current_price - pred_price) / pred_price * 100 if pred_price > 0 else 0
+            price_change_pct = (current_price - base_price) / base_price * 100 if base_price > 0 else 0
             latest_verified_date = gold_prices[-1].get("date", "")
 
         if abs(price_change_pct) > 0.15:
@@ -250,7 +256,7 @@ def _verify_previous_prediction(gold_prices):
             target_date = target_dates[days - 1]
             if target_date in prices_by_date:
                 target_price = prices_by_date[target_date]
-                change_pct = (target_price - pred_price) / pred_price * 100 if pred_price > 0 else 0
+                change_pct = (target_price - base_price) / base_price * 100 if base_price > 0 else 0
                 latest_verified_date = target_date
                 if abs(change_pct) > 0.15:
                     period_dir = "看多" if change_pct > 0 else "看空"
@@ -269,8 +275,12 @@ def _verify_previous_prediction(gold_prices):
         if verified_periods:
             try:
                 update_prediction_verification(pred_date, verified_data)
+                verified_count += 1
             except Exception:
                 pass
+
+    if tracking:
+        _logger.info("  预测验证: 共%d条待验证, 成功%d条, 跳过%d条(无价格/日期)", len(tracking), verified_count, skipped_count)
 
 
 def _has_today_report():
@@ -503,6 +513,7 @@ def run_daily_task(skip_telegram=False):
 
     # 7. 智能预测
     _logger.info("[9/9] 正在运行智能预测...")
+    report_date_str = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
     prediction = None
     gold_prices = []
     try:
@@ -534,7 +545,7 @@ def run_daily_task(skip_telegram=False):
             _logger.info("  预测: %s（置信度%d%%，评分%+.2f）", prediction['direction'], prediction['confidence'], prediction['score'])
             if consensus_comparison:
                 _logger.info("  机构共识: %s", consensus_comparison.get('description', ''))
-            _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data)
+            _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data, report_date=report_date_str)
         else:
             _logger.info("  金价数据不足，尝试自动回填历史数据...")
             try:
@@ -558,7 +569,7 @@ def run_daily_task(skip_telegram=False):
                             prediction["confidence"] = max(20, prediction["confidence"] - 15)
                             prediction["partial_data"] = True
                         _logger.info("  预测: %s（置信度%d%%，评分%+.2f）", prediction['direction'], prediction['confidence'], prediction['score'])
-                        _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data)
+                        _save_prediction_tracking(today_data, prediction, gold_prices, consensus_data, report_date=report_date_str)
                     else:
                         _logger.info("  回填后金价数据仍不足，等待下次定时任务")
                 else:

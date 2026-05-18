@@ -209,6 +209,21 @@ def _is_iteration_sample(record: Dict) -> bool:
     return _is_directional_actual(record.get("actual_direction", "")) or _has_period_verification(record)
 
 
+def _diagnose_sample_failure(record: Dict) -> str:
+    if not record.get("verified"):
+        return "未验证"
+    if record.get("prediction") in ("中性",):
+        return "预测为中性"
+    if not _is_directional_actual(record.get("actual_direction", "")):
+        if not _has_period_verification(record):
+            ad = record.get("actual_direction", "")
+            p5 = record.get("actual_direction_5d", "")
+            p10 = record.get("actual_direction_10d", "")
+            p20 = record.get("actual_direction_20d", "")
+            return f"实际方向中性(ad={ad},5d={p5},10d={p10},20d={p20})"
+    return ""
+
+
 def _normalize_weights(weights: Dict) -> Dict:
     raw = {k: max(MIN_WEIGHT, float(v)) for k, v in weights.items()}
     if not raw:
@@ -916,10 +931,31 @@ def get_iteration_status() -> Dict:
     llm_settings = get_llm_settings()
     llm_limits = get_model_token_limits(model, llm_settings)
 
+    total = len(tracking)
+    verified_count = sum(1 for r in tracking if r.get("verified"))
+    neutral_pred = sum(1 for r in tracking if r.get("prediction") in ("中性",))
+    directional_actual = sum(1 for r in tracking if _is_directional_actual(r.get("actual_direction", "")))
+    has_period = sum(1 for r in tracking if _has_period_verification(r))
+    failure_details = []
+    for r in tracking:
+        reason = _diagnose_sample_failure(r)
+        if reason:
+            failure_details.append({"date": r.get("date", ""), "prediction": r.get("prediction", ""), "reason": reason})
+
     status = {
         "enabled": len(verified) >= cfg["min_samples"],
         "verified_samples": len(verified),
         "min_samples_required": cfg["min_samples"],
+        "total_predictions": total,
+        "sample_breakdown": {
+            "total": total,
+            "verified": verified_count,
+            "neutral_prediction": neutral_pred,
+            "directional_actual": directional_actual,
+            "has_period_verification": has_period,
+            "pass_all": len(verified),
+            "fail_details": failure_details[-10:],
+        },
         "overall_accuracy": overall_acc,
         "factor_accuracy": {
             FACTOR_LABELS.get(k, k): {

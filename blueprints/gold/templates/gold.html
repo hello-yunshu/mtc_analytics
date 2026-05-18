@@ -358,7 +358,8 @@
 .login-box { width: 360px; }
 
 /* ===== Tabs ===== */
-.tab-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+.tab-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.tab-bar::-webkit-scrollbar { display: none; }
 .tab-group { display: inline-flex; align-items: center; gap: 3px; }
 .tab-item {
   padding: 6px 14px;
@@ -375,6 +376,7 @@
   backdrop-filter: var(--blur-sm);
   -webkit-backdrop-filter: var(--blur-sm);
   box-shadow: var(--button-shadow);
+  flex-shrink: 0;
 }
 .tab-item:hover { background: var(--button-hover); border-color: var(--button-border-hover); color: var(--text); box-shadow: var(--button-hover-shadow); transform: translateY(-1px); }
 .tab-item.active { background: var(--button-gold-bg); color: var(--gold); border-color: var(--button-gold-border); box-shadow: var(--button-gold-shadow); }
@@ -3017,6 +3019,12 @@ async function loadIterationStatus() {
     let html = '';
     const modeLabel = data.llm_available ? '🤖 LLM+规则' : '📐 纯规则';
     const enabledLabel = data.enabled ? '✅ 已启用' : `⏳ 样本不足(${data.verified_samples}/${data.min_samples_required})`;
+    const breakdown = data.sample_breakdown || {};
+    const bdTotal = breakdown.total || 0;
+    const bdVerified = breakdown.verified || 0;
+    const bdNeutral = breakdown.neutral_prediction || 0;
+    const bdDirActual = breakdown.directional_actual || 0;
+    const bdPass = breakdown.pass_all || 0;
     const accPct = data.overall_accuracy ? (data.overall_accuracy.accuracy * 100).toFixed(1) : '0.0';
     const recentPct = data.overall_accuracy ? (data.overall_accuracy.recent_accuracy * 100).toFixed(1) : '0.0';
     const tokenUsed = data.token_usage ? data.token_usage.used : 0;
@@ -3033,6 +3041,18 @@ async function loadIterationStatus() {
     html += `<div style="text-align:center"><div style="font-size:9px;color:var(--text3)">近期准确率</div><div style="font-size:13px;font-weight:700;color:${parseFloat(recentPct)>=60?'var(--bull)':parseFloat(recentPct)>=45?'var(--gold)':'var(--bear)'}">${recentPct}%</div></div>`;
     html += `<div style="text-align:center"><div style="font-size:9px;color:var(--text3)">迭代次数</div><div style="font-size:13px;font-weight:700;color:var(--text)">${data.total_iterations||0}</div></div>`;
     html += `</div>`;
+
+    if (!data.enabled && bdTotal > 0) {
+      html += `<div style="font-size:9px;color:var(--text3);margin-bottom:8px;line-height:1.6;background:var(--glass);padding:6px 8px;border-radius:var(--radius-sm)">`;
+      html += `样本诊断：共${bdTotal}条 → 已验证${bdVerified} → 非中性预测${bdTotal - bdNeutral} → 方向性实际${bdDirActual} → 达标${bdPass}`;
+      const fails = breakdown.fail_details || [];
+      if (fails.length > 0) {
+        html += `<div style="margin-top:4px">最近失败：`;
+        fails.slice(-5).forEach(f => { html += `<span style="margin-right:6px">${f.date}: ${f.reason}</span>`; });
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
 
     if (data.llm_available) {
       const pct = Math.round(tokenUsed / tokenBudget * 100);
