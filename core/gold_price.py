@@ -3,11 +3,11 @@
 实时金价模块 - 多源实时抓取 + 每日归档
 
 数据源（按优先级）：
-  1. AKShare 伦敦金 XAU（新浪源，国内稳定，USD/oz）
-  2. AKShare COMEX 黄金（新浪源，国内稳定，USD/oz）
-  3. Yahoo Finance 5分钟K线（GC=F COMEX黄金期货，实时）
-  4. api.gold-api.com（现货黄金XAU，备用）
-  5. Swissquote Forex Feed（买卖价，备用）
+  1. Yahoo Finance 5分钟K线（GC=F COMEX黄金期货，近实时）
+  2. api.gold-api.com（现货黄金XAU，实时）
+  3. Swissquote Forex Feed（买卖价，实时）
+  4. AKShare 伦敦金 XAU（新浪源，国内稳定，15分钟延迟兜底）
+  5. AKShare COMEX 黄金（新浪源，国内稳定，15分钟延迟兜底）
   6. 数据库缓存（最后手段）
 
 国内金价（补充）：
@@ -353,9 +353,28 @@ def _parse_akshare_time(row):
 def get_realtime_price() -> Optional[Dict]:
     """
     获取实时金价（多源fallback）
+    优先级：Yahoo Finance(近实时) > gold-api.com(实时) > Swissquote(实时) > AKShare(新浪，15分钟延迟作为兜底)
     成功时更新缓存，失败时返回上次缓存
     """
     market_status = get_market_status()
+
+    result = _fetch_yahoo_realtime()
+    if result:
+        _fetch_domestic_price()
+        result["market_status"] = market_status
+        return result
+
+    result = _fetch_gold_api()
+    if result:
+        _fetch_domestic_price()
+        result["market_status"] = market_status
+        return result
+
+    result = _fetch_swissquote()
+    if result:
+        _fetch_domestic_price()
+        result["market_status"] = market_status
+        return result
 
     if _check_akshare():
         result = _fetch_akshare_xau()
@@ -369,22 +388,6 @@ def get_realtime_price() -> Optional[Dict]:
             _fetch_domestic_price()
             result["market_status"] = market_status
             return result
-
-    result = _fetch_yahoo_realtime()
-    if result:
-        _fetch_domestic_price()
-        result["market_status"] = market_status
-        return result
-
-    result = _fetch_gold_api()
-    if result:
-        result["market_status"] = market_status
-        return result
-
-    result = _fetch_swissquote()
-    if result:
-        result["market_status"] = market_status
-        return result
 
     print(f"  [WARN] 所有实时金价源均失败，使用上次缓存")
     with _realtime_cache_lock:

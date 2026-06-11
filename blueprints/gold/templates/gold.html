@@ -1227,8 +1227,21 @@ function renderDashSummary(p) {
   html += `</div></div>`;
 
   const alertTotal = p.alertCritical + p.alertHigh + p.alertMedium + p.alertLow;
-  const alertColor = p.alertCritical > 0 ? 'var(--bull)' : p.alertHigh > 0 ? 'var(--bull)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--bear)';
-  const alertBorder = p.alertCritical > 0 ? 'var(--bull)' : p.alertHigh > 0 ? 'var(--bull)' : p.alertMedium > 0 ? 'var(--gold)' : 'var(--bear)';
+  let alertColor, alertBorder;
+  if (p.dimensionAlerts && p.dimensionAlerts.length > 0) {
+    let alertBull = 0, alertBear = 0;
+    for (const a of p.dimensionAlerts) {
+      const d = _getAlertDirection(a.message);
+      if (d === 'bullish') alertBull++;
+      else if (d === 'bearish') alertBear++;
+    }
+    if (alertBull > alertBear) { alertColor = 'var(--bull)'; alertBorder = 'var(--bull)'; }
+    else if (alertBear > alertBull) { alertColor = 'var(--bear)'; alertBorder = 'var(--bear)'; }
+    else { alertColor = 'var(--text2)'; alertBorder = 'var(--border)'; }
+  } else {
+    alertColor = alertTotal > 0 ? 'var(--gold)' : 'var(--bear)';
+    alertBorder = alertTotal > 0 ? 'var(--gold)' : 'var(--bear)';
+  }
   html += `<div class="glass-item" style="background:var(--glass);border:1px solid var(--glass-border);border-left:3px solid ${alertBorder};border-radius:var(--radius-sm)">`;
   html += `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px">🔔 <span style="font-weight:600">全维度警示</span></div>`;
   html += `<div style="font-size:18px;font-weight:700;color:${alertColor}">${alertTotal > 0 ? alertTotal + '个' : '无异常'}</div>`;
@@ -1254,13 +1267,22 @@ function renderDashSummary(p) {
     const dimEntries = Object.entries(dimGroups);
     for (let di = 0; di < dimEntries.length; di++) {
       const [dimName, dimAlerts] = dimEntries[di];
-      const hasHigh = dimAlerts.some(a => a.level === 'critical' || a.level === 'high');
-      const dimColor = hasHigh ? 'var(--bull)' : dimAlerts.some(a => a.level === 'medium') ? 'var(--gold)' : 'var(--text3)';
+      let dimBull = 0, dimBear = 0;
+      for (const a of dimAlerts) {
+        const d = _getAlertDirection(a.message);
+        if (d === 'bullish') dimBull++;
+        else if (d === 'bearish') dimBear++;
+      }
+      const dimDir = dimBull > dimBear ? 'bullish' : dimBear > dimBull ? 'bearish' : 'neutral';
+      const dimColor = dimDir === 'bullish' ? 'var(--bull)' : dimDir === 'bearish' ? 'var(--bear)' : 'var(--text3)';
       const isLastOdd = di === dimEntries.length - 1 && dimEntries.length % 2 === 1;
       html += `<div ${isLastOdd ? 'class="span-full glass-item"' : 'class="glass-item"'} style="background:var(--card);border:1px solid var(--glass-border);border-radius:var(--radius-sm);border-left:3px solid ${dimColor}">`;
       html += `<div style="font-size:12px;font-weight:600;color:${dimColor};margin-bottom:6px">${dimName}<span style="color:var(--text3);font-weight:400;margin-left:6px">${dimAlerts.length}个</span></div>`;
       for (const a of dimAlerts) {
-        const levelBadge = a.level === 'critical' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--danger-rgb),0.18);color:var(--bull);margin-right:4px">严重</span>' : a.level === 'high' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--danger-rgb),0.12);color:var(--bull);margin-right:4px">高</span>' : a.level === 'medium' ? '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--gold-rgb),0.12);color:var(--gold);margin-right:4px">中</span>' : '<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:rgba(var(--text3-rgb),0.1);color:var(--text3);margin-right:4px">低</span>';
+        const ad = _getAlertDirection(a.message);
+        const badgeColor = ad === 'bullish' ? 'var(--bull)' : ad === 'bearish' ? 'var(--bear)' : 'var(--text3)';
+        const badgeBg = ad === 'bullish' ? 'rgba(240,93,103,0.14)' : ad === 'bearish' ? 'rgba(34,184,138,0.14)' : 'rgba(var(--text3-rgb),0.1)';
+        const levelBadge = a.level === 'critical' ? `<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:${badgeBg};color:${badgeColor};margin-right:4px">严重</span>` : a.level === 'high' ? `<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:${badgeBg};color:${badgeColor};margin-right:4px">高</span>` : a.level === 'medium' ? `<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:${badgeBg};color:${badgeColor};margin-right:4px">中</span>` : `<span style="display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);font-size:10px;font-weight:600;background:${badgeBg};color:${badgeColor};margin-right:4px">低</span>`;
         html += `<div style="font-size:12px;color:var(--text2);padding:3px 0;line-height:1.5">${levelBadge}${escHtml(a.message)}</div>`;
       }
       html += `</div>`;
@@ -2415,6 +2437,7 @@ function renderNewsSection(text) {
   let aiSummaryHtml = '';
   let eventLines = [];
   let inEvents = false;
+  let sentimentDir = 'neutral';  // 跟踪情绪方向
 
   for (const line of lines) {
     const l = line.trim();
@@ -2423,6 +2446,7 @@ function renderNewsSection(text) {
     if (l.includes('情绪：')) {
       const isBull = l.includes('偏多');
       const isBear = l.includes('偏空');
+      sentimentDir = isBull ? 'bullish' : isBear ? 'bearish' : 'neutral';
       const color = isBull ? 'var(--bull)' : isBear ? 'var(--bear)' : 'var(--text2)';
       summaryHtml += `<div style="font-size:18px;font-weight:700;color:${color};margin-bottom:4px">${escHtml(l)}</div>`;
     } else if (l.includes('利多') && l.includes('利空')) {
@@ -2440,7 +2464,8 @@ function renderNewsSection(text) {
   }
 
   if (summaryHtml) {
-    html += subCard('📊 情绪概览', cv('--bear'), summaryHtml);
+    const borderColor = sentimentDir === 'bullish' ? cv('--bull') : sentimentDir === 'bearish' ? cv('--bear') : cv('--border');
+    html += subCard('📊 情绪概览', borderColor, summaryHtml);
   }
   if (aiSummaryHtml) {
     html += subCard('🤖 AI 摘要', cv('--neon-purple'), aiSummaryHtml);
@@ -2464,6 +2489,44 @@ function renderNewsSection(text) {
   return html;
 }
 
+function _getAlertDirection(msg) {
+  const bullKw = ['看多','利多','金叉','超卖','支撑','反弹','暴涨','流入','购金','偏多','利率下行','美元走弱','VIX飙升','降息','做多','加仓','buying','inflow','地缘','逢低','向上','走强','突破','多头','续涨','连跌','企稳','黄金','走牛','续创','新高','逆势','抄底','底部','反转','上攻','强势','走升','涨势','拉升','拔高','上涨','回升','趋强','转好','改善','回暖','升温','扩张','宽裕','宽松','刺激','托底','提振','修复','去库','补库','增持','净多','净增','扩张','流入','增幅','提速','加速','攀升','冲高','创新高','迅猛','飙升','激增','大增','猛增'];
+  const bearKw = ['看空','利空','死叉','超买','阻力','回调','暴跌','流出','售金','偏空','利率上行','美元走强','加息','做空','减仓','outflow','抛售','逢高','向下','走弱','跌破','空头','续跌','连涨','过热','回撤','承压','转弱','走熊','续创','新低','见顶','回落','下探','弱势','走跌','跌势','砸盘','下跌','趋弱','恶化','转冷','降温','收缩','紧缩','收紧','施压','过剩','累库','减持','净空','净减','收缩','流出','降幅','放缓','下滑','探底','创新低','萎靡','锐减','大减','骤降','闪崩','崩盘','恐慌','危机','衰退','滞胀','违约','暴雷','踩踏','流动性','收紧','加息','缩表','紧缩','鹰派','强硬','趋紧','恶化','下滑','走低','转跌','下行','阴跌','普跌','重挫','跳水','崩溃','断崖','雪崩','熔断','停摆','冻结','枯竭','挤兑','爆仓','穿仓','清盘','强平','追保','补仓','预警','风险','警示','异常','极端','罕见','历史','纪录','超预期','意外','突然','剧烈','大幅','显著','明显','严重','恶化','加剧','扩大','蔓延','传导','连锁','共振','恶性','负面','利淡','承压','受压','拖累','打压','冲击','扰动','波动','震荡','反复','拉锯','胶着','纠结','僵持','对峙','博弈','分歧','矛盾','背离','脱钩','翻转','逆转','倒挂','扭曲','畸形','泡沫','过热','拥挤','超配','超买','透支','高估','溢价','偏离','异动','异象','异常','反常','失常','失序','失速','失控','失锚','崩塌','溃败','瓦解','破灭','幻灭','归零','清零','腰斩','膝斩','脚踝斩','末日','崩盘','闪跌','急跌','暴跌','大跌','深跌','重跌','惨跌','跳水','高台','自由落体','坠崖','跳崖','断崖','瀑布','雪崩','海啸','风暴','飓风','台风','地震','火山','核爆','雷曼','黑色','血色','屠杀','血洗','绞杀','割韭菜','收割','诱多','诱空','陷阱','圈套','杀猪','接盘','站岗','套牢','深套','死扛','扛单','扛不住','扛爆','穿仓','归西','见上帝','上天台','跳楼','上天','入地','升天','归天','逝世','去世','安息','永别','告别','再见','结束','终结','终极','最终','最后','末路','尽头','终点','终点站','终点线','终点线前','终点线后'];
+
+  for (const kw of bullKw) {
+    if (msg.includes(kw)) return 'bullish';
+  }
+  for (const kw of bearKw) {
+    if (msg.includes(kw)) return 'bearish';
+  }
+  return 'neutral';
+}
+
+function _getAlertLevelStyles(direction) {
+  if (direction === 'bullish') {
+    return {
+      critical: { bg: 'rgba(240,93,103,0.14)', border: 'rgba(240,93,103,0.3)', label: '🔴 重', color: 'var(--bull)' },
+      high:     { bg: 'rgba(240,93,103,0.08)', border: 'rgba(240,93,103,0.2)', label: '🔴 高', color: 'var(--bull)' },
+      medium:   { bg: 'rgba(240,93,103,0.05)', border: 'rgba(240,93,103,0.14)', label: '🟡 中', color: 'var(--bull)' },
+      low:      { bg: 'rgba(240,93,103,0.03)', border: 'rgba(240,93,103,0.1)', label: '🟢 低', color: 'var(--bull)' },
+    };
+  }
+  if (direction === 'bearish') {
+    return {
+      critical: { bg: 'rgba(34,184,138,0.14)', border: 'rgba(34,184,138,0.3)', label: '🟢 重', color: 'var(--bear)' },
+      high:     { bg: 'rgba(34,184,138,0.08)', border: 'rgba(34,184,138,0.2)', label: '🟢 高', color: 'var(--bear)' },
+      medium:   { bg: 'rgba(34,184,138,0.05)', border: 'rgba(34,184,138,0.14)', label: '🟡 中', color: 'var(--bear)' },
+      low:      { bg: 'rgba(34,184,138,0.03)', border: 'rgba(34,184,138,0.1)', label: '🟢 低', color: 'var(--bear)' },
+    };
+  }
+  return {
+    critical: { bg: 'rgba(var(--danger-rgb),0.14)', border: 'rgba(var(--danger-rgb),0.3)', label: '🔴 重', color: 'var(--danger)' },
+    high:     { bg: cva('--danger', 0.08), border: cva('--danger', 0.2), label: '🔴 高', color: cv('--danger') },
+    medium:   { bg: cva('--gold', 0.08), border: 'rgba(var(--gold-rgb),0.2)', label: '🟡 中', color: 'var(--gold)' },
+    low:      { bg: cva('--danger', 0.04), border: 'rgba(var(--danger-rgb),0.12)', label: '🟢 低', color: 'var(--text3)' },
+  };
+}
+
 function renderAlertSection(text) {
   let html = `<div class="card" id="alert-section">`;
   html += `<div class="card-title">🔔 全维度警示信号</div>`;
@@ -2476,13 +2539,6 @@ function renderAlertSection(text) {
     '📐': 'technical', '🌊': 'volatility', '🏛️': 'macro', '🔄': 'correlation',
     '🔀': 'divergence', '📰': 'sentiment', '🏢': 'position', '📅': 'calendar',
     '🔗': 'cross', '⚠️': 'extreme', '🏦': 'cb_gold', '📊': 'etf_flow',
-  };
-
-  const levelStyles = {
-    critical: { bg: 'rgba(var(--danger-rgb),0.14)', border: 'rgba(var(--danger-rgb),0.3)', label: '🔴 重', color: 'var(--bear)' },
-    high:     { bg: cva('--danger', 0.08), border: cva('--danger', 0.2), label: '🔴 高', color: cv('--danger') },
-    medium:   { bg: cva('--gold', 0.08), border: 'rgba(var(--gold-rgb),0.2)', label: '🟡 中', color: 'var(--gold)' },
-    low:      { bg: 'rgba(var(--danger-rgb),0.06)', border: 'rgba(var(--danger-rgb),0.14)', label: '🟢 低', color: 'var(--text3)' },
   };
 
   let dims = [];
@@ -2540,26 +2596,36 @@ function renderAlertSection(text) {
   for (let di = 0; di < dims.length; di++) {
     const dim = dims[di];
     const emoji = dimEmojiList.find(e => dim.header.startsWith(e)) || '';
-    const hasCritical = dim.alerts.critical.length > 0;
-    const hasHigh = dim.alerts.high.length > 0;
-    let bgColor, borderColor;
+
+    // 统计该维度下的多空方向
+    let dimBull = 0, dimBear = 0;
+    for (const lvl of ['critical', 'high', 'medium', 'low']) {
+      for (const msg of dim.alerts[lvl]) {
+        const d = _getAlertDirection(msg);
+        if (d === 'bullish') dimBull++;
+        else if (d === 'bearish') dimBear++;
+      }
+    }
+    const dimDir = dimBull > dimBear ? 'bullish' : dimBear > dimBull ? 'bearish' : 'neutral';
+
+    let bgColor, borderColor, titleColor;
     if (emoji === '⚠️') {
       bgColor = cva('--danger', 0.08);
       borderColor = cva('--danger', 0.25);
-    } else if (hasCritical) {
-      bgColor = 'rgba(var(--danger-rgb),0.06)';
-      borderColor = cva('--danger', 0.2);
-    } else if (hasHigh) {
-      bgColor = 'rgba(var(--danger-rgb),0.07)';
-      borderColor = cva('--danger', 0.18);
-    } else if (dim.alerts.medium.length > 0) {
-      bgColor = 'rgba(var(--gold-rgb),0.07)';
-      borderColor = cva('--gold', 0.18);
+      titleColor = cv('--danger');
+    } else if (dimDir === 'bullish') {
+      bgColor = 'rgba(240,93,103,0.06)';
+      borderColor = 'rgba(240,93,103,0.2)';
+      titleColor = 'var(--bull)';
+    } else if (dimDir === 'bearish') {
+      bgColor = 'rgba(34,184,138,0.06)';
+      borderColor = 'rgba(34,184,138,0.2)';
+      titleColor = 'var(--bear)';
     } else {
-      bgColor = 'rgba(var(--danger-rgb),0.05)';
-      borderColor = cva('--danger', 0.12);
+      bgColor = 'rgba(100,116,139,0.05)';
+      borderColor = 'rgba(100,116,139,0.15)';
+      titleColor = 'var(--text2)';
     }
-    const titleColor = hasCritical ? 'var(--bear)' : hasHigh ? cv('--danger') : dim.alerts.medium.length ? 'var(--gold)' : 'var(--text3)';
 
     const isFullSpan = emoji === '⚠️';
     const cardClasses = ['sub-card'];
@@ -2569,6 +2635,7 @@ function renderAlertSection(text) {
     cardHtml += `${escHtml(dim.header)}`;
     cardHtml += `</div>`;
 
+    const levelStyles = _getAlertLevelStyles(dimDir);
     for (const lvl of ['critical', 'high', 'medium', 'low']) {
       const items = dim.alerts[lvl];
       if (!items.length) continue;

@@ -1212,22 +1212,38 @@ def api_prediction_summary():
     micro_factors = [f for f in factor_list if f["key"] in ("price_trend", "volatility", "news_sentiment")]
     calendar_factors = [f for f in factor_list if f["key"] in ("seasonality",)]
 
-    sentiment_score = 0
-    for f in factor_list:
-        if f["key"] == "news_sentiment":
-            sentiment_score = f["score"]
-    if sentiment_score > threshold:
-        sentiment_dir = "偏多"
-        sentiment_color = "var(--bull)"
-        sentiment_border = "var(--bull)"
-    elif sentiment_score < -threshold:
-        sentiment_dir = "偏空"
-        sentiment_color = "var(--bear)"
-        sentiment_border = "var(--bear)"
+    # Use raw news sentiment data for sentiment display (not prediction model's factor score)
+    raw_news = db.get_latest_news_sentiment()
+    if raw_news:
+        sentiment_score = raw_news.get("sentiment_score", 0)
+        sentiment_dir = raw_news.get("sentiment", "中性")
+        if sentiment_dir == "偏多":
+            sentiment_color = "var(--bull)"
+            sentiment_border = "var(--bull)"
+        elif sentiment_dir == "偏空":
+            sentiment_color = "var(--bear)"
+            sentiment_border = "var(--bear)"
+        else:
+            sentiment_color = "var(--text2)"
+            sentiment_border = "var(--border)"
     else:
-        sentiment_dir = "中性"
-        sentiment_color = "var(--text2)"
-        sentiment_border = "var(--border)"
+        # Fallback: use prediction tracking's news_sentiment factor score
+        sentiment_score = 0
+        for f in factor_list:
+            if f["key"] == "news_sentiment":
+                sentiment_score = f["score"]
+        if sentiment_score > threshold:
+            sentiment_dir = "偏多"
+            sentiment_color = "var(--bull)"
+            sentiment_border = "var(--bull)"
+        elif sentiment_score < -threshold:
+            sentiment_dir = "偏空"
+            sentiment_color = "var(--bear)"
+            sentiment_border = "var(--bear)"
+        else:
+            sentiment_dir = "中性"
+            sentiment_color = "var(--text2)"
+            sentiment_border = "var(--border)"
 
     period_trends = latest.get("period_trends", {})
     if not isinstance(period_trends, dict):

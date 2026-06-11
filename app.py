@@ -145,7 +145,7 @@ def create_app():
 
     @app.route("/api/health")
     def health_check():
-        return jsonify({"status": "ok", "version": "2.0.0", "name": "MTC Analytics"})
+        return jsonify({"status": "ok", "version": "2.0.1", "name": "MTC Analytics"})
 
     @app.route("/api/change_password", methods=["POST"])
     def api_change_password():
